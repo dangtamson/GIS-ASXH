@@ -1,0 +1,414 @@
+[
+  {
+    "name": "An Bình",
+    "level": "Phường"
+  },
+  {
+    "name": "An Lạc Thôn",
+    "level": "Xã"
+  },
+  {
+    "name": "An Ninh",
+    "level": "Xã"
+  },
+  {
+    "name": "An Thạnh",
+    "level": "Xã"
+  },
+  {
+    "name": "Bình Thủy",
+    "level": "Phường"
+  },
+  {
+    "name": "Cái Khế",
+    "level": "Phường"
+  },
+  {
+    "name": "Cái Răng",
+    "level": "Phường"
+  },
+  {
+    "name": "Châu Thành",
+    "level": "Xã"
+  },
+  {
+    "name": "Cờ Đỏ",
+    "level": "Xã"
+  },
+  {
+    "name": "Cù Lao Dung",
+    "level": "Xã"
+  },
+  {
+    "name": "Đại Hải",
+    "level": "Xã"
+  },
+  {
+    "name": "Đại Ngãi",
+    "level": "Xã"
+  },
+  {
+    "name": "Đại Thành",
+    "level": "Phường"
+  },
+  {
+    "name": "Đông Hiệp",
+    "level": "Xã"
+  },
+  {
+    "name": "Đông Phước",
+    "level": "Xã"
+  },
+  {
+    "name": "Đông Thuận",
+    "level": "Xã"
+  },
+  {
+    "name": "Gia Hòa",
+    "level": "Xã"
+  },
+  {
+    "name": "Hiệp Hưng",
+    "level": "Xã"
+  },
+  {
+    "name": "Hồ Đắc Kiện",
+    "level": "Xã"
+  },
+  {
+    "name": "Hòa An",
+    "level": "Xã"
+  },
+  {
+    "name": "Hỏa Lựu",
+    "level": "Xã"
+  },
+  {
+    "name": "Hòa Tú",
+    "level": "Xã"
+  },
+  {
+    "name": "Hưng Phú",
+    "level": "Phường"
+  },
+  {
+    "name": "Kế Sách",
+    "level": "Xã"
+  },
+  {
+    "name": "Khánh Hòa",
+    "level": "Phường"
+  },
+  {
+    "name": "Lai Hòa",
+    "level": "Xã"
+  },
+  {
+    "name": "Lâm Tân",
+    "level": "Xã"
+  },
+  {
+    "name": "Lịch Hội Thượng",
+    "level": "Xã"
+  },
+  {
+    "name": "Liêu Tú",
+    "level": "Xã"
+  },
+  {
+    "name": "Long Bình",
+    "level": "Phường"
+  },
+  {
+    "name": "Long Hưng",
+    "level": "Xã"
+  },
+  {
+    "name": "Long Mỹ",
+    "level": "Phường"
+  },
+  {
+    "name": "Long Phú",
+    "level": "Xã"
+  },
+  {
+    "name": "Long Phú 1",
+    "level": "Phường"
+  },
+  {
+    "name": "Long Tuyền",
+    "level": "Phường"
+  },
+  {
+    "name": "Lương Tâm",
+    "level": "Xã"
+  },
+  {
+    "name": "Mỹ Hương",
+    "level": "Xã"
+  },
+  {
+    "name": "Mỹ Phước",
+    "level": "Xã"
+  },
+  {
+    "name": "Mỹ Quới",
+    "level": "Phường"
+  },
+  {
+    "name": "Mỹ Tú",
+    "level": "Xã"
+  },
+  {
+    "name": "Mỹ Xuyên",
+    "level": "Phường"
+  },
+  {
+    "name": "Ngã Bảy",
+    "level": "Phường"
+  },
+  {
+    "name": "Ngã Năm",
+    "level": "Phường"
+  },
+  {
+    "name": "Ngọc Tố",
+    "level": "Xã"
+  },
+  {
+    "name": "Nhơn Ái",
+    "level": "Xã"
+  },
+  {
+    "name": "Nhơn Mỹ",
+    "level": "Xã"
+  },
+  {
+    "name": "Nhu Gia",
+    "level": "Xã"
+  },
+  {
+    "name": "Ninh Kiều",
+    "level": "Phường"
+  },
+  {
+    "name": "Ô Môn",
+    "level": "Phường"
+  },
+  {
+    "name": "Phong Điền",
+    "level": "Xã"
+  },
+  {
+    "name": "Phong Nẫm",
+    "level": "Xã"
+  },
+  {
+    "name": "Phú Hữu",
+    "level": "Xã"
+  },
+  {
+    "name": "Phú Lộc",
+    "level": "Xã"
+  },
+  {
+    "name": "Phú Lợi",
+    "level": "Phường"
+  },
+  {
+    "name": "Phú Tâm",
+    "level": "Xã"
+  },
+  {
+    "name": "Phụng Hiệp",
+    "level": "Xã"
+  },
+  {
+    "name": "Phước Thới",
+    "level": "Phường"
+  },
+  {
+    "name": "Phương Bình",
+    "level": "Xã"
+  },
+  {
+    "name": "Sóc Trăng",
+    "level": "Phường"
+  },
+  {
+    "name": "Tài Văn",
+    "level": "Xã"
+  },
+  {
+    "name": "Tân An",
+    "level": "Phường"
+  },
+  {
+    "name": "Tân Bình",
+    "level": "Xã"
+  },
+  {
+    "name": "Tân Hòa",
+    "level": "Xã"
+  },
+  {
+    "name": "Tân Lộc",
+    "level": "Phường"
+  },
+  {
+    "name": "Tân Long",
+    "level": "Xã"
+  },
+  {
+    "name": "Tân Phước Hưng",
+    "level": "Xã"
+  },
+  {
+    "name": "Tân Thạnh",
+    "level": "Xã"
+  },
+  {
+    "name": "Thạnh An",
+    "level": "Xã"
+  },
+  {
+    "name": "Thạnh Hòa",
+    "level": "Xã"
+  },
+  {
+    "name": "Thạnh Phú",
+    "level": "Xã"
+  },
+  {
+    "name": "Thạnh Quới",
+    "level": "Xã"
+  },
+  {
+    "name": "Thạnh Thới An",
+    "level": "Xã"
+  },
+  {
+    "name": "Thạnh Xuân",
+    "level": "Xã"
+  },
+  {
+    "name": "Thới An Đông",
+    "level": "Phường"
+  },
+  {
+    "name": "Thới An Hội",
+    "level": "Xã"
+  },
+  {
+    "name": "Thới Hưng",
+    "level": "Xã"
+  },
+  {
+    "name": "Thới Lai",
+    "level": "Xã"
+  },
+  {
+    "name": "Thới Long",
+    "level": "Phường"
+  },
+  {
+    "name": "Thốt Nốt",
+    "level": "Phường"
+  },
+  {
+    "name": "Thuận Hòa",
+    "level": "Xã"
+  },
+  {
+    "name": "Thuận Hưng",
+    "level": "Phường"
+  },
+  {
+    "name": "Trần Đề",
+    "level": "Xã"
+  },
+  {
+    "name": "Trung Hưng",
+    "level": "Xã"
+  },
+  {
+    "name": "Trung Nhứt",
+    "level": "Phường"
+  },
+  {
+    "name": "Trường Khánh",
+    "level": "Xã"
+  },
+  {
+    "name": "Trường Long",
+    "level": "Xã"
+  },
+  {
+    "name": "Trường Long Tây",
+    "level": "Xã"
+  },
+  {
+    "name": "Trường Thành",
+    "level": "Xã"
+  },
+  {
+    "name": "Trường Xuân",
+    "level": "Xã"
+  },
+  {
+    "name": "Vị Tân",
+    "level": "Phường"
+  },
+  {
+    "name": "Vị Thanh",
+    "level": "Phường"
+  },
+  {
+    "name": "Vị Thanh 1",
+    "level": "Xã"
+  },
+  {
+    "name": "Vị Thủy",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Châu",
+    "level": "Phường"
+  },
+  {
+    "name": "Vĩnh Hải",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Lợi",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Phước",
+    "level": "Phường"
+  },
+  {
+    "name": "Vĩnh Thạnh",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Thuận Đông",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Trinh",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Tường",
+    "level": "Xã"
+  },
+  {
+    "name": "Vĩnh Viễn",
+    "level": "Xã"
+  },
+  {
+    "name": "Xà Phiên",
+    "level": "Xã"
+  }
+]

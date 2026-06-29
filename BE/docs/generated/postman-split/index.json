@@ -1,0 +1,52 @@
+[
+  {
+    "group": "accounts",
+    "requestCount": 4,
+    "file": "admin/admin-accounts.postman-collection.json"
+  },
+  {
+    "group": "audit-logs",
+    "requestCount": 2,
+    "file": "admin/admin-audit-logs.postman-collection.json"
+  },
+  {
+    "group": "categories",
+    "requestCount": 5,
+    "file": "admin/admin-categories.postman-collection.json"
+  },
+  {
+    "group": "category-items",
+    "requestCount": 5,
+    "file": "admin/admin-category-items.postman-collection.json"
+  },
+  {
+    "group": "memberships",
+    "requestCount": 1,
+    "file": "admin/admin-memberships.postman-collection.json"
+  },
+  {
+    "group": "organizations",
+    "requestCount": 5,
+    "file": "admin/admin-organizations.postman-collection.json"
+  },
+  {
+    "group": "permissions",
+    "requestCount": 5,
+    "file": "admin/admin-permissions.postman-collection.json"
+  },
+  {
+    "group": "role-permissions",
+    "requestCount": 5,
+    "file": "admin/admin-role-permissions.postman-collection.json"
+  },
+  {
+    "group": "roles",
+    "requestCount": 5,
+    "file": "admin/admin-roles.postman-collection.json"
+  },
+  {
+    "group": "workspaces",
+    "requestCount": 1,
+    "file": "admin/admin-workspaces.postman-collection.json"
+  }
+]

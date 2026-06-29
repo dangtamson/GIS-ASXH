@@ -1,0 +1,614 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Permissions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "fc66af46-edbe-4b6d-bd4c-b80e45789fcb",
+      "name": "List permissions",
+      "request": {
+        "name": "List permissions",
+        "description": {
+          "content": "Get permissions with filter/search/sort and pagination (SuperAdmin only, requires permission: admin.rbac.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "permissions"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "disabled": false,
+              "key": "search",
+              "value": "<string>"
+            },
+            {
+              "disabled": false,
+              "key": "sortBy",
+              "value": "id"
+            },
+            {
+              "disabled": false,
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "dbb2fd1d-2803-46ab-8e9d-da2263b49c8c",
+          "name": "Permission list fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "permissions"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "<string>"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "id"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 894.9404694291419,\n  \"message\": \"string\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 8144,\n        \"code\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\"\n      },\n      {\n        \"id\": 9912,\n        \"code\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 9882,\n      \"limit\": 2170,\n      \"total\": 5301,\n      \"pages\": 4438\n    },\n    \"filters\": {\n      \"search\": \"string\",\n      \"sortBy\": \"id\",\n      \"sortOrder\": \"asc\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "3568c163-97d2-4235-ae19-cad6755a7924",
+      "name": "Create permission",
+      "request": {
+        "name": "Create permission",
+        "description": {
+          "content": "Create permission record (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "permissions"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "51d88a54-f7ff-4179-ad80-a531fc282da5",
+          "name": "Permission created successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "permissions"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"document.view\",\n  \"name\": \"View documents\",\n  \"description\": \"Allows reading documents\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 6424.398026508371,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 9262,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "14271a7f-3aa1-4ab9-867d-a2f616e351a4",
+      "name": "Get permission by id",
+      "request": {
+        "name": "Get permission by id",
+        "description": {
+          "content": "Get permission detail by id (SuperAdmin only, requires permission: admin.rbac.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "permissions",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "e194ff07-850d-4927-9e50-7e017f3b838b",
+          "name": "Permission fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "permissions",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 6424.398026508371,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 9262,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "00c81279-eb5e-4bb0-8467-31f3efa01cd7",
+      "name": "Update permission",
+      "request": {
+        "name": "Update permission",
+        "description": {
+          "content": "Update permission by id (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "permissions",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "a674ec65-89da-4d09-ab90-b1b4c3aa28e7",
+          "name": "Permission updated successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "permissions",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 6424.398026508371,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 9262,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "fff864a8-1a19-4fb6-bcee-73ea8edae83a",
+      "name": "Delete permission",
+      "request": {
+        "name": "Delete permission",
+        "description": {
+          "content": "Delete permission by id (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "permissions",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "DELETE",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "00cca0ae-becc-4c20-b81f-dcfbe097b9c8",
+          "name": "Permission deleted successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "permissions",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 6424.398026508371,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 9262,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

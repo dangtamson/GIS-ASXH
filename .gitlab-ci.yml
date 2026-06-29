@@ -1,0 +1,197 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  GIT_DEPTH: "0"
+  GIT_STRATEGY: clone
+  REGISTRY: "$CI_REGISTRY"
+  CACHE: "false"
+  DEPLOY_PATH_STAGING: "/opt/quanlytheodoinhiemvu-staging"
+  DEPLOY_PATH_PRODUCTION: "/opt/quanlytheodoinhiemvu"
+  DEPLOY_PORT_STAGING: "22"
+  DEPLOY_PORT_PRODUCTION: "22"
+  BACKEND_PORT_STAGING: "4000"
+  BACKEND_PORT_PRODUCTION: "4000"
+  FRONTEND_PORT_STAGING: "3000"
+  FRONTEND_PORT_PRODUCTION: "3000"
+  POSTGRES_HOST_STAGING: "postgres"
+  POSTGRES_HOST_PRODUCTION: "postgres"
+  POSTGRES_PORT_STAGING: "5432"
+  POSTGRES_PORT_PRODUCTION: "5432"
+  POSTGRES_USER_STAGING: "postgres"
+  POSTGRES_USER_PRODUCTION: "postgres"
+  POSTGRES_PASSWORD_STAGING: "postgres"
+  POSTGRES_PASSWORD_PRODUCTION: "postgres"
+  POSTGRES_DB_STAGING: "postgres"
+  POSTGRES_DB_PRODUCTION: "postgres"
+  KANIKO_MEMORY: "4Gi"
+
+# ================= BUILD TEMPLATE =================
+.build_template:
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "/busybox/sh", "-c" ]
+  tags:
+    - kaniko
+
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - |
+      cat > /kaniko/.docker/config.json <<EOF
+      {
+        "auths": {
+          "$REGISTRY": {
+            "username": "$CI_REGISTRY_USER",
+            "password": "$CI_REGISTRY_PASSWORD"
+          }
+        }
+      }
+      EOF
+
+# ================= BUILD BACKEND (STAGING) =================
+build_backend_staging:
+  stage: build
+  extends: .build_template
+  script:
+    - >
+      /kaniko/executor --context ./BE --dockerfile ./BE/Dockerfile --destination
+      $REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA --destination
+      $REGISTRY/$CI_PROJECT_PATH/backend:staging-latest --insecure
+      --skip-tls-verify --cache=$CACHE
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"staging\" && $CI_PIPELINE_SOURCE == \"push\""
+
+# ================= BUILD FRONTEND (STAGING) =================
+build_frontend_staging:
+  stage: build
+  extends: .build_template
+  script:
+    - >
+      /kaniko/executor --context ./FE --dockerfile ./FE/Dockerfile --destination
+      $REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA --destination
+      $REGISTRY/$CI_PROJECT_PATH/frontend:staging-latest --build-arg
+      NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_STAGING --insecure
+      --skip-tls-verify --cache=$CACHE
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"staging\" && $CI_PIPELINE_SOURCE == \"push\""
+
+# ================= BUILD BACKEND (PRODUCTION) =================
+build_backend_production:
+  stage: build
+  extends: .build_template
+  script:
+    - >
+      /kaniko/executor --context ./BE --dockerfile ./BE/Dockerfile --destination
+      $REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA --destination
+      $REGISTRY/$CI_PROJECT_PATH/backend:production-latest --insecure
+      --skip-tls-verify --cache=$CACHE
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"main\" && $CI_PIPELINE_SOURCE == \"push\""
+
+# ================= BUILD FRONTEND (PRODUCTION) =================
+build_frontend_production:
+  stage: build
+  extends: .build_template
+  script:
+    - >
+      /kaniko/executor --context ./FE --dockerfile ./FE/Dockerfile --destination
+      $REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA --destination
+      $REGISTRY/$CI_PROJECT_PATH/frontend:production-latest --build-arg
+      NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_PRODUCTION --insecure
+      --skip-tls-verify --cache=$CACHE
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"main\" && $CI_PIPELINE_SOURCE == \"push\""
+
+# ================= DEPLOY BASE =================
+.deploy_base:
+  stage: deploy
+  image: alpine:3.20
+  tags:
+    - kaniko
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/gitlab_vm_deploy
+    - chmod 600 ~/.ssh/gitlab_vm_deploy
+    - echo -e "Host *\n\tIdentityFile
+      ~/.ssh/gitlab_vm_deploy\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+
+  script:
+    - mkdir -p .deploy_tmp
+    - cp docker-compose.vm.yml .deploy_tmp/docker-compose.yml
+
+    - |
+      cat > .deploy_tmp/.env <<ENV_FILE
+      BE_IMAGE=$REGISTRY/$CI_PROJECT_PATH/backend:$CI_COMMIT_SHORT_SHA
+      FE_IMAGE=$REGISTRY/$CI_PROJECT_PATH/frontend:$CI_COMMIT_SHORT_SHA
+      BACKEND_PORT=${BACKEND_PORT}
+      FRONTEND_PORT=${FRONTEND_PORT}
+      POSTGRES_HOST=${POSTGRES_HOST}
+      POSTGRES_PORT=${POSTGRES_PORT}
+      POSTGRES_USER=${POSTGRES_USER}
+      POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      POSTGRES_DB=${POSTGRES_DB}
+      ENV_FILE
+
+    - printf "%s" "$BACKEND_ENV_FILE" | tr -d '\r' > .deploy_tmp/.env.backend
+
+    - ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
+
+    - scp -P "$DEPLOY_PORT" .deploy_tmp/docker-compose.yml .deploy_tmp/.env
+      .deploy_tmp/.env.backend "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+    - |
+      printf "%s" "$CI_REGISTRY_PASSWORD" | ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+      "docker login $REGISTRY -u $CI_REGISTRY_USER --password-stdin && \
+       cd '$DEPLOY_PATH' && \
+       docker compose pull && \
+       docker compose up -d --remove-orphans"
+
+# ================= DEPLOY STAGING =================
+deploy_staging:
+  extends: .deploy_base
+  needs:
+    - build_backend_staging
+    - build_frontend_staging
+  variables:
+    DEPLOY_HOST: $DEPLOY_HOST_STAGING
+    DEPLOY_USER: $DEPLOY_USER_STAGING
+    DEPLOY_PORT: $DEPLOY_PORT_STAGING
+    DEPLOY_PATH: /opt/quanlytheodoinhiemvu-staging
+    BACKEND_ENV_FILE: $BACKEND_ENV_FILE_STAGING
+    BACKEND_PORT: $BACKEND_PORT_STAGING
+    FRONTEND_PORT: $FRONTEND_PORT_STAGING
+    POSTGRES_HOST: $POSTGRES_HOST_STAGING
+    POSTGRES_PORT: $POSTGRES_PORT_STAGING
+    POSTGRES_USER: $POSTGRES_USER_STAGING
+    POSTGRES_PASSWORD: $POSTGRES_PASSWORD_STAGING
+    POSTGRES_DB: $POSTGRES_DB_STAGING
+  environment:
+    name: staging
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"staging\" && $CI_PIPELINE_SOURCE == \"push\""
+
+# ================= DEPLOY PRODUCTION =================
+deploy_production:
+  extends: .deploy_base
+  needs:
+    - build_backend_production
+    - build_frontend_production
+  variables:
+    DEPLOY_HOST: $DEPLOY_HOST_PRODUCTION
+    DEPLOY_USER: $DEPLOY_USER_PRODUCTION
+    DEPLOY_PORT: $DEPLOY_PORT_PRODUCTION
+    DEPLOY_PATH: /opt/quanlytheodoinhiemvu
+    BACKEND_ENV_FILE: $BACKEND_ENV_FILE_PRODUCTION
+    BACKEND_PORT: $BACKEND_PORT_PRODUCTION
+    FRONTEND_PORT: $FRONTEND_PORT_PRODUCTION
+    POSTGRES_HOST: $POSTGRES_HOST_PRODUCTION
+    POSTGRES_PORT: $POSTGRES_PORT_PRODUCTION
+    POSTGRES_USER: $POSTGRES_USER_PRODUCTION
+    POSTGRES_PASSWORD: $POSTGRES_PASSWORD_PRODUCTION
+    POSTGRES_DB: $POSTGRES_DB_PRODUCTION
+  environment:
+    name: production
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"main\" && $CI_PIPELINE_SOURCE == \"push\""

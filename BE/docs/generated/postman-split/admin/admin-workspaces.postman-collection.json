@@ -1,0 +1,194 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Workspaces",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "ee7feca5-be62-422c-b03b-4d877b4ba59e",
+      "name": "List all workspaces (SuperAdmin only)",
+      "request": {
+        "name": "List all workspaces (SuperAdmin only)",
+        "description": {
+          "content": "Get a paginated list of all workspaces in the system",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "workspaces"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1",
+              "description": "Page number for pagination"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "20",
+              "description": "Number of items per page"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "9c93f6ad-3a57-455a-bda0-b9015eb14262",
+          "name": "List of workspaces with pagination",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "workspaces"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 6075.3976608161975,\n  \"message\": \"string\",\n  \"data\": {\n    \"workspaces\": [\n      {\n        \"accountId\": \"f013c505-0d42-db00-8c37-9fc455e7f091\",\n        \"createdAt\": \"2005-03-09\",\n        \"description\": \"string\",\n        \"memberCount\": 8872.527329177385,\n        \"name\": \"string\",\n        \"uuid\": \"7fc3cc9a-6cfb-f30f-41da-437d034feead\"\n      },\n      {\n        \"accountId\": \"4ece3c67-bc4f-8a1d-856b-57a8e4b07724\",\n        \"createdAt\": \"1969-02-15\",\n        \"description\": \"string\",\n        \"memberCount\": 794.1683215168238,\n        \"name\": \"string\",\n        \"uuid\": \"50014105-8fc1-a70b-2f2a-847051c4deae\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 9015,\n      \"limit\": 1558,\n      \"total\": 7069,\n      \"pages\": 1354\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        },
+        {
+          "id": "1c82e4a7-32e5-44e7-84de-2cafb1267ace",
+          "name": "Forbidden - SuperAdmin access required",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "workspaces"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 5572.8932934385075,\n  \"message\": \"string\",\n  \"error\": \"string\"\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

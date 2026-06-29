@@ -1,0 +1,710 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Organizations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "4fa8fe93-57a5-4e2b-8b96-0d58be45a417",
+      "name": "List organizations",
+      "request": {
+        "name": "List organizations",
+        "description": {
+          "content": "Get organizations with filter/search/sort and pagination in the workspace context from x-workspace-id header (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "organizations"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "disabled": false,
+              "key": "parentId",
+              "value": "<uuid>"
+            },
+            {
+              "disabled": false,
+              "key": "status",
+              "value": "<boolean>"
+            },
+            {
+              "disabled": false,
+              "key": "search",
+              "value": "<string>"
+            },
+            {
+              "disabled": false,
+              "key": "createdFrom",
+              "value": "<dateTime>"
+            },
+            {
+              "disabled": false,
+              "key": "createdTo",
+              "value": "<dateTime>"
+            },
+            {
+              "disabled": false,
+              "key": "sortBy",
+              "value": "createdAt"
+            },
+            {
+              "disabled": false,
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "disabled": false,
+            "description": "(Required) Workspace ID for context",
+            "key": "x-workspace-id",
+            "value": "{{x_workspace_id}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "766561b6-5fb8-4b80-bb5e-46b67656e9b8",
+          "name": "organizations list fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "organizations"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "parentId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "status",
+                  "value": "<boolean>"
+                },
+                {
+                  "key": "search",
+                  "value": "<string>"
+                },
+                {
+                  "key": "createdFrom",
+                  "value": "<dateTime>"
+                },
+                {
+                  "key": "createdTo",
+                  "value": "<dateTime>"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "disabled": false,
+                "description": "(Required) Workspace ID for context",
+                "key": "x-workspace-id",
+                "value": "<uuid>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 699.3302848510563,\n  \"message\": \"string\",\n  \"data\": {\n    \"items\": [\n      {\n        \"uuid\": \"3214fd69-5758-b4ee-134f-78f0c748fd88\",\n        \"workspaceId\": \"1840a19b-9de7-3b37-e2fa-e94d894c7309\",\n        \"name\": \"string\",\n        \"code\": \"string\",\n        \"parentId\": \"d3017ea8-295b-35d9-8825-2adfb3f0a553\",\n        \"address\": \"string\",\n        \"phone\": \"string\",\n        \"email\": \"string\",\n        \"status\": true,\n        \"createdAt\": \"1972-05-15T00:49:40.670Z\",\n        \"updatedAt\": \"1994-02-15T00:17:22.234Z\",\n        \"deletedAt\": \"1969-02-22T21:28:07.078Z\"\n      },\n      {\n        \"uuid\": \"ebc503e7-638e-3294-ad69-f593ef8162ca\",\n        \"workspaceId\": \"fcd9cdb5-a728-ab62-9330-2fac26e605da\",\n        \"name\": \"string\",\n        \"code\": \"string\",\n        \"parentId\": \"88ff9955-1c38-83f9-eb8b-9b238d303085\",\n        \"address\": \"string\",\n        \"phone\": \"string\",\n        \"email\": \"string\",\n        \"status\": false,\n        \"createdAt\": \"2005-05-01T23:56:00.030Z\",\n        \"updatedAt\": \"1948-08-30T14:36:37.487Z\",\n        \"deletedAt\": \"1981-03-07T07:20:52.032Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 5967,\n      \"limit\": 6065,\n      \"total\": 6323,\n      \"pages\": 390\n    },\n    \"filters\": {\n      \"key_0\": {},\n      \"key_1\": {},\n      \"key_2\": {},\n      \"key_3\": {},\n      \"key_4\": {}\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "7be8a173-6709-4119-8b6b-7fb517c8fbf6",
+      "name": "Create organization",
+      "request": {
+        "name": "Create organization",
+        "description": {
+          "content": "Create organization record in the workspace context from x-workspace-id header (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "organizations"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": []
+        },
+        "header": [
+          {
+            "disabled": false,
+            "description": "(Required) Workspace ID for context",
+            "key": "x-workspace-id",
+            "value": "{{x_workspace_id}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"<string>\",\n  \"code\": \"<string>\",\n  \"parentId\": \"<uuid>\",\n  \"address\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"email\": \"<email>\",\n  \"status\": \"<boolean>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "309c96c3-1056-45a2-8d5e-5afd56e10705",
+          "name": "organization created successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "organizations"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "disabled": false,
+                "description": "(Required) Workspace ID for context",
+                "key": "x-workspace-id",
+                "value": "<uuid>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Legal Department\",\n  \"code\": \"ORG_LEGAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 1077.4302472821828,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"2e8aa750-7762-0b44-6cec-c684dedd6329\",\n      \"workspaceId\": \"1d560797-236b-effb-10ab-8b8163996286\",\n      \"name\": \"string\",\n      \"code\": \"string\",\n      \"parentId\": \"2f9ca967-fd81-200e-91f1-1d0322dca7f8\",\n      \"address\": \"string\",\n      \"phone\": \"string\",\n      \"email\": \"string\",\n      \"status\": true,\n      \"createdAt\": \"1965-01-25T19:44:27.531Z\",\n      \"updatedAt\": \"2000-09-27T20:53:50.879Z\",\n      \"deletedAt\": \"1991-01-14T08:17:34.640Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "175cb9c1-d1bb-43ea-beaf-e1b21d27f9ff",
+      "name": "Get organization by id",
+      "request": {
+        "name": "Get organization by id",
+        "description": {
+          "content": "Get organization detail by UUID in the workspace context from x-workspace-id header (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "organizations",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<uuid>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "disabled": false,
+            "description": "(Required) Workspace ID for context",
+            "key": "x-workspace-id",
+            "value": "{{x_workspace_id}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "47c23ff2-a695-4d44-bc95-b471454c307e",
+          "name": "organization fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "organizations",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "disabled": false,
+                "description": "(Required) Workspace ID for context",
+                "key": "x-workspace-id",
+                "value": "<uuid>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 1077.4302472821828,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"2e8aa750-7762-0b44-6cec-c684dedd6329\",\n      \"workspaceId\": \"1d560797-236b-effb-10ab-8b8163996286\",\n      \"name\": \"string\",\n      \"code\": \"string\",\n      \"parentId\": \"2f9ca967-fd81-200e-91f1-1d0322dca7f8\",\n      \"address\": \"string\",\n      \"phone\": \"string\",\n      \"email\": \"string\",\n      \"status\": true,\n      \"createdAt\": \"1965-01-25T19:44:27.531Z\",\n      \"updatedAt\": \"2000-09-27T20:53:50.879Z\",\n      \"deletedAt\": \"1991-01-14T08:17:34.640Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "cfa89dd7-827c-47de-bafc-eabd806dccee",
+      "name": "Update organization",
+      "request": {
+        "name": "Update organization",
+        "description": {
+          "content": "Update organization by UUID in the workspace context from x-workspace-id header (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "organizations",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<uuid>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "disabled": false,
+            "description": "(Required) Workspace ID for context",
+            "key": "x-workspace-id",
+            "value": "{{x_workspace_id}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"<string>\",\n  \"code\": \"<string>\",\n  \"parentId\": \"<uuid>\",\n  \"address\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"email\": \"<email>\",\n  \"status\": \"<boolean>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "a43922f3-c8e8-418d-9171-dd887bf7c1d1",
+          "name": "organization updated successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "organizations",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "disabled": false,
+                "description": "(Required) Workspace ID for context",
+                "key": "x-workspace-id",
+                "value": "<uuid>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"<string>\",\n  \"code\": \"<string>\",\n  \"parentId\": \"<uuid>\",\n  \"address\": \"<string>\",\n  \"phone\": \"<string>\",\n  \"email\": \"<email>\",\n  \"status\": \"<boolean>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 1077.4302472821828,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"2e8aa750-7762-0b44-6cec-c684dedd6329\",\n      \"workspaceId\": \"1d560797-236b-effb-10ab-8b8163996286\",\n      \"name\": \"string\",\n      \"code\": \"string\",\n      \"parentId\": \"2f9ca967-fd81-200e-91f1-1d0322dca7f8\",\n      \"address\": \"string\",\n      \"phone\": \"string\",\n      \"email\": \"string\",\n      \"status\": true,\n      \"createdAt\": \"1965-01-25T19:44:27.531Z\",\n      \"updatedAt\": \"2000-09-27T20:53:50.879Z\",\n      \"deletedAt\": \"1991-01-14T08:17:34.640Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "aa3bb268-ed65-4ddb-b306-cdb4d8c2f08d",
+      "name": "Delete organization",
+      "request": {
+        "name": "Delete organization",
+        "description": {
+          "content": "Delete organization by UUID in the workspace context from x-workspace-id header (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "organizations",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<uuid>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "disabled": false,
+            "description": "(Required) Workspace ID for context",
+            "key": "x-workspace-id",
+            "value": "{{x_workspace_id}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "DELETE",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "ed112ff2-d306-4206-a264-e3d9ea8ce709",
+          "name": "organization deleted successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "organizations",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "disabled": false,
+                "description": "(Required) Workspace ID for context",
+                "key": "x-workspace-id",
+                "value": "<uuid>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 1077.4302472821828,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"2e8aa750-7762-0b44-6cec-c684dedd6329\",\n      \"workspaceId\": \"1d560797-236b-effb-10ab-8b8163996286\",\n      \"name\": \"string\",\n      \"code\": \"string\",\n      \"parentId\": \"2f9ca967-fd81-200e-91f1-1d0322dca7f8\",\n      \"address\": \"string\",\n      \"phone\": \"string\",\n      \"email\": \"string\",\n      \"status\": true,\n      \"createdAt\": \"1965-01-25T19:44:27.531Z\",\n      \"updatedAt\": \"2000-09-27T20:53:50.879Z\",\n      \"deletedAt\": \"1991-01-14T08:17:34.640Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

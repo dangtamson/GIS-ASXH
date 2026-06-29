@@ -1,0 +1,671 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Role Permissions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "e83dd622-89e5-4d61-ad61-00816f99a424",
+      "name": "List role permissions",
+      "request": {
+        "name": "List role permissions",
+        "description": {
+          "content": "Get role-permission mappings with filtering and pagination (SuperAdmin only, requires permission: admin.rbac.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "role-permissions"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "disabled": false,
+              "key": "roleId",
+              "value": "<integer>"
+            },
+            {
+              "disabled": false,
+              "key": "permissionId",
+              "value": "<integer>"
+            },
+            {
+              "disabled": false,
+              "key": "sortBy",
+              "value": "roleId"
+            },
+            {
+              "disabled": false,
+              "key": "sortOrder",
+              "value": "asc"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "41a14543-6fea-4df6-b08d-70d6d6a21301",
+          "name": "Role permission list fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "role-permissions"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "roleId",
+                  "value": "<integer>"
+                },
+                {
+                  "key": "permissionId",
+                  "value": "<integer>"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "roleId"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 9062.176172676609,\n  \"message\": \"string\",\n  \"data\": {\n    \"items\": [\n      {\n        \"roleId\": 9099,\n        \"permissionId\": 838\n      },\n      {\n        \"roleId\": 2685,\n        \"permissionId\": 401\n      }\n    ],\n    \"pagination\": {\n      \"page\": 4458,\n      \"limit\": 4683,\n      \"total\": 3123,\n      \"pages\": 5019\n    },\n    \"filters\": {\n      \"roleId\": 5666,\n      \"permissionId\": 7827,\n      \"sortBy\": \"roleId\",\n      \"sortOrder\": \"asc\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "f9aa1ba8-3eb8-451c-b162-22d99741c9e8",
+      "name": "Create role permission",
+      "request": {
+        "name": "Create role permission",
+        "description": {
+          "content": "Create role-permission mapping (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "role-permissions"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roleId\": \"<integer>\",\n  \"permissionId\": \"<integer>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "18e170c7-b559-4d57-b0f7-302b34d0be4d",
+          "name": "Role permission created successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "role-permissions"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": 2,\n  \"permissionId\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 4993.223593213343,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"roleId\": 3872,\n      \"permissionId\": 7033\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "7c9b0440-6c2b-41c6-afbe-9c4782b9f431",
+      "name": "Get role permission by composite key",
+      "request": {
+        "name": "Get role permission by composite key",
+        "description": {
+          "content": "Get one role-permission mapping by roleId and permissionId (SuperAdmin only, requires permission: admin.rbac.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "role-permissions",
+            ":roleId",
+            ":permissionId"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "roleId",
+              "description": "(Required) "
+            },
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "permissionId",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "38c1f4bb-5f01-4643-b2b4-8505017e8168",
+          "name": "Role permission fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "role-permissions",
+                ":roleId",
+                ":permissionId"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "roleId",
+                  "description": "(Required) "
+                },
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "permissionId",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 4993.223593213343,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"roleId\": 3872,\n      \"permissionId\": 7033\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "1ac9d6dc-da74-44bb-9db2-276a18ab342c",
+      "name": "Update role permission",
+      "request": {
+        "name": "Update role permission",
+        "description": {
+          "content": "Update role-permission mapping by composite key (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "role-permissions",
+            ":roleId",
+            ":permissionId"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "roleId",
+              "description": "(Required) "
+            },
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "permissionId",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roleId\": \"<integer>\",\n  \"permissionId\": \"<integer>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "5af5476b-aa54-4a8e-b2c5-b392a3a16ee8",
+          "name": "Role permission updated successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "role-permissions",
+                ":roleId",
+                ":permissionId"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "roleId",
+                  "description": "(Required) "
+                },
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "permissionId",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": \"<integer>\",\n  \"permissionId\": \"<integer>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 4993.223593213343,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"roleId\": 3872,\n      \"permissionId\": 7033\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "4142d633-b6e4-4907-961c-202362172438",
+      "name": "Delete role permission",
+      "request": {
+        "name": "Delete role permission",
+        "description": {
+          "content": "Delete role-permission mapping by composite key (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "role-permissions",
+            ":roleId",
+            ":permissionId"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "roleId",
+              "description": "(Required) "
+            },
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "permissionId",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "DELETE",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "e05b6e36-4d05-4727-a0d7-91d5b9e904cd",
+          "name": "Role permission deleted successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "role-permissions",
+                ":roleId",
+                ":permissionId"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "roleId",
+                  "description": "(Required) "
+                },
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "permissionId",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 4993.223593213343,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"roleId\": 3872,\n      \"permissionId\": 7033\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

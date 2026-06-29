@@ -1,0 +1,614 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Roles",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "0b18e157-be5e-493a-8b71-53094ad85979",
+      "name": "List roles",
+      "request": {
+        "name": "List roles",
+        "description": {
+          "content": "Get roles with filter/search/sort and pagination (SuperAdmin only, requires permission: admin.rbac.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "roles"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "disabled": false,
+              "key": "search",
+              "value": "<string>"
+            },
+            {
+              "disabled": false,
+              "key": "sortBy",
+              "value": "createdAt"
+            },
+            {
+              "disabled": false,
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "e1a73e01-78aa-4a7d-850f-9f78ce06fba5",
+          "name": "Role list fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "roles"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "<string>"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 5658.978097248768,\n  \"message\": \"string\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1756,\n        \"code\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\",\n        \"createdAt\": \"2025-06-14T01:49:34.491Z\"\n      },\n      {\n        \"id\": 1657,\n        \"code\": \"string\",\n        \"name\": \"string\",\n        \"description\": \"string\",\n        \"createdAt\": \"2005-06-25T12:43:24.777Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 8086,\n      \"limit\": 9548,\n      \"total\": 8775,\n      \"pages\": 3093\n    },\n    \"filters\": {\n      \"search\": \"string\",\n      \"sortBy\": \"createdAt\",\n      \"sortOrder\": \"asc\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "4a8b0c5d-9c8c-4f79-a9a5-d85bc5b7ead5",
+      "name": "Create role",
+      "request": {
+        "name": "Create role",
+        "description": {
+          "content": "Create role record (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "roles"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "c004d08c-8f08-47eb-985c-0c611199e133",
+          "name": "Role created successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "roles"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"editor\",\n  \"name\": \"Editor\",\n  \"description\": \"Can edit workspace content\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 3733.1689114224578,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 3633,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"2020-01-21T22:33:41.885Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "a6ad3071-eb3e-45cf-9e96-88223cf168d9",
+      "name": "Get role by id",
+      "request": {
+        "name": "Get role by id",
+        "description": {
+          "content": "Get role detail by id (SuperAdmin only, requires permission: admin.rbac.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "roles",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "69e27a40-ec3a-4ba1-9c43-209dad295140",
+          "name": "Role fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "roles",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 3733.1689114224578,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 3633,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"2020-01-21T22:33:41.885Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "a2d78fea-7be1-4a7f-9363-fc1e29300431",
+      "name": "Update role",
+      "request": {
+        "name": "Update role",
+        "description": {
+          "content": "Update role by id (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "roles",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "7d8b458e-df0a-45b9-83f8-166d0a9ea278",
+          "name": "Role updated successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "roles",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 3733.1689114224578,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 3633,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"2020-01-21T22:33:41.885Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "6f4604c4-3481-4dba-bbab-3a053d9109ea",
+      "name": "Delete role",
+      "request": {
+        "name": "Delete role",
+        "description": {
+          "content": "Delete role by id (SuperAdmin only, requires permission: admin.rbac.write)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "roles",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<integer>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "DELETE",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "acd1248b-b897-4ed0-8638-a6235540feed",
+          "name": "Role deleted successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "roles",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<integer>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 3733.1689114224578,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"id\": 3633,\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"description\": \"string\",\n      \"createdAt\": \"2020-01-21T22:33:41.885Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

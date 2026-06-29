@@ -1,0 +1,659 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Category Items",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "7a6826ca-cff6-4107-bfde-89bfeac90072",
+      "name": "List category-items",
+      "request": {
+        "name": "List category-items",
+        "description": {
+          "content": "Get category-items with filter/search/sort and pagination (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "category-items"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "disabled": false,
+              "key": "categoryId",
+              "value": "<uuid>"
+            },
+            {
+              "disabled": false,
+              "key": "parentId",
+              "value": "<uuid>"
+            },
+            {
+              "disabled": false,
+              "key": "status",
+              "value": "<boolean>"
+            },
+            {
+              "disabled": false,
+              "key": "search",
+              "value": "<string>"
+            },
+            {
+              "disabled": false,
+              "key": "createdFrom",
+              "value": "<dateTime>"
+            },
+            {
+              "disabled": false,
+              "key": "createdTo",
+              "value": "<dateTime>"
+            },
+            {
+              "disabled": false,
+              "key": "sortBy",
+              "value": "createdAt"
+            },
+            {
+              "disabled": false,
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "ad02a5a2-f43b-4ca5-bfa5-e2e87cf82c78",
+          "name": "category-items list fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "category-items"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "parentId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "status",
+                  "value": "<boolean>"
+                },
+                {
+                  "key": "search",
+                  "value": "<string>"
+                },
+                {
+                  "key": "createdFrom",
+                  "value": "<dateTime>"
+                },
+                {
+                  "key": "createdTo",
+                  "value": "<dateTime>"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 535.1254461365129,\n  \"message\": \"string\",\n  \"data\": {\n    \"items\": [\n      {\n        \"uuid\": \"354a5d96-c220-9258-b63e-f87778f1f175\",\n        \"categoryId\": \"1704ee38-a4a7-5274-3696-81b80a8f74f7\",\n        \"parentId\": \"2f5049fc-f700-3d5f-7a74-7221af9c3b24\",\n        \"code\": \"string\",\n        \"name\": \"string\",\n        \"sortOrder\": 1072.6408515102426,\n        \"status\": true,\n        \"createdAt\": \"2010-11-19T08:07:19.149Z\"\n      },\n      {\n        \"uuid\": \"a651050c-036e-0889-2265-9c97a2544c0e\",\n        \"categoryId\": \"d006dd99-85ff-c086-2c0e-7d831f9005da\",\n        \"parentId\": \"36608b81-932a-c842-f189-a52988a1d7bf\",\n        \"code\": \"string\",\n        \"name\": \"string\",\n        \"sortOrder\": 3279.4123033450596,\n        \"status\": false,\n        \"createdAt\": \"1952-12-04T21:09:28.628Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 4408,\n      \"limit\": 7098,\n      \"total\": 6428,\n      \"pages\": 7009\n    },\n    \"filters\": {\n      \"key_0\": {}\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "e0ef4e39-73d4-4289-957b-d16187363757",
+      "name": "Create category-item",
+      "request": {
+        "name": "Create category-item",
+        "description": {
+          "content": "Create category-item record (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "category-items"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoryId\": \"<uuid>\",\n  \"parentId\": \"<uuid>\",\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"sortOrder\": \"<integer>\",\n  \"status\": \"<boolean>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "64a1fcd9-c3b7-4019-93f0-c8edad0c3e66",
+          "name": "category-item created successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "category-items"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": \"44444444-4444-4444-4444-444444444444\",\n  \"code\": \"HIGH\",\n  \"name\": \"High\",\n  \"sortOrder\": 1,\n  \"status\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 2455.632397301466,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"d2efd334-8553-17cf-9ff0-da4afd5ea7aa\",\n      \"categoryId\": \"ccd662e2-05e5-b88c-257a-aa5a18f0c70e\",\n      \"parentId\": \"c584153d-a4d1-666a-3f77-2b1d0ce179b6\",\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"sortOrder\": 9703.459071019985,\n      \"status\": true,\n      \"createdAt\": \"1974-01-22T05:58:16.642Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "28e82857-7f7a-404a-b070-8315aec23575",
+      "name": "Get category-item by id",
+      "request": {
+        "name": "Get category-item by id",
+        "description": {
+          "content": "Get category-item detail by UUID (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "category-items",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<uuid>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "1fc54560-224e-4f91-a450-9c4b5b58fb92",
+          "name": "category-item fetched successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "category-items",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 2455.632397301466,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"d2efd334-8553-17cf-9ff0-da4afd5ea7aa\",\n      \"categoryId\": \"ccd662e2-05e5-b88c-257a-aa5a18f0c70e\",\n      \"parentId\": \"c584153d-a4d1-666a-3f77-2b1d0ce179b6\",\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"sortOrder\": 9703.459071019985,\n      \"status\": true,\n      \"createdAt\": \"1974-01-22T05:58:16.642Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "020eed44-dfba-41c1-995a-1fbb3fa82ade",
+      "name": "Update category-item",
+      "request": {
+        "name": "Update category-item",
+        "description": {
+          "content": "Update category-item by UUID (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "category-items",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<uuid>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoryId\": \"<uuid>\",\n  \"parentId\": \"<uuid>\",\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"sortOrder\": \"<integer>\",\n  \"status\": \"<boolean>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "id": "859a7749-59ad-4d23-8c38-83e361269f94",
+          "name": "category-item updated successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "category-items",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": \"<uuid>\",\n  \"parentId\": \"<uuid>\",\n  \"code\": \"<string>\",\n  \"name\": \"<string>\",\n  \"sortOrder\": \"<integer>\",\n  \"status\": \"<boolean>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 2455.632397301466,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"d2efd334-8553-17cf-9ff0-da4afd5ea7aa\",\n      \"categoryId\": \"ccd662e2-05e5-b88c-257a-aa5a18f0c70e\",\n      \"parentId\": \"c584153d-a4d1-666a-3f77-2b1d0ce179b6\",\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"sortOrder\": 9703.459071019985,\n      \"status\": true,\n      \"createdAt\": \"1974-01-22T05:58:16.642Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "5bbd8387-e608-4fd0-9d1d-6c83fa9e26dc",
+      "name": "Delete category-item",
+      "request": {
+        "name": "Delete category-item",
+        "description": {
+          "content": "Delete category-item by UUID (SuperAdmin only)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "category-items",
+            ":id"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [],
+          "variable": [
+            {
+              "disabled": false,
+              "type": "any",
+              "value": "<uuid>",
+              "key": "id",
+              "description": "(Required) "
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "DELETE",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "41b7e27d-9c16-4cbc-8d09-66fefd56deae",
+          "name": "category-item deleted successfully",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "category-items",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) "
+                }
+              ]
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 2455.632397301466,\n  \"message\": \"string\",\n  \"data\": {\n    \"item\": {\n      \"uuid\": \"d2efd334-8553-17cf-9ff0-da4afd5ea7aa\",\n      \"categoryId\": \"ccd662e2-05e5-b88c-257a-aa5a18f0c70e\",\n      \"parentId\": \"c584153d-a4d1-666a-3f77-2b1d0ce179b6\",\n      \"code\": \"string\",\n      \"name\": \"string\",\n      \"sortOrder\": 9703.459071019985,\n      \"status\": true,\n      \"createdAt\": \"1974-01-22T05:58:16.642Z\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

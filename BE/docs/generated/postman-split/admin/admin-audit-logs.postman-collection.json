@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "032d5768-2c2a-42f0-af89-ee97e9587176",
+    "name": "Supabase Express API - Admin Audit Logs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "A multi-tenant workspace API with role-based access control.\n      \n## Authorization Pattern\n\nThis API uses a consistent header-based authorization for workspace operations:\n\n- **JWT Bearer Token**: Include in Authorization header for authentication\n- **x-workspace-id Header**: Required for ALL workspace-scoped endpoints, even when workspace ID is in the URL\n\n### Why Headers?\n- Consistent authorization pattern across all endpoints\n- Supports future endpoints without workspace ID in URL  \n- Explicit workspace context for security\n- Extensible for additional context headers\n\n### Profile Data Access\nIndividual profile endpoints have been removed. Access profiles through workspace context:\n- GET /me - Your profiles across all workspaces\n- GET /workspaces/{id} - Workspace with all member profiles\n- GET /workspaces/{id}/members - Dedicated member listing\n- PATCH /workspaces/{id}/profile - Update your own profile in workspace\n\nContact Support:\n Name: API Support\n Email: support@example.com",
+      "type": "text/plain"
+    }
+  },
+  "item": [
+    {
+      "id": "3d257802-ed5c-4187-9caa-efd626cd190b",
+      "name": "List audit logs",
+      "request": {
+        "name": "List audit logs",
+        "description": {
+          "content": "Get audit logs with filtering and pagination (SuperAdmin only, requires permission: audit.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "audit-logs"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "page",
+              "value": "1",
+              "description": "Page number for pagination"
+            },
+            {
+              "disabled": false,
+              "key": "limit",
+              "value": "50",
+              "description": "Number of items per page"
+            },
+            {
+              "disabled": false,
+              "key": "action",
+              "value": "<string>",
+              "description": "Filter by action type"
+            },
+            {
+              "disabled": false,
+              "key": "entityType",
+              "value": "<string>",
+              "description": "Filter by entity type"
+            },
+            {
+              "disabled": false,
+              "key": "actorId",
+              "value": "<uuid>",
+              "description": "Filter by actor ID"
+            },
+            {
+              "disabled": false,
+              "key": "entityId",
+              "value": "<uuid>",
+              "description": "Filter by entity ID"
+            },
+            {
+              "disabled": false,
+              "key": "workspaceId",
+              "value": "<uuid>",
+              "description": "Filter by workspace ID"
+            },
+            {
+              "disabled": false,
+              "key": "startDate",
+              "value": "<string>",
+              "description": "Filter by start date (ISO 8601)"
+            },
+            {
+              "disabled": false,
+              "key": "endDate",
+              "value": "<string>",
+              "description": "Filter by end date (ISO 8601)"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "002ccc30-2064-4586-bc1b-be6c4b0b4b67",
+          "name": "List of audit logs with pagination and filters",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "audit-logs"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "action",
+                  "value": "<string>"
+                },
+                {
+                  "key": "entityType",
+                  "value": "<string>"
+                },
+                {
+                  "key": "actorId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "entityId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "workspaceId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "startDate",
+                  "value": "<string>"
+                },
+                {
+                  "key": "endDate",
+                  "value": "<string>"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 4397.796211898317,\n  \"message\": \"string\",\n  \"data\": {\n    \"auditLogs\": [\n      {\n        \"auditLog\": {\n          \"uuid\": \"ec2e9f5c-29f4-c2dc-39d9-9ddde546ce21\",\n          \"action\": \"string\",\n          \"entityType\": \"string\",\n          \"entityId\": \"3a8b69c2-9a19-081a-13e1-201f5dad0305\",\n          \"actorId\": \"700ce7df-d0e7-cebd-e3eb-bdc26d2f53a8\",\n          \"actorEmail\": \"string\",\n          \"targetId\": \"91a466fd-4888-0796-7737-ecb5e4939ff4\",\n          \"targetEmail\": \"string\",\n          \"details\": \"string\",\n          \"ipAddress\": \"string\",\n          \"userAgent\": \"string\",\n          \"workspaceId\": \"93a7f120-e142-7081-33b7-ab835a29c90c\",\n          \"createdAt\": \"1973-03-25\"\n        },\n        \"actor\": {\n          \"uuid\": \"b3db009d-da17-fcec-27f0-f546836209ec\",\n          \"email\": \"0TJCWj16J0MW@kOxGmWocEgqXDDovVbkZPQzakoSrBq.lw\",\n          \"fullName\": \"string\"\n        },\n        \"target\": {\n          \"uuid\": \"a31cdbf1-1e83-1e34-9fb1-a68360d6e124\",\n          \"email\": \"Pivzp4iiqqt4@bxTOtSsSDPp.wd\",\n          \"fullName\": \"string\"\n        },\n        \"workspace\": {\n          \"uuid\": \"482ebaf0-b417-abae-846e-eafcd0e3c91b\",\n          \"name\": \"string\"\n        }\n      },\n      {\n        \"auditLog\": {\n          \"uuid\": \"7edfd562-09e2-bb15-2e4f-ad938bd3e031\",\n          \"action\": \"string\",\n          \"entityType\": \"string\",\n          \"entityId\": \"8c561cf5-66d7-70d1-05ed-7127b129c97f\",\n          \"actorId\": \"4a93f113-bfd7-33f6-2cd5-08297f7f2738\",\n          \"actorEmail\": \"string\",\n          \"targetId\": \"dac6337e-6c45-8803-eabf-5ecf45313ed1\",\n          \"targetEmail\": \"string\",\n          \"details\": \"string\",\n          \"ipAddress\": \"string\",\n          \"userAgent\": \"string\",\n          \"workspaceId\": \"f31a0f7b-7aa0-0c28-1cec-c69c9ccd3c89\",\n          \"createdAt\": \"2003-11-14\"\n        },\n        \"actor\": {\n          \"uuid\": \"a9ba74a2-34b9-e95f-dedf-0ec4f19cdb5c\",\n          \"email\": \"j7sgnvUB@Ywbm.ns\",\n          \"fullName\": \"string\"\n        },\n        \"target\": {\n          \"uuid\": \"04dfde61-f126-4523-b2ad-eefb503f4e57\",\n          \"email\": \"P5trjhmNFkoFt@NecWxxSGUlStSQkMUqbJAoogqcfyFncX.roiv\",\n          \"fullName\": \"string\"\n        },\n        \"workspace\": {\n          \"uuid\": \"75dd4490-03a7-fe79-f172-1111ee4ba6bc\",\n          \"name\": \"string\"\n        }\n      }\n    ],\n    \"pagination\": {\n      \"page\": 4648,\n      \"limit\": 3456,\n      \"total\": 9059,\n      \"pages\": 4739\n    },\n    \"filters\": {\n      \"action\": \"string\",\n      \"entityType\": \"string\",\n      \"actorId\": \"307ef695-a8cb-f242-8420-968475a648fa\",\n      \"entityId\": \"306f3a38-4b47-e8e7-be07-c4ee58cda081\",\n      \"workspaceId\": \"f9bff7e1-b39f-e855-854d-1e2017868686\",\n      \"startDate\": \"string\",\n      \"endDate\": \"string\"\n    }\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        },
+        {
+          "id": "22f61784-4a6e-4533-b99b-2bba0c03bb48",
+          "name": "Forbidden - SuperAdmin access required",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "audit-logs"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "action",
+                  "value": "<string>"
+                },
+                {
+                  "key": "entityType",
+                  "value": "<string>"
+                },
+                {
+                  "key": "actorId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "entityId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "workspaceId",
+                  "value": "<uuid>"
+                },
+                {
+                  "key": "startDate",
+                  "value": "<string>"
+                },
+                {
+                  "key": "endDate",
+                  "value": "<string>"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 5572.8932934385075,\n  \"message\": \"string\",\n  \"error\": \"string\"\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    },
+    {
+      "id": "54e4a6fa-a9a5-4d17-9fa6-31ce929631ff",
+      "name": "Get audit log statistics",
+      "request": {
+        "name": "Get audit log statistics",
+        "description": {
+          "content": "Get audit log statistics and analytics (SuperAdmin only, requires permission: audit.read)",
+          "type": "text/plain"
+        },
+        "url": {
+          "path": [
+            "admin",
+            "audit-logs",
+            "stats"
+          ],
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "disabled": false,
+              "key": "days",
+              "value": "30",
+              "description": "Number of days to analyze"
+            }
+          ],
+          "variable": []
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "id": "e1c46174-1c9c-483c-a62f-3ffedcef6052",
+          "name": "Audit log statistics",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "audit-logs",
+                "stats"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 5431.056042013774,\n  \"message\": \"string\",\n  \"data\": {\n    \"period\": \"string\",\n    \"startDate\": \"2010-09-14T23:46:28.905Z\",\n    \"endDate\": \"1957-07-13T21:32:44.194Z\",\n    \"actionStats\": [\n      {\n        \"action\": \"string\",\n        \"count\": 287.1153459872855\n      },\n      {\n        \"action\": \"string\",\n        \"count\": 6474.694870130679\n      }\n    ],\n    \"entityTypeStats\": [\n      {\n        \"entityType\": \"string\",\n        \"count\": 194.99792666546335\n      },\n      {\n        \"entityType\": \"string\",\n        \"count\": 4207.357588300529\n      }\n    ],\n    \"topActors\": [\n      {\n        \"actorId\": \"aeb6d319-974b-ef62-af75-2c245c38454d\",\n        \"actorEmail\": \"string\",\n        \"count\": 8744.001298544817\n      },\n      {\n        \"actorId\": \"257ef33d-1b22-bfe2-8f2d-96c22b740330\",\n        \"actorEmail\": \"string\",\n        \"count\": 3680.489788828207\n      }\n    ],\n    \"dailyActivity\": [\n      {\n        \"date\": \"string\",\n        \"count\": 886.7603216950282\n      },\n      {\n        \"date\": \"string\",\n        \"count\": 2469.1949391624644\n      }\n    ]\n  }\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        },
+        {
+          "id": "b6786b19-9a76-4b42-b6ef-762ccb8838ff",
+          "name": "Forbidden - SuperAdmin access required",
+          "originalRequest": {
+            "url": {
+              "path": [
+                "admin",
+                "audit-logs",
+                "stats"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "description": {
+                  "content": "Added as a part of security scheme: bearer",
+                  "type": "text/plain"
+                },
+                "key": "Authorization",
+                "value": "Bearer <token>"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "body": {}
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"code\": 5572.8932934385075,\n  \"message\": \"string\",\n  \"error\": \"string\"\n}",
+          "cookie": [],
+          "_postman_previewlanguage": "json"
+        }
+      ],
+      "event": [],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      }
+    }
+  ],
+  "variable": [
+    {
+      "type": "string",
+      "value": "http://localhost:4000",
+      "key": "baseUrl"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "x_workspace_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": []
+}

@@ -1,0 +1,33 @@
+# IDE and local workspace
+/.idea/
+/.vscode/
+**/.idea/
+**/.vscode/
+
+# Environment files
+/BE/.env
+/BE/.env.*
+/FE/.env
+/FE/.env.*
+!/FE/.env.example
+
+# Dependencies and build output
+/BE/node_modules/
+/FE/node_modules/
+/BE/dist/
+/BE/coverage/
+/FE/.next/
+/FE/out/
+
+# Logs and diagnostics
+*.log
+hs_err_pid*.log
+
+# OS / temp files
+.DS_Store
+Thumbs.db
+.codex/skills/tasktracking-repo-guard/SKILL.md
+.codex/skills/tasktracking-repo-guard/references/backend-standards.md
+AGENTS.md
+.codex/skills/tasktracking-repo-guard/references/ui-standards.md
+                                                                                                        
