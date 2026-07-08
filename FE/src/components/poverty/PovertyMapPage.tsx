@@ -2,15 +2,15 @@
 
 import { api, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import type { PovertyMarker } from "@/types/poverty";
+import type { PovertyArea, PovertyMarker, ProvinceOption, WardOption } from "@/types/poverty";
 import { getValidGeoPosition, povertyTypeOptions } from "@/components/poverty/poverty-utils";
-import { usePovertyCategoryOptions } from "@/components/poverty/usePovertyCategoryOptions";
+import { DEFAULT_CANTHO_PROVINCE_CODE, getInitialProvinceCode } from "@/components/poverty/poverty-location-utils";
 import { ActionButton, TitleSpace } from "@/components/controller";
 import { usePermission } from "@/hooks/usePermission";
-import { App, Button, Col, Form, Input, InputNumber, Row, Select } from "antd";
-import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import { App, Button, Col, Form, InputNumber, Row, Select } from "antd";
+import { ChevronDown, ChevronUp, SlidersHorizontal, Smartphone } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const PovertyLeafletMap = dynamic(() => import("@/components/poverty/PovertyLeafletMap"), {
@@ -35,24 +35,62 @@ const currentYear = new Date().getFullYear();
 
 export default function PovertyMapPage() {
     const { notification } = App.useApp();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const focusedHouseholdId = searchParams.get("householdId");
     const [form] = Form.useForm();
-    const [filters, setFilters] = useState<Record<string, unknown>>({ year: currentYear });
+    const [filters, setFilters] = useState<Record<string, unknown>>({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
     const [markers, setMarkers] = useState<PovertyMarker[]>([]);
     const [loading, setLoading] = useState(false);
     const [filtersCollapsed, setFiltersCollapsed] = useState(true);
-    const areaOptions = usePovertyCategoryOptions("AREA");
+    const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+    const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
+    const [areaOptions, setAreaOptions] = useState<PovertyArea[]>([]);
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canCreateHouseholdOnMap } = usePermission("poverty.map.create_household");
     const { can: canUpdateMarkerPosition } = usePermission("poverty.map.update_position");
     const { can: canViewHouseholdDetail } = usePermission("poverty.household.detail.view");
     const { can: canUpdateHousehold } = usePermission("poverty.household.update");
+    const canOpenCollection = canCreateHousehold || canUpdateHousehold;
     const activeFilterCount = useMemo(
         () => Object.values(filters).filter((value) => String(value ?? "").trim()).length,
         [filters]
     );
-    const selectedWardName = typeof filters.wardName === "string" ? filters.wardName : undefined;
+    const selectedWardCode = Form.useWatch("wardCode", form);
+    const selectedProvinceCode = Form.useWatch("provinceCode", form);
+
+    const selectedWardName = useMemo(
+        () => wardOptions.find((item) => item.code === filters.wardCode)?.fullName || wardOptions.find((item) => item.code === filters.wardCode)?.name,
+        [filters.wardCode, wardOptions]
+    );
+
+    const provinceSelectOptions = useMemo(
+        () => provinceOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [provinceOptions]
+    );
+    const wardSelectOptions = useMemo(
+        () => wardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [wardOptions]
+    );
+    const areaSelectOptions = useMemo(
+        () => areaOptions.map((item) => ({ value: item.id, label: item.name })),
+        [areaOptions]
+    );
+
+    const loadProvinces = useCallback(async () => {
+        const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
+        setProvinceOptions(data.items ?? []);
+    }, []);
+
+    const loadWards = useCallback(async (provinceCode: string) => {
+        const data = await api.get<{ items?: WardOption[] }>(endpoints.poverty.locationWards(provinceCode));
+        setWardOptions(data.items ?? []);
+    }, []);
+
+    const loadAreas = useCallback(async (wardCode: string) => {
+        const data = await api.get<{ items?: PovertyArea[] }>(endpoints.poverty.locationAreas(wardCode));
+        setAreaOptions(data.items ?? []);
+    }, []);
 
     const loadMarkers = useCallback(async () => {
         setLoading(true);
@@ -81,8 +119,26 @@ export default function PovertyMapPage() {
     }, [filters, focusedHouseholdId, notification]);
 
     useEffect(() => {
+        void loadProvinces();
+    }, [loadProvinces]);
+
+    useEffect(() => {
         loadMarkers();
     }, [loadMarkers]);
+
+    useEffect(() => {
+        const provinceCode = getInitialProvinceCode(selectedProvinceCode);
+        if (!provinceCode) return;
+        void loadWards(provinceCode);
+    }, [loadWards, selectedProvinceCode]);
+
+    useEffect(() => {
+        if (!selectedWardCode) {
+            setAreaOptions([]);
+            return;
+        }
+        void loadAreas(String(selectedWardCode));
+    }, [loadAreas, selectedWardCode]);
 
     const updateMarkerPosition = useCallback(async (marker: PovertyMarker, latitude: number, longitude: number) => {
         const previousMarkers = markers;
@@ -104,9 +160,19 @@ export default function PovertyMapPage() {
         }
     }, [markers, notification]);
 
+    const openCollectionApp = useCallback(() => {
+        if (focusedHouseholdId) {
+            router.push(`/ho-ngheo/thu-thap?householdId=${focusedHouseholdId}`);
+            return;
+        }
+        router.push("/ho-ngheo/thu-thap");
+    }, [focusedHouseholdId, router]);
+
     return (
         <div className="min-w-0 space-y-4">
-            <TitleSpace title="Bản đồ số hộ nghèo" />
+            <TitleSpace
+                title="Bản đồ số hộ nghèo"
+            />
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
                     <div className="flex min-w-0 items-center gap-2">
@@ -128,18 +194,38 @@ export default function PovertyMapPage() {
 
                 {!filtersCollapsed ? (
                     <div className="p-4">
-                        <Form form={form} layout="vertical" initialValues={{ year: currentYear }} onFinish={(values) => setFilters(values)}>
+                        <Form form={form} layout="vertical" initialValues={{ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE }} onFinish={(values) => setFilters(values)}>
                             <Row gutter={[16, 0]}>
 
-                                <Col xs={12} md={2} xl={2}><Form.Item name="povertyType" label="Loại hộ"><Select allowClear options={povertyTypeOptions} /></Form.Item></Col>
-                                {/* <Col xs={24} md={6} xl={5}><Form.Item name="provinceName" label="Tỉnh/Thành phố"><Input /></Form.Item></Col> */}
-                                <Col xs={24} md={3} xl={3}><Form.Item name="wardName" label="Xã/Phường"><Input /></Form.Item></Col>
-                                <Col xs={24} md={3} xl={3}><Form.Item name="areaName" label="Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaOptions} /></Form.Item></Col>
                                 <Col xs={12} md={2} xl={2}><Form.Item name="year" label="Năm"><InputNumber className="w-full" min={1900} max={2200} /></Form.Item></Col>
+                                <Col xs={24} md={4} xl={4}>
+                                    <Form.Item name="provinceCode" label="Tỉnh/Thành phố">
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={provinceSelectOptions}
+                                            onChange={() => form.setFieldsValue({ wardCode: undefined, areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={3} xl={3}>
+                                    <Form.Item name="wardCode" label="Xã/Phường">
+                                        <Select
+                                            allowClear
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={wardSelectOptions}
+                                            onChange={() => form.setFieldsValue({ areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={3} xl={3}><Form.Item name="areaId" label="Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaSelectOptions} /></Form.Item></Col>
+
+                                <Col xs={12} md={2} xl={2}><Form.Item name="povertyType" label="Loại hộ"><Select allowClear options={povertyTypeOptions} /></Form.Item></Col>
                             </Row>
                             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end [&_.ant-btn]:w-full sm:[&_.ant-btn]:w-auto mt-2">
                                 <ActionButton type="search" htmlType="submit" loading={loading} />
-                                <ActionButton type="refresh" variant="outlined" onClick={() => { form.resetFields(); setFilters({ year: currentYear }); }} />
+                                <ActionButton type="refresh" variant="outlined" onClick={() => { form.resetFields(); form.setFieldsValue({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE }); setFilters({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE }); }} />
                             </div>
                         </Form>
                     </div>

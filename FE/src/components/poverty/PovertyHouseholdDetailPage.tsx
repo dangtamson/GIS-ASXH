@@ -2,7 +2,7 @@
 
 import { api, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import type { HouseholdAssessment, HouseholdChangeLog, HouseholdDetailResponse, HouseholdFieldPhoto, HouseholdMember, HouseholdSupport, HouseholdSupportType, PoorHousehold } from "@/types/poverty";
+import type { HouseholdAssessment, HouseholdChangeLog, HouseholdContextHistory, HouseholdDetailResponse, HouseholdFieldPhoto, HouseholdMember, HouseholdSupport, HouseholdSupportType, PoorHousehold } from "@/types/poverty";
 import {
     formatDate,
     householdStatusColor,
@@ -67,6 +67,8 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
     const [members, setMembers] = useState<HouseholdMember[]>([]);
     const [assessments, setAssessments] = useState<HouseholdAssessment[]>([]);
     const [supports, setSupports] = useState<HouseholdSupport[]>([]);
+    const [contextHistories, setContextHistories] = useState<HouseholdContextHistory[]>([]);
+    const [latestContextHistory, setLatestContextHistory] = useState<HouseholdContextHistory | null>(null);
     const [changeLogs, setChangeLogs] = useState<HouseholdChangeLog[]>([]);
     const [fieldPhotos, setFieldPhotos] = useState<NonNullable<HouseholdDetailResponse["fieldPhotos"]>>([]);
     const [fieldPhotoPreviewUrls, setFieldPhotoPreviewUrls] = useState<Record<string, string>>({});
@@ -76,12 +78,15 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
     const [memberModalOpen, setMemberModalOpen] = useState(false);
     const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
     const [supportModalOpen, setSupportModalOpen] = useState(false);
+    const [contextHistoryModalOpen, setContextHistoryModalOpen] = useState(false);
     const [editingMember, setEditingMember] = useState<HouseholdMember | null>(null);
     const [editingAssessment, setEditingAssessment] = useState<HouseholdAssessment | null>(null);
     const [editingSupport, setEditingSupport] = useState<HouseholdSupport | null>(null);
+    const [editingContextHistory, setEditingContextHistory] = useState<HouseholdContextHistory | null>(null);
     const [memberForm] = Form.useForm();
     const [assessmentForm] = Form.useForm();
     const [supportForm] = Form.useForm();
+    const [contextHistoryForm] = Form.useForm();
     const selectedSupportTypes = (Form.useWatch("supportTypes", supportForm) ?? []) as HouseholdSupportType[];
     const nationOptions = usePovertyCategoryOptions("NATION");
     const { can: canUpdateDetail } = usePermission("poverty.household.detail.update");
@@ -97,6 +102,8 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
             setMembers(data.members ?? []);
             setAssessments(data.assessments ?? []);
             setSupports(data.supports ?? []);
+            setContextHistories(data.contextHistories ?? []);
+            setLatestContextHistory(data.latestContextHistory ?? null);
             setChangeLogs(data.changeLogs ?? []);
             setFieldPhotos(data.fieldPhotos ?? []);
         } catch (error) {
@@ -177,6 +184,16 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
         setSupportModalOpen(true);
     }, [supportForm]);
 
+    const openContextHistoryModal = useCallback((contextHistory?: HouseholdContextHistory) => {
+        setEditingContextHistory(contextHistory ?? null);
+        contextHistoryForm.resetFields();
+        contextHistoryForm.setFieldsValue(contextHistory ? {
+            ...contextHistory,
+            recordedAt: contextHistory.recordedAt ? dayjs(String(contextHistory.recordedAt).slice(0, 10)) : undefined,
+        } : { recordedAt: dayjs() });
+        setContextHistoryModalOpen(true);
+    }, [contextHistoryForm]);
+
     const updatePhotoAttachments = useCallback((attachments: AttachmentType[]) => {
         if (attachments.length > 3) {
             notification.warning({ message: "Mỗi lần chỉ được thêm tối đa 3 ảnh" });
@@ -202,12 +219,12 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
                 entityType: fieldPhotoEntityType,
                 entityId: id,
             })));
-            notification.success({ message: "Đã thêm ảnh thực địa" });
+            notification.success({ message: "Đã thêm ảnh thực tế" });
             setPhotoAttachments([]);
             await loadDetail();
         } catch (error) {
             notification.error({
-                message: "Không thể thêm ảnh thực địa",
+                message: "Không thể thêm ảnh thực tế",
                 description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
             });
         } finally {
@@ -218,11 +235,11 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
     const deleteFieldPhoto = useCallback(async (photo: HouseholdFieldPhoto) => {
         try {
             await api.delete(`${endpoints.admin.files}/${photo.uuid}`);
-            notification.success({ message: "Đã xóa ảnh thực địa" });
+            notification.success({ message: "Đã xóa ảnh thực tế" });
             await loadDetail();
         } catch (error) {
             notification.error({
-                message: "Không thể xóa ảnh thực địa",
+                message: "Không thể xóa ảnh thực tế",
                 description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
             });
         }
@@ -292,6 +309,30 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
         }
     };
 
+    const saveContextHistory = async () => {
+        const values = await contextHistoryForm.validateFields();
+        const payload = {
+            ...values,
+            recordedAt: values.recordedAt
+                ? dayjs.isDayjs(values.recordedAt)
+                    ? values.recordedAt.format("YYYY-MM-DD")
+                    : String(values.recordedAt).slice(0, 10)
+                : undefined,
+        };
+        try {
+            if (editingContextHistory) {
+                await api.patch(endpoints.poverty.householdContextHistory(id, editingContextHistory.id), payload);
+            } else {
+                await api.post(endpoints.poverty.householdContextHistories(id), payload);
+            }
+            notification.success({ message: editingContextHistory ? "Đã cập nhật hoàn cảnh & hiện trạng" : "Đã thêm cập nhật hoàn cảnh & hiện trạng" });
+            setContextHistoryModalOpen(false);
+            await loadDetail();
+        } catch (error) {
+            notification.error({ message: "Không thể lưu hoàn cảnh & hiện trạng", description: error instanceof ApiError ? error.message : "Vui lòng thử lại" });
+        }
+    };
+
     const deleteMember = useCallback(async (memberId: string) => {
         try {
             await api.delete(endpoints.poverty.householdMember(id, memberId));
@@ -322,12 +363,23 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
         }
     }, [id, loadDetail, notification]);
 
+    const deleteContextHistory = useCallback(async (contextHistoryId: string) => {
+        try {
+            await api.delete(endpoints.poverty.householdContextHistory(id, contextHistoryId));
+            notification.success({ message: "Đã xóa cập nhật hoàn cảnh & hiện trạng" });
+            await loadDetail();
+        } catch (error) {
+            notification.error({ message: "Không thể xóa cập nhật hoàn cảnh & hiện trạng", description: error instanceof ApiError ? error.message : "Vui lòng thử lại" });
+        }
+    }, [id, loadDetail, notification]);
+
     const headMember = useMemo(() => members.find((member) => isHeadMember(member.isHead)), [members]);
     const householdArea = useMemo(
         () => [household?.provinceName, household?.wardName, household?.areaName].filter(Boolean).join(" / ") || "-",
         [household?.areaName, household?.provinceName, household?.wardName]
     );
     const householdCoordinate = household?.latitude != null && household.longitude != null ? `${household.latitude}, ${household.longitude}` : "-";
+    const latestContextRecordedAt = latestContextHistory?.recordedAt ? formatDate(latestContextHistory.recordedAt) : "-";
 
     const memberColumns: TableColumnsType<HouseholdMember> = useMemo(() => [
         {
@@ -415,6 +467,26 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
         },
     ], [canUpdateDetail, deleteSupport, openSupportModal]);
 
+    const contextHistoryColumns: TableColumnsType<HouseholdContextHistory> = useMemo(() => [
+        { title: "Ngày cập nhật", dataIndex: "recordedAt", width: 140, render: formatDate },
+        { title: "Hoàn cảnh gia đình", dataIndex: "familySituation", width: 280, ellipsis: true, render: (value) => value || "-" },
+        { title: "Hiện trạng", dataIndex: "currentStatus", width: 280, ellipsis: true, render: (value) => value || "-" },
+        { title: "Ghi chú", dataIndex: "note", width: 220, ellipsis: true, render: (value) => value || "-" },
+        {
+            title: "Thao tác",
+            width: 110,
+            fixed: "right",
+            render: (_, record) => (
+                <Space size={4} wrap={false}>
+                    {canUpdateDetail ? <Button type="text" icon={<ActionIcon action="edit" />} onClick={() => openContextHistoryModal(record)} /> : null}
+                    {canUpdateDetail ? <Popconfirm title="Xóa cập nhật này?" onConfirm={() => deleteContextHistory(record.id)} okText="Xóa" cancelText="Hủy">
+                        <Button type="text" icon={<ActionIcon action="delete" />} />
+                    </Popconfirm> : null}
+                </Space>
+            ),
+        },
+    ], [canUpdateDetail, deleteContextHistory, openContextHistoryModal]);
+
     return (
         <div className="min-w-0 space-y-4 overflow-hidden">
             <TitleSpace
@@ -455,6 +527,20 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
                     </InfoCard>
                     <InfoCard label="Số nhân khẩu" value={members.length.toLocaleString("vi-VN")} />
                     <InfoCard label="Tọa độ" value={householdCoordinate} />
+                </div>
+                <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-2">
+                    <InfoCard label="Hoàn cảnh gia đình">
+                        <div className="min-w-0">
+                            <div className="line-clamp-3 break-words">{latestContextHistory?.familySituation || "-"}</div>
+                            <div className="mt-1 text-xs font-normal text-gray-500">Cập nhật gần nhất: {latestContextRecordedAt}</div>
+                        </div>
+                    </InfoCard>
+                    <InfoCard label="Hiện trạng">
+                        <div className="min-w-0">
+                            <div className="line-clamp-3 break-words">{latestContextHistory?.currentStatus || "-"}</div>
+                            <div className="mt-1 text-xs font-normal text-gray-500">Cập nhật gần nhất: {latestContextRecordedAt}</div>
+                        </div>
+                    </InfoCard>
                 </div>
             </div>
 
@@ -504,13 +590,38 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
                         ),
                     },
                     {
+                        key: "context-history",
+                        label: "Hoàn cảnh & hiện trạng",
+                        children: (
+                            <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                {canUpdateDetail ? <div className="flex flex-wrap justify-end gap-2 border-b border-gray-100 p-3"><ActionButton type="create" label="Thêm cập nhật" onClick={() => openContextHistoryModal()} /></div> : null}
+                                <div className="border-b border-gray-100 bg-gray-50 p-4">
+                                    {contextHistories.length > 0 ? (
+                                        <div className="grid gap-3 lg:grid-cols-3">
+                                            {contextHistories.slice(0, 3).map((item) => (
+                                                <div key={item.id} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                                                    <div className="text-xs font-semibold uppercase text-gray-500">{formatDate(item.recordedAt)}</div>
+                                                    <div className="mt-2 line-clamp-2 text-sm font-medium text-gray-900">{item.familySituation || "-"}</div>
+                                                    <div className="mt-2 line-clamp-2 text-sm text-gray-600">{item.currentStatus || "-"}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <Empty description="Chưa có cập nhật hoàn cảnh & hiện trạng" />
+                                    )}
+                                </div>
+                                <Table rowKey="id" loading={loading} columns={contextHistoryColumns} dataSource={contextHistories} pagination={false} scroll={{ x: 1030 }} />
+                            </div>
+                        ),
+                    },
+                    {
                         key: "photos",
-                        label: "Ảnh thực địa",
+                        label: "Ảnh thực tế",
                         children: (
                             <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white p-4">
                                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                                     <div>
-                                        <h3 className="text-sm font-semibold text-gray-900">Ảnh thực địa</h3>
+                                        <h3 className="text-sm font-semibold text-gray-900">Ảnh thực tế</h3>
                                         <p className="mt-1 text-xs text-gray-500">Tổng {fieldPhotos.length.toLocaleString("vi-VN")} ảnh đã thêm</p>
                                     </div>
                                     {fieldPhotos.length > 0 ? (
@@ -604,14 +715,14 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
                                     </div>
                                 ) : (
                                     <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 py-10">
-                                        <Empty description="Chưa có ảnh thực địa" />
+                                        <Empty description="Chưa có ảnh thực tế" />
                                     </div>
                                 )}
 
                                 {canUpdateDetail ? <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                                     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                                         <div>
-                                            <h4 className="text-sm font-semibold text-gray-900">Thêm ảnh thực địa</h4>
+                                            <h4 className="text-sm font-semibold text-gray-900">Thêm ảnh thực tế</h4>
                                             <p className="mt-1 text-xs text-gray-500">Chọn tối đa 3 ảnh trong một lần thêm. Hỗ trợ JPG, PNG, WEBP, GIF, HEIC.</p>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -800,7 +911,65 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
                                 </Col>
                                 <Col xs={24}>
                                     <Form.Item name="note" label="Ghi chú" rules={[]}>
-                                        <Input.TextArea rows={2} placeholder="Nhập ghi chú nếu có"/>
+                                        <Input.TextArea rows={2} placeholder="Nhập ghi chú nếu có" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </section>
+                    </div>
+                </Form>
+            </Modal>
+
+            <Modal title={editingContextHistory ? "Cập nhật hoàn cảnh & hiện trạng" : "Thêm cập nhật hoàn cảnh & hiện trạng"} open={contextHistoryModalOpen} onCancel={() => setContextHistoryModalOpen(false)} onOk={saveContextHistory} width={820} style={{ maxWidth: "calc(100vw - 32px)" }} styles={{ body: { maxHeight: "calc(100vh - 220px)", overflowX: "hidden", overflowY: "auto" } }} okText="Lưu" cancelText="Hủy">
+                <Form form={contextHistoryForm} layout="vertical" className="[&_.ant-form-item]:mb-0">
+                    <div className="space-y-5">
+                        <section className="min-w-0">
+                            <div className="mb-3 text-sm font-semibold text-gray-800">Mốc cập nhật</div>
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="recordedAt" label="Ngày cập nhật" rules={[{ required: true, message: "Vui lòng chọn ngày cập nhật" }]}>
+                                        <DatePicker className="w-full" style={{ width: "100%" }} format="DD/MM/YYYY" placeholder="Chọn ngày cập nhật" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </section>
+
+                        <section className="min-w-0 border-t border-gray-100 pt-4">
+                            <div className="mb-3 text-sm font-semibold text-gray-800">Nội dung cập nhật</div>
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24}>
+                                    <Form.Item
+                                        name="familySituation"
+                                        label="Hoàn cảnh gia đình"
+                                        rules={[{
+                                            validator: async (_, value) => {
+                                                const currentStatus = contextHistoryForm.getFieldValue("currentStatus");
+                                                if (String(value ?? "").trim() || String(currentStatus ?? "").trim()) return;
+                                                throw new Error("Vui lòng nhập Hoàn cảnh gia đình hoặc Hiện trạng");
+                                            }
+                                        }]}
+                                    >
+                                        <Input.TextArea rows={4} placeholder="Nhập hoàn cảnh gia đình" />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24}>
+                                    <Form.Item
+                                        name="currentStatus"
+                                        label="Hiện trạng"
+                                        rules={[{
+                                            validator: async (_, value) => {
+                                                const familySituation = contextHistoryForm.getFieldValue("familySituation");
+                                                if (String(value ?? "").trim() || String(familySituation ?? "").trim()) return;
+                                                throw new Error("Vui lòng nhập Hoàn cảnh gia đình hoặc Hiện trạng");
+                                            }
+                                        }]}
+                                    >
+                                        <Input.TextArea rows={4} placeholder="Nhập hiện trạng" />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24}>
+                                    <Form.Item name="note" label="Ghi chú">
+                                        <Input.TextArea rows={2} placeholder="Nhập ghi chú nếu có" />
                                     </Form.Item>
                                 </Col>
                             </Row>

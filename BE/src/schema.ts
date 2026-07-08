@@ -216,6 +216,9 @@ export const organizations = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     code: varchar("code", { length: 100 }),
     parentId: uuid("parent_id").references((): AnyPgColumn => organizations.uuid),
+    provinceCode: varchar("province_code", { length: 20 }),
+    wardCode: varchar("ward_code", { length: 20 }),
+    areaId: uuid("area_id").references(() => areas.id),
     address: text("address"),
     phone: varchar("phone", { length: 50 }),
     email: varchar("email", { length: 150 }),
@@ -227,7 +230,10 @@ export const organizations = pgTable(
     is_root: boolean()
   },
   (table) => ({
-    idxOrgWorkspace: index("idx_org_workspace").on(table.workspaceId)
+    idxOrgWorkspace: index("idx_org_workspace").on(table.workspaceId),
+    idxOrgProvinceCode: index("idx_org_province_code").on(table.provinceCode),
+    idxOrgWardCode: index("idx_org_ward_code").on(table.wardCode),
+    idxOrgAreaId: index("idx_org_area_id").on(table.areaId)
   })
 );
 
@@ -264,7 +270,61 @@ export const categoryItems = pgTable(
   })
 );
 
+export const provinces = pgTable("provinces", {
+  code: varchar("code", { length: 20 }).primaryKey(),
+  name: text("name").notNull(),
+  fullName: text("full_name"),
+  administrativeUnitId: integer("administrative_unit_id")
+});
+
+export const wards = pgTable("wards", {
+  code: varchar("code", { length: 20 }).primaryKey(),
+  name: text("name").notNull(),
+  fullName: text("full_name"),
+  provinceCode: varchar("province_code", { length: 20 }).notNull(),
+  administrativeUnitId: integer("administrative_unit_id")
+});
+
+export const administrativeUnits = pgTable("administrative_units", {
+  id: integer("id").primaryKey(),
+  fullName: text("full_name").notNull()
+});
+
+export const administrativeRegions = pgTable("administrative_regions", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull()
+});
+
 export const gisasxhSchema = pgSchema("gisasxh");
+
+export const areas = gisasxhSchema.table(
+  "areas",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    provinceCode: varchar("province_code", { length: 20 }).notNull(),
+    wardCode: varchar("ward_code", { length: 20 }).notNull(),
+    code: text("code"),
+    name: text("name").notNull(),
+    secretaryName: text("secretary_name"),
+    secretaryPhone: text("secretary_phone"),
+    hamletHeadName: text("hamlet_head_name"),
+    hamletHeadPhone: text("hamlet_head_phone"),
+    securityTeamLeaderName: text("security_team_leader_name"),
+    securityTeamLeaderPhone: text("security_team_leader_phone"),
+    naturalArea: doublePrecision("natural_area"),
+    description: text("description"),
+    note: text("note"),
+    status: boolean("status").notNull().default(true),
+    createdAt: timestamp("created_at", { precision: 6 }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6 }).defaultNow()
+  },
+  (table) => ({
+    uniqueWardName: unique("areas_ward_code_name_key").on(table.wardCode, table.name),
+    idxAreasProvinceCode: index("idx_areas_province_code").on(table.provinceCode),
+    idxAreasWardCode: index("idx_areas_ward_code").on(table.wardCode),
+    idxAreasStatus: index("idx_areas_status").on(table.status)
+  })
+);
 
 export const poorHouseholds = gisasxhSchema.table(
   "poor_households",
@@ -274,11 +334,16 @@ export const poorHouseholds = gisasxhSchema.table(
     year: integer("year").notNull(),
     povertyType: text("poverty_type").notNull(),
     status: text("status").default("ACTIVE"),
+    provinceCode: varchar("province_code", { length: 20 }),
+    wardCode: varchar("ward_code", { length: 20 }),
+    areaId: uuid("area_id").references(() => areas.id),
     provinceName: text("province_name"),
-    districtName: text("district_name"),
     wardName: text("ward_name"),
     areaName: text("area_name"),
     address: text("address"),
+    headFullName: text("head_full_name"),
+    headCitizenId: text("head_citizen_id"),
+    memberCount: integer("member_count"),
     latitude: doublePrecision("latitude"),
     longitude: doublePrecision("longitude"),
     createdAt: timestamp("created_at", { precision: 6 }).defaultNow(),
@@ -289,20 +354,63 @@ export const poorHouseholds = gisasxhSchema.table(
   })
 );
 
-export const povertyYearOverviews = gisasxhSchema.table(
-  "poverty_year_overviews",
+export const povertyWardOverviews = gisasxhSchema.table(
+  "poverty_ward_overviews",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    provinceCode: varchar("province_code", { length: 20 }).notNull(),
+    wardCode: varchar("ward_code", { length: 20 }).notNull(),
     year: integer("year").notNull(),
     population: integer("population").notNull().default(0),
     totalHouseholds: integer("total_households").notNull().default(0),
     totalMembers: integer("total_members").notNull().default(0),
+    naturalArea: doublePrecision("natural_area").notNull().default(0),
     note: text("note"),
     createdAt: timestamp("created_at", { precision: 6 }).defaultNow(),
     updatedAt: timestamp("updated_at", { precision: 6 }).defaultNow()
   },
   (table) => ({
-    uniqueYear: unique("poverty_year_overviews_year_key").on(table.year)
+    uniqueWardOverview: unique("poverty_ward_overviews_province_ward_year_key").on(
+      table.provinceCode,
+      table.wardCode,
+      table.year
+    ),
+    idxWardOverviewsProvinceCode: index("idx_poverty_ward_overviews_province_code").on(table.provinceCode),
+    idxWardOverviewsWardCode: index("idx_poverty_ward_overviews_ward_code").on(table.wardCode),
+    idxWardOverviewsProvinceWardYear: index("idx_poverty_ward_overviews_province_ward_year").on(
+      table.provinceCode,
+      table.wardCode,
+      table.year
+    )
+  })
+);
+
+export const povertyWardPublicLinks = gisasxhSchema.table(
+  "poverty_ward_public_links",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid),
+    provinceCode: varchar("province_code", { length: 20 }).notNull(),
+    wardCode: varchar("ward_code", { length: 20 }).notNull(),
+    publicSlug: varchar("public_slug", { length: 120 }).notNull(),
+    isPublic: boolean("is_public").notNull().default(false),
+    publishedAt: timestamp("published_at", { precision: 6, withTimezone: true }),
+    createdBy: uuid("created_by").references(() => accounts.uuid),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueWardPublicLink: unique("poverty_ward_public_links_workspace_ward_key").on(
+      table.workspaceId,
+      table.provinceCode,
+      table.wardCode
+    ),
+    uniqueWardPublicSlug: unique("poverty_ward_public_links_slug_key").on(table.publicSlug),
+    idxWardPublicLinksWorkspace: index("idx_poverty_ward_public_links_workspace").on(table.workspaceId),
+    idxWardPublicLinksSlug: index("idx_poverty_ward_public_links_slug").on(table.publicSlug)
   })
 );
 
@@ -362,6 +470,19 @@ export const householdAssessments = gisasxhSchema.table(
     )
   })
 );
+
+export const householdContextHistories = gisasxhSchema.table("household_context_histories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  householdId: uuid("household_id")
+    .notNull()
+    .references(() => poorHouseholds.id),
+  recordedAt: date("recorded_at").notNull(),
+  familySituation: text("family_situation"),
+  currentStatus: text("current_status"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { precision: 6 }).defaultNow(),
+  updatedAt: timestamp("updated_at", { precision: 6 }).defaultNow()
+});
 
 export const householdSupports = gisasxhSchema.table("household_supports", {
   id: uuid("id").defaultRandom().primaryKey(),

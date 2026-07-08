@@ -1,5 +1,8 @@
 "use client";
 
+"use client";
+
+import { COLLECTION_MAP_LAYER_Z_INDEX } from "@/components/poverty/collection/poverty-collection-utils";
 import { getValidGeoPosition } from "@/components/poverty/poverty-utils";
 import { App, Button, Tooltip } from "antd";
 import L from "leaflet";
@@ -103,11 +106,14 @@ export default function PovertyCoordinatePicker({
     const markerPosition: [number, number] | null = position ? [position.latitude, position.longitude] : null;
 
     return (
-        <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <div
+            className="relative min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white"
+            style={{ zIndex: COLLECTION_MAP_LAYER_Z_INDEX }}
+        >
             <div className="border-b border-gray-100 px-3 py-2 text-xs text-gray-500">
                 Click trên bản đồ hoặc kéo marker để cập nhật vĩ độ, kinh độ.
             </div>
-            <div className="h-[260px] min-w-0">
+            <div className="relative h-[260px] min-w-0" style={{ zIndex: COLLECTION_MAP_LAYER_Z_INDEX }}>
                 <MapContainer
                     center={markerPosition ?? DEFAULT_CENTER}
                     zoom={markerPosition ? 16 : DEFAULT_ZOOM}

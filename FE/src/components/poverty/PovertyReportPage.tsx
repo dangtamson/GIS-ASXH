@@ -2,12 +2,12 @@
 
 import { api, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import type { ExcelPayload, PaginationMeta, PovertyReportDetailResponse, PovertyReportDetailRow, PovertyReportRow } from "@/types/poverty";
+import type { ExcelPayload, PaginationMeta, PovertyArea, PovertyReportDetailResponse, PovertyReportDetailRow, PovertyReportRow, ProvinceOption, WardOption } from "@/types/poverty";
 import { downloadBase64File, formatNumber, householdStatusLabel, povertyTypeLabel, povertyTypeOptions } from "@/components/poverty/poverty-utils";
-import { usePovertyCategoryOptions } from "@/components/poverty/usePovertyCategoryOptions";
+import { DEFAULT_CANTHO_PROVINCE_CODE, getInitialProvinceCode } from "@/components/poverty/poverty-location-utils";
 import { ActionButton, TitleSpace } from "@/components/controller";
 import { usePermission } from "@/hooks/usePermission";
-import { App, Button, Col, ConfigProvider, Form, Input, InputNumber, Row, Segmented, Select, Table } from "antd";
+import { App, Button, Col, ConfigProvider, Form, InputNumber, Row, Segmented, Select, Table } from "antd";
 import type { TableColumnsType } from "antd";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -40,12 +40,44 @@ export default function PovertyReportPage() {
     const [loadingSummary, setLoadingSummary] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
-    const areaOptions = usePovertyCategoryOptions("AREA");
+    const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+    const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
+    const [areaOptions, setAreaOptions] = useState<PovertyArea[]>([]);
     const { can: canExportReport } = usePermission("poverty.report.export");
     const activeFilterCount = useMemo(
         () => Object.values(filters).filter((value) => String(value ?? "").trim()).length,
         [filters]
     );
+    const selectedProvinceCode = Form.useWatch("provinceCode", form);
+    const selectedWardCode = Form.useWatch("wardCode", form);
+
+    const provinceSelectOptions = useMemo(
+        () => provinceOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [provinceOptions]
+    );
+    const wardSelectOptions = useMemo(
+        () => wardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [wardOptions]
+    );
+    const areaSelectOptions = useMemo(
+        () => areaOptions.map((item) => ({ value: item.id, label: item.name })),
+        [areaOptions]
+    );
+
+    const loadProvinces = useCallback(async () => {
+        const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
+        setProvinceOptions(data.items ?? []);
+    }, []);
+
+    const loadWards = useCallback(async (provinceCode: string) => {
+        const data = await api.get<{ items?: WardOption[] }>(endpoints.poverty.locationWards(provinceCode));
+        setWardOptions(data.items ?? []);
+    }, []);
+
+    const loadAreas = useCallback(async (wardCode: string) => {
+        const data = await api.get<{ items?: PovertyArea[] }>(endpoints.poverty.locationAreas(wardCode));
+        setAreaOptions(data.items ?? []);
+    }, []);
 
     const loadSummary = useCallback(async () => {
         setLoadingSummary(true);
@@ -81,6 +113,10 @@ export default function PovertyReportPage() {
     }, [filters, notification]);
 
     useEffect(() => {
+        void loadProvinces();
+    }, [loadProvinces]);
+
+    useEffect(() => {
         if (activeTab === "summary") {
             loadSummary();
             return;
@@ -88,9 +124,23 @@ export default function PovertyReportPage() {
         loadDetail(detailPagination.page, detailPagination.limit);
     }, [activeTab, detailPagination.limit, detailPagination.page, loadDetail, loadSummary]);
 
+    useEffect(() => {
+        const provinceCode = getInitialProvinceCode(selectedProvinceCode);
+        if (!provinceCode) return;
+        void loadWards(provinceCode);
+    }, [loadWards, selectedProvinceCode]);
+
+    useEffect(() => {
+        if (!selectedWardCode) {
+            setAreaOptions([]);
+            return;
+        }
+        void loadAreas(String(selectedWardCode));
+    }, [loadAreas, selectedWardCode]);
+
     const exportExcel = async () => {
         try {
-            const query = buildQuery(filters);
+        const query = buildQuery(filters);
             const exportEndpoint = activeTab === "summary" ? endpoints.poverty.reportExportExcel : endpoints.poverty.reportDetailExportExcel;
             const data = await api.get<ExcelPayload>(`${exportEndpoint}?${query}`);
             downloadBase64File(data.fileName, data.mimeType, data.fileContentBase64);
@@ -162,7 +212,7 @@ export default function PovertyReportPage() {
                         <Form
                             form={form}
                             layout="vertical"
-                            initialValues={{ year: currentYear }}
+                            initialValues={{ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE }}
                             onFinish={(values) => {
                                 setFilters(values);
                                 setDetailPagination((prev) => ({ ...prev, page: 1, limit: 20 }));
@@ -170,16 +220,36 @@ export default function PovertyReportPage() {
                         >
                             <Row gutter={[16, 0]}>
                                 <Col xs={12} md={2} xl={2}><Form.Item name="povertyType" label="Loại hộ"><Select allowClear options={povertyTypeOptions} /></Form.Item></Col>
-                                {/* <Col xs={24} md={6} xl={5}><Form.Item name="provinceName" label="Tỉnh/Thành phố"><Input /></Form.Item></Col> */}
-                                <Col xs={24} md={3} xl={3}><Form.Item name="wardName" label="Xã/Phường"><Input /></Form.Item></Col>
-                                <Col xs={24} md={3} xl={3}><Form.Item name="areaName" label="Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaOptions} /></Form.Item></Col>
+                                <Col xs={24} md={4} xl={4}>
+                                    <Form.Item name="provinceCode" label="Tỉnh/Thành phố">
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={provinceSelectOptions}
+                                            onChange={() => form.setFieldsValue({ wardCode: undefined, areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={3} xl={3}>
+                                    <Form.Item name="wardCode" label="Xã/Phường">
+                                        <Select
+                                            allowClear
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={wardSelectOptions}
+                                            onChange={() => form.setFieldsValue({ areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={3} xl={3}><Form.Item name="areaId" label="Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaSelectOptions} /></Form.Item></Col>
                                 <Col xs={12} md={2} xl={2}><Form.Item name="year" label="Năm"><InputNumber className="w-full" min={1900} max={2200} /></Form.Item></Col>
                             </Row>
                             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end [&_.ant-btn]:w-full sm:[&_.ant-btn]:w-auto mt-2">
                                 <ActionButton type="search" htmlType="submit" loading={activeTab === "summary" ? loadingSummary : loadingDetail} />
                                 <ActionButton type="refresh" variant="outlined" onClick={() => {
                                     form.resetFields();
-                                    setFilters({ year: currentYear });
+                                    form.setFieldsValue({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
+                                    setFilters({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
                                     setDetailPagination((prev) => ({ ...prev, page: 1, limit: 20 }));
                                 }} />
                             </div>

@@ -1,7 +1,7 @@
 import { HttpErrors, HttpStatusCode } from "@/helpers/Http.ts";
 import { asyncHandler } from "@/helpers/request.ts";
 import { apiResponse } from "@/helpers/response.ts";
-import { accounts, organizations, workspaceMemberships } from "@/schema.ts";
+import { accounts, areas, organizations, provinces, wards, workspaceMemberships } from "@/schema.ts";
 import { auditHelpers } from "@/services/auditLog.ts";
 import { db } from "@/services/db/drizzle.ts";
 import type { SQL } from "drizzle-orm";
@@ -36,6 +36,9 @@ const createSchema = z.object({
   name: z.string().trim().min(1).max(255),
   code: z.string().trim().max(100).optional(),
   parentId: z.uuid().nullable().optional(),
+  provinceCode: z.string().trim().min(1).optional(),
+  wardCode: z.string().trim().min(1).optional(),
+  areaId: z.uuid().optional(),
   address: z.string().trim().optional(),
   phone: z.string().trim().max(50).optional(),
   email: optionalEmailSchema,
@@ -48,6 +51,9 @@ const updateSchema = z
     name: z.string().trim().min(1).max(255).optional(),
     code: z.string().trim().max(100).optional(),
     parentId: z.uuid().nullable().optional(),
+    provinceCode: z.string().trim().min(1).nullable().optional(),
+    wardCode: z.string().trim().min(1).nullable().optional(),
+    areaId: z.uuid().nullable().optional(),
     address: z.string().trim().optional(),
     phone: z.string().trim().max(50).optional(),
     email: optionalEmailSchema,
@@ -57,6 +63,149 @@ const updateSchema = z
   .refine((v) => Object.keys(v).length > 0, {
     message: "At least one field is required"
   });
+
+export const ensureManagementLevelCombination = (payload: {
+  provinceCode?: string | null;
+  wardCode?: string | null;
+  areaId?: string | null;
+}): void => {
+  if (payload.areaId && !payload.wardCode) {
+    throw HttpErrors.ValidationFailed("areaId requires wardCode");
+  }
+
+  if (payload.wardCode && !payload.provinceCode) {
+    throw HttpErrors.ValidationFailed("wardCode requires provinceCode");
+  }
+};
+
+export const ensureWithinParentScope = (
+  parent: {
+    provinceCode?: string | null;
+    wardCode?: string | null;
+    areaId?: string | null;
+  } | null,
+  child: {
+    provinceCode?: string | null;
+    wardCode?: string | null;
+    areaId?: string | null;
+  }
+): void => {
+  if (!parent) return;
+
+  if (parent.areaId && parent.areaId !== child.areaId) {
+    throw HttpErrors.ValidationFailed("Child organization must stay inside the parent area");
+  }
+
+  if (parent.wardCode && parent.wardCode !== child.wardCode) {
+    throw HttpErrors.ValidationFailed("Child organization must stay inside the parent ward");
+  }
+
+  if (parent.provinceCode && parent.provinceCode !== child.provinceCode) {
+    throw HttpErrors.ValidationFailed("Child organization must stay inside the parent province");
+  }
+};
+
+type OrganizationWithLocationFields = typeof organizations.$inferSelect;
+type OrganizationParentSummary = {
+  id: string;
+  uuid: string;
+  name: string;
+  code: string | null;
+};
+
+const attachOrganizationLocationLabels = async <T extends OrganizationWithLocationFields>(
+  items: T[]
+): Promise<
+  Array<
+    T & {
+      provinceName: string | null;
+      wardName: string | null;
+      areaName: string | null;
+      parent: OrganizationParentSummary | null;
+    }
+  >
+> => {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const provinceCodes = Array.from(
+    new Set(items.map((item) => item.provinceCode).filter((value): value is string => Boolean(value)))
+  );
+  const wardCodes = Array.from(
+    new Set(items.map((item) => item.wardCode).filter((value): value is string => Boolean(value)))
+  );
+  const areaIds = Array.from(
+    new Set(items.map((item) => item.areaId).filter((value): value is string => Boolean(value)))
+  );
+  const parentIds = Array.from(
+    new Set(items.map((item) => item.parentId).filter((value): value is string => Boolean(value)))
+  );
+
+  const [provinceRows, wardRows, areaRows, parentRows] = await Promise.all([
+    provinceCodes.length > 0 ? db.select().from(provinces).where(inArray(provinces.code, provinceCodes)) : [],
+    wardCodes.length > 0 ? db.select().from(wards).where(inArray(wards.code, wardCodes)) : [],
+    areaIds.length > 0 ? db.select().from(areas).where(inArray(areas.id, areaIds)) : [],
+    parentIds.length > 0
+      ? db
+        .select({
+          uuid: organizations.uuid,
+          name: organizations.name,
+          code: organizations.code
+        })
+        .from(organizations)
+        .where(inArray(organizations.uuid, parentIds))
+      : []
+  ]);
+
+  const provinceMap = new Map(provinceRows.map((item) => [item.code, item.fullName ?? item.name]));
+  const wardMap = new Map(wardRows.map((item) => [item.code, item.fullName ?? item.name]));
+  const areaMap = new Map(areaRows.map((item) => [item.id, item.name]));
+  const parentMap = new Map(
+    parentRows.map((item) => [
+      item.uuid,
+      {
+        id: item.uuid,
+        uuid: item.uuid,
+        name: item.name,
+        code: item.code
+      } satisfies OrganizationParentSummary
+    ])
+  );
+
+  return items.map((item) => ({
+    ...item,
+    provinceName: item.provinceCode ? (provinceMap.get(item.provinceCode) ?? null) : null,
+    wardName: item.wardCode ? (wardMap.get(item.wardCode) ?? null) : null,
+    areaName: item.areaId ? (areaMap.get(item.areaId) ?? null) : null,
+    parent: item.parentId ? (parentMap.get(item.parentId) ?? null) : null
+  }));
+};
+
+const resolveOrganizationAccessScope = async (
+  accountId: string | null | undefined,
+  workspaceId: string
+): Promise<{ hasFullAccess: boolean; scopedOrganizationIds: string[] }> => {
+  if (!accountId) {
+    return { hasFullAccess: false, scopedOrganizationIds: [] };
+  }
+
+  const [account] = await db
+    .select({ isSuperAdmin: accounts.isSuperAdmin })
+    .from(accounts)
+    .where(eq(accounts.uuid, accountId))
+    .limit(1);
+
+  if (account?.isSuperAdmin) {
+    return { hasFullAccess: true, scopedOrganizationIds: [] };
+  }
+
+  const organizationIds = await getAccountOrganizationIds(accountId, workspaceId);
+  const scopedOrganizationIds =
+    organizationIds.length > 0 ? await expandOrganizationDescendants(workspaceId, organizationIds) : [];
+
+  return { hasFullAccess: false, scopedOrganizationIds };
+};
 
 export const listOrganizationsAdmin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const workspaceId = req.workspaceId?.trim();
@@ -76,31 +225,11 @@ export const listOrganizationsAdmin = asyncHandler(async (req: Request, res: Res
   const { page, limit, parentId, status, search, createdFrom, createdTo, sortBy, sortOrder } = parsed.data;
   const offset = (page - 1) * limit;
   const accountId = req.accountId?.trim();
-  let isSuperAdmin = false;
-
-  if (accountId) {
-    const [account] = await db
-      .select({ isSuperAdmin: accounts.isSuperAdmin })
-      .from(accounts)
-      .where(eq(accounts.uuid, accountId))
-      .limit(1);
-
-    const [member] = await db
-      .select({ isAdmin: workspaceMemberships.isAdmin })
-      .from(workspaceMemberships)
-      .where(eq(workspaceMemberships.accountId, accountId))
-      .limit(1);
-
-    isSuperAdmin = Boolean(account?.isSuperAdmin || member?.isAdmin);
-  }
+  const accessScope = await resolveOrganizationAccessScope(accountId, workspaceId);
 
   const conditions: SQL<unknown>[] = [eq(organizations.workspaceId, workspaceId)];
-  if (!isSuperAdmin) {
-    const organizationIds = accountId ? await getAccountOrganizationIds(accountId, workspaceId) : [];
-    const scopedOrganizationIds =
-      organizationIds.length > 0 ? await expandOrganizationDescendants(workspaceId, organizationIds) : [];
-
-    if (scopedOrganizationIds.length === 0) {
+  if (!accessScope.hasFullAccess) {
+    if (accessScope.scopedOrganizationIds.length === 0) {
       const response = apiResponse.success(
         HttpStatusCode.OK,
         {
@@ -123,7 +252,7 @@ export const listOrganizationsAdmin = asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    conditions.push(inArray(organizations.uuid, scopedOrganizationIds));
+    conditions.push(inArray(organizations.uuid, accessScope.scopedOrganizationIds));
   }
 
   if (parentId) conditions.push(eq(organizations.parentId, parentId));
@@ -143,12 +272,13 @@ export const listOrganizationsAdmin = asyncHandler(async (req: Request, res: Res
   const items = whereClause
     ? await db.select().from(organizations).where(whereClause).orderBy(...orderByClause).limit(limit).offset(offset)
     : await db.select().from(organizations).orderBy(...orderByClause).limit(limit).offset(offset);
+  const enrichedItems = await attachOrganizationLocationLabels(items);
 
   const total = totalResult?.count ?? 0;
   const response = apiResponse.success(
     HttpStatusCode.OK,
     {
-      items,
+      items: enrichedItems,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       filters: {
         workspaceId,
@@ -181,11 +311,43 @@ export const createOrganizationAdmin = asyncHandler(async (req: Request, res: Re
     return;
   }
 
+  try {
+    ensureManagementLevelCombination(parsed.data);
+  } catch (error) {
+    const response = apiResponse.error(error instanceof Error ? error : new Error("Validation failed"));
+    res.status(response.code).send(response);
+    return;
+  }
+
+  if (parsed.data.parentId) {
+    const [parentOrganization] = await db
+      .select()
+      .from(organizations)
+      .where(and(eq(organizations.uuid, parsed.data.parentId), eq(organizations.workspaceId, workspaceId)))
+      .limit(1);
+
+    if (!parentOrganization) {
+      const response = apiResponse.error(HttpErrors.NotFound("Parent organization"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    try {
+      ensureWithinParentScope(parentOrganization, parsed.data);
+    } catch (error) {
+      const response = apiResponse.error(error instanceof Error ? error : new Error("Validation failed"));
+      res.status(response.code).send(response);
+      return;
+    }
+  }
+
+  const { sortOrder, ...organizationPayload } = parsed.data;
+
   const [created] = await db
     .insert(organizations)
     .values({
-      ...parsed.data,
-      sort_order: parsed.data.sortOrder,
+      ...organizationPayload,
+      sort_order: sortOrder,
       workspaceId
     })
     .returning();
@@ -200,6 +362,9 @@ export const createOrganizationAdmin = asyncHandler(async (req: Request, res: Re
         name: created.name,
         code: created.code,
         parentId: created.parentId,
+        provinceCode: created.provinceCode,
+        wardCode: created.wardCode,
+        areaId: created.areaId,
         address: created.address,
         phone: created.phone,
         email: created.email,
@@ -210,7 +375,12 @@ export const createOrganizationAdmin = asyncHandler(async (req: Request, res: Re
     );
   }
 
-  const response = apiResponse.success(HttpStatusCode.CREATED, { item: created }, "Organization created successfully");
+  const [enrichedCreated] = await attachOrganizationLocationLabels([created]);
+  const response = apiResponse.success(
+    HttpStatusCode.CREATED,
+    { item: enrichedCreated ?? created },
+    "Organization created successfully"
+  );
   res.status(response.code).send(response);
 });
 
@@ -234,6 +404,13 @@ export const getOrganizationAdminById = asyncHandler(async (req: Request, res: R
     return;
   }
 
+  const accessScope = await resolveOrganizationAccessScope(req.accountId?.trim(), workspaceId);
+  if (!accessScope.hasFullAccess && !accessScope.scopedOrganizationIds.includes(id)) {
+    const response = apiResponse.error(HttpErrors.NotFound("Organization"));
+    res.status(response.code).send(response);
+    return;
+  }
+
   const [item] = await db
     .select()
     .from(organizations)
@@ -245,7 +422,12 @@ export const getOrganizationAdminById = asyncHandler(async (req: Request, res: R
     return;
   }
 
-  const response = apiResponse.success(HttpStatusCode.OK, { item }, "Organization retrieved successfully");
+  const [enrichedItem] = await attachOrganizationLocationLabels([item]);
+  const response = apiResponse.success(
+    HttpStatusCode.OK,
+    { item: enrichedItem ?? item },
+    "Organization retrieved successfully"
+  );
   res.status(response.code).send(response);
 });
 
@@ -269,9 +451,24 @@ export const updateOrganizationAdminById = asyncHandler(async (req: Request, res
     return;
   }
 
+  const accessScope = await resolveOrganizationAccessScope(req.accountId?.trim(), workspaceId);
+  if (!accessScope.hasFullAccess && !accessScope.scopedOrganizationIds.includes(id)) {
+    const response = apiResponse.error(HttpErrors.NotFound("Organization"));
+    res.status(response.code).send(response);
+    return;
+  }
+
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) {
     const response = apiResponse.error(HttpErrors.ValidationFailed(parsed.error.message));
+    res.status(response.code).send(response);
+    return;
+  }
+
+  try {
+    ensureManagementLevelCombination(parsed.data);
+  } catch (error) {
+    const response = apiResponse.error(error instanceof Error ? error : new Error("Validation failed"));
     res.status(response.code).send(response);
     return;
   }
@@ -301,6 +498,56 @@ export const updateOrganizationAdminById = asyncHandler(async (req: Request, res
     return;
   }
 
+  const resolvedParentId =
+    organizationUpdatePayload.parentId !== undefined
+      ? organizationUpdatePayload.parentId
+      : existingOrganization.parentId;
+
+  if (
+    resolvedParentId &&
+    !accessScope.hasFullAccess &&
+    !accessScope.scopedOrganizationIds.includes(String(resolvedParentId))
+  ) {
+    const response = apiResponse.error(HttpErrors.NotFound("Parent organization"));
+    res.status(response.code).send(response);
+    return;
+  }
+
+  if (resolvedParentId) {
+    const [parentOrganization] = await db
+      .select()
+      .from(organizations)
+      .where(and(eq(organizations.uuid, String(resolvedParentId)), eq(organizations.workspaceId, workspaceId)))
+      .limit(1);
+
+    if (!parentOrganization) {
+      const response = apiResponse.error(HttpErrors.NotFound("Parent organization"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    try {
+      ensureWithinParentScope(parentOrganization, {
+        provinceCode:
+          organizationUpdatePayload.provinceCode !== undefined
+            ? (organizationUpdatePayload.provinceCode as string | null)
+            : existingOrganization.provinceCode,
+        wardCode:
+          organizationUpdatePayload.wardCode !== undefined
+            ? (organizationUpdatePayload.wardCode as string | null)
+            : existingOrganization.wardCode,
+        areaId:
+          organizationUpdatePayload.areaId !== undefined
+            ? (organizationUpdatePayload.areaId as string | null)
+            : existingOrganization.areaId
+      });
+    } catch (error) {
+      const response = apiResponse.error(error instanceof Error ? error : new Error("Validation failed"));
+      res.status(response.code).send(response);
+      return;
+    }
+  }
+
   const [updated] = await db
     .update(organizations)
     .set(organizationUpdatePayload)
@@ -327,7 +574,12 @@ export const updateOrganizationAdminById = asyncHandler(async (req: Request, res
     );
   }
 
-  const response = apiResponse.success(HttpStatusCode.OK, { item: updated }, "Organization updated successfully");
+  const [enrichedUpdated] = await attachOrganizationLocationLabels([updated]);
+  const response = apiResponse.success(
+    HttpStatusCode.OK,
+    { item: enrichedUpdated ?? updated },
+    "Organization updated successfully"
+  );
   res.status(response.code).send(response);
 });
 
@@ -351,6 +603,13 @@ export const deleteOrganizationAdminById = asyncHandler(async (req: Request, res
     return;
   }
 
+  const accessScope = await resolveOrganizationAccessScope(req.accountId?.trim(), workspaceId);
+  if (!accessScope.hasFullAccess && !accessScope.scopedOrganizationIds.includes(id)) {
+    const response = apiResponse.error(HttpErrors.NotFound("Organization"));
+    res.status(response.code).send(response);
+    return;
+  }
+
   const [deleted] = await db
     .delete(organizations)
     .where(and(eq(organizations.uuid, id), eq(organizations.workspaceId, workspaceId)))
@@ -370,6 +629,9 @@ export const deleteOrganizationAdminById = asyncHandler(async (req: Request, res
         name: deleted.name,
         code: deleted.code,
         parentId: deleted.parentId,
+        provinceCode: deleted.provinceCode,
+        wardCode: deleted.wardCode,
+        areaId: deleted.areaId,
         address: deleted.address,
         phone: deleted.phone,
         email: deleted.email,
@@ -379,6 +641,11 @@ export const deleteOrganizationAdminById = asyncHandler(async (req: Request, res
     );
   }
 
-  const response = apiResponse.success(HttpStatusCode.OK, { item: deleted }, "Organization deleted successfully");
+  const [enrichedDeleted] = await attachOrganizationLocationLabels([deleted]);
+  const response = apiResponse.success(
+    HttpStatusCode.OK,
+    { item: enrichedDeleted ?? deleted },
+    "Organization deleted successfully"
+  );
   res.status(response.code).send(response);
 });

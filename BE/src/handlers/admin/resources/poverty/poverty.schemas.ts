@@ -30,6 +30,9 @@ export const listHouseholdsQuerySchema = z.object({
   year: z.coerce.number().int().min(1900).max(2200).optional(),
   povertyType: z.enum(POVERTY_TYPES).optional(),
   status: z.enum(HOUSEHOLD_STATUSES).optional(),
+  provinceCode: z.string().trim().optional(),
+  wardCode: z.string().trim().optional(),
+  areaId: z.uuid().optional(),
   provinceName: z.string().trim().optional(),
   wardName: z.string().trim().optional(),
   areaName: z.string().trim().optional(),
@@ -56,8 +59,30 @@ export const supportIdParamSchema = z.object({
   supportId: z.uuid()
 });
 
-export const povertyYearOverviewIdParamSchema = z.object({
+export const areaIdParamSchema = z.object({
+  wardCode: z.string().trim().min(1),
+  areaId: z.uuid()
+});
+
+export const contextHistoryIdParamSchema = z.object({
+  id: z.uuid(),
+  contextHistoryId: z.uuid()
+});
+
+export const povertyWardOverviewIdParamSchema = z.object({
   id: z.uuid()
+});
+
+export const locationProvinceQuerySchema = z.object({
+  provinceCode: z.string().trim().min(1).optional()
+});
+
+export const locationWardQuerySchema = z.object({
+  provinceCode: z.string().trim().min(1)
+});
+
+export const locationAreaQuerySchema = z.object({
+  wardCode: z.string().trim().min(1)
 });
 
 export const householdCreateSchema = z.object({
@@ -65,10 +90,16 @@ export const householdCreateSchema = z.object({
   year: z.coerce.number().int().min(1900).max(2200),
   povertyType: z.enum(POVERTY_TYPES),
   status: z.enum(HOUSEHOLD_STATUSES).optional().default("ACTIVE"),
+  provinceCode: z.string().trim().min(1),
+  wardCode: z.string().trim().min(1),
+  areaId: z.uuid(),
   provinceName: optionalText,
   wardName: optionalText,
   areaName: optionalText,
   address: optionalText,
+  headFullName: optionalText,
+  headCitizenId: optionalText,
+  memberCount: z.coerce.number().int().min(0).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   changeNote: optionalText
@@ -126,6 +157,32 @@ export const householdSupportUpdateSchema = householdSupportCreateSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "At least one field is required" });
 
+export const householdContextHistoryCreateSchema = z.object({
+  recordedAt: optionalDateText,
+  familySituation: optionalText,
+  currentStatus: optionalText,
+  note: optionalText,
+  changeNote: optionalText
+})
+  .refine((value) => Boolean(value.recordedAt), { message: "recordedAt is required", path: ["recordedAt"] })
+  .refine((value) => Boolean(value.familySituation || value.currentStatus), {
+    message: "At least one of familySituation or currentStatus is required",
+    path: ["familySituation"]
+  });
+
+export const householdContextHistoryUpdateSchema = householdContextHistoryCreateSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, { message: "At least one field is required" })
+  .refine((value) => {
+    if ("familySituation" in value || "currentStatus" in value) {
+      return Boolean(value.familySituation || value.currentStatus);
+    }
+    return true;
+  }, {
+    message: "At least one of familySituation or currentStatus is required",
+    path: ["familySituation"]
+  });
+
 export const importHouseholdsSchema = z.object({
   fileName: z.string().trim().min(1).optional(),
   fileContentBase64: z.string().trim().min(1)
@@ -137,34 +194,79 @@ export const reportDetailQuerySchema = reportQuerySchema.extend({
   limit: z.coerce.number().int().min(1).max(500).default(20)
 });
 
-export const povertyYearOverviewQuerySchema = z.object({
-  year: z.coerce.number().int().min(1900).max(2200).optional()
+export const povertyWardOverviewQuerySchema = z.object({
+  provinceCode: z.string().trim().min(1),
+  wardCode: z.string().trim().min(1)
 });
 
-export const povertyYearOverviewUpsertSchema = z.object({
+export const povertyWardPublicLinkQuerySchema = z.object({
+  provinceCode: z.string().trim().min(1),
+  wardCode: z.string().trim().min(1)
+});
+
+export const povertyWardPublicLinkUpsertSchema = z.object({
+  provinceCode: z.string().trim().min(1),
+  wardCode: z.string().trim().min(1),
+  isPublic: z.coerce.boolean()
+});
+
+export const povertyWardOverviewUpsertSchema = z.object({
+  provinceCode: z.string().trim().min(1),
+  wardCode: z.string().trim().min(1),
   year: z.coerce.number().int().min(1900).max(2200),
   population: z.coerce.number().int().min(0).default(0),
   totalHouseholds: z.coerce.number().int().min(0).default(0),
   totalMembers: z.coerce.number().int().min(0).default(0),
+  naturalArea: z.coerce.number().min(0),
   note: optionalText
 });
+
+export const areaCreateSchema = z.object({
+  provinceCode: z.string().trim().min(1),
+  wardCode: z.string().trim().min(1),
+  code: optionalText,
+  name: z.string().trim().min(1).max(255),
+  secretaryName: optionalText,
+  secretaryPhone: optionalText,
+  hamletHeadName: optionalText,
+  hamletHeadPhone: optionalText,
+  securityTeamLeaderName: optionalText,
+  securityTeamLeaderPhone: optionalText,
+  naturalArea: z.coerce.number().min(0).optional(),
+  description: optionalText,
+  note: optionalText,
+  status: z.coerce.boolean().optional().default(true)
+});
+
+export const areaUpdateSchema = areaCreateSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, { message: "At least one field is required" });
 
 export type HouseholdCreateInput = z.infer<typeof householdCreateSchema>;
 export type HouseholdUpdateInput = z.infer<typeof householdUpdateSchema>;
 export type HouseholdMemberCreateInput = z.infer<typeof householdMemberCreateSchema>;
 export type HouseholdAssessmentCreateInput = z.infer<typeof householdAssessmentCreateSchema>;
 export type HouseholdSupportCreateInput = z.infer<typeof householdSupportCreateSchema>;
-export type PovertyYearOverviewUpsertInput = z.infer<typeof povertyYearOverviewUpsertSchema>;
+export type HouseholdContextHistoryCreateInput = z.infer<typeof householdContextHistoryCreateSchema>;
+export type PovertyWardOverviewUpsertInput = z.infer<typeof povertyWardOverviewUpsertSchema>;
+export type PovertyWardPublicLinkUpsertInput = z.infer<typeof povertyWardPublicLinkUpsertSchema>;
+export type AreaCreateInput = z.infer<typeof areaCreateSchema>;
 
 export type ImportedHouseholdInput = {
   code: string;
   year: number;
   povertyType: PovertyType;
   status?: HouseholdStatus;
+  provinceCode?: string;
+  wardCode?: string;
+  areaId?: string;
   provinceName?: string;
   wardName?: string;
   areaName?: string;
   address?: string;
+  headFullName?: string;
+  headCitizenId?: string;
+  memberCount?: number;
   latitude?: number;
   longitude?: number;
 };

@@ -5,6 +5,10 @@ import { logger, permissions } from "@/helpers/index.ts";
 import type { Method } from "@/helpers/permissions.ts";
 import { getIpFromRequest } from "@/helpers/request.ts";
 import { apiResponse } from "@/helpers/response.ts";
+import { accounts } from "@/schema.ts";
+import { db } from "@/services/db/drizzle.ts";
+import type { AuthUser } from "@/services/rbac.service.ts";
+import { eq } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 
 export const isAuthenticated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -56,8 +60,27 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
 
     logger.debug({ msg: `Verified user token for accountId: ${sub}` });
 
+    const [account] = await db
+      .select({
+        id: accounts.uuid,
+        isSuperAdmin: accounts.isSuperAdmin
+      })
+      .from(accounts)
+      .where(eq(accounts.uuid, sub))
+      .limit(1);
+
+    if (!account) {
+      throw new Error("Account not found");
+    }
+
+    const user: AuthUser = {
+      id: account.id,
+      isSuperAdmin: Boolean(account.isSuperAdmin)
+    };
+
     // Attach user and workspace to request and verify permissions in isAuthorized middleware or to be used within route handlers.
     req.accountId = sub;
+    req.user = user;
     const workspaceHeader = req.headers["x-workspace-id"];
     req.workspaceId = Array.isArray(workspaceHeader) ? workspaceHeader[0] : workspaceHeader;
 

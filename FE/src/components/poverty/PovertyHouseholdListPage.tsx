@@ -2,7 +2,7 @@
 
 import { api, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import type { ExcelPayload, PaginatedResponse, PoorHousehold } from "@/types/poverty";
+import type { ExcelPayload, PaginatedResponse, PoorHousehold, PovertyArea, ProvinceOption, WardOption } from "@/types/poverty";
 import {
     downloadBase64File,
     getValidGeoPosition,
@@ -17,24 +17,26 @@ import { ActionButton, AppPagination, TitleSpace } from "@/components/controller
 import ActionIcon from "@/components/controller/ActionIcon";
 import SharedSpreadsheetImport from "@/components/imports/SharedSpreadsheetImport";
 import PovertyAssessmentTimelineModal from "@/components/poverty/PovertyAssessmentTimelineModal";
+import { getVisibleHouseholdExtraActions } from "@/components/poverty/poverty-household-action-utils";
 import PovertySupportTimelineModal from "@/components/poverty/PovertySupportTimelineModal";
-import { usePovertyCategoryOptions } from "@/components/poverty/usePovertyCategoryOptions";
+import { DEFAULT_CANTHO_PROVINCE_CODE, getInitialProvinceCode, hasUnresolvedStandardizedLocation } from "@/components/poverty/poverty-location-utils";
 import { usePermission } from "@/hooks/usePermission";
-import { App, Button, Col, Form, Input, InputNumber, Modal, Popconfirm, Row, Select, Space, Table, Tag, Tooltip } from "antd";
-import type { TableColumnsType } from "antd";
-import { ChevronDown, ChevronUp, LocateFixed, MapPinned, SlidersHorizontal } from "lucide-react";
+import { createInFlightRequestCache } from "@/lib/inflight-request-cache";
+import { Alert, App, Button, Col, Dropdown, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag } from "antd";
+import type { MenuProps, TableColumnsType } from "antd";
+import { ChevronDown, ChevronUp, LocateFixed, MapPinned, SlidersHorizontal, Smartphone } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type HouseholdForm = {
     code?: string;
     year?: number;
     povertyType?: string;
     status?: string;
-    provinceName?: string;
-    wardName?: string;
-    areaName?: string;
+    provinceCode?: string;
+    wardCode?: string;
+    areaId?: string;
     address?: string;
     latitude?: number;
     longitude?: number;
@@ -80,10 +82,15 @@ export default function PovertyHouseholdListPage() {
     const [editing, setEditing] = useState<PoorHousehold | null>(null);
     const [timelineHousehold, setTimelineHousehold] = useState<PoorHousehold | null>(null);
     const [supportTimelineHousehold, setSupportTimelineHousehold] = useState<PoorHousehold | null>(null);
-    const [filters, setFilters] = useState<Record<string, unknown>>({ year: currentYear });
+    const [filters, setFilters] = useState<Record<string, unknown>>({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
     const [coordinatePickerOpen, setCoordinatePickerOpen] = useState(false);
-    const areaOptions = usePovertyCategoryOptions("AREA");
+    const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+    const [formWardOptions, setFormWardOptions] = useState<WardOption[]>([]);
+    const [formAreaOptions, setFormAreaOptions] = useState<PovertyArea[]>([]);
+    const [filterWardOptions, setFilterWardOptions] = useState<WardOption[]>([]);
+    const [filterAreaOptions, setFilterAreaOptions] = useState<PovertyArea[]>([]);
+    const requestCacheRef = useRef(createInFlightRequestCache());
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canUpdateHousehold } = usePermission("poverty.household.update");
     const { can: canDeleteHousehold } = usePermission("poverty.household.delete");
@@ -93,17 +100,108 @@ export default function PovertyHouseholdListPage() {
     const { can: canViewMap } = usePermission("poverty.map.read");
     const latitudeValue = Form.useWatch("latitude", form);
     const longitudeValue = Form.useWatch("longitude", form);
+    const selectedFormProvinceCode = Form.useWatch("provinceCode", form);
+    const selectedFormWardCode = Form.useWatch("wardCode", form);
+    const selectedFilterProvinceCode = Form.useWatch("provinceCode", filterForm);
+    const selectedFilterWardCode = Form.useWatch("wardCode", filterForm);
 
     const activeFilterCount = useMemo(
         () => Object.values(filters).filter((value) => String(value ?? "").trim()).length,
         [filters]
     );
+    const provinceSelectOptions = useMemo(
+        () => provinceOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [provinceOptions]
+    );
+    const formWardSelectOptions = useMemo(
+        () => formWardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [formWardOptions]
+    );
+    const formAreaSelectOptions = useMemo(
+        () => formAreaOptions.map((item) => ({ value: item.id, label: item.name })),
+        [formAreaOptions]
+    );
+    const filterWardSelectOptions = useMemo(
+        () => filterWardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [filterWardOptions]
+    );
+    const filterAreaSelectOptions = useMemo(
+        () => filterAreaOptions.map((item) => ({ value: item.id, label: item.name })),
+        [filterAreaOptions]
+    );
+
+    const fetchProvinces = useCallback(async () => {
+        return requestCacheRef.current.run("poverty:location:provinces", async () => {
+            const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
+            return data.items ?? [];
+        });
+    }, []);
+
+    const fetchWardsByProvince = useCallback(async (provinceCode: string) => {
+        return requestCacheRef.current.run(`poverty:location:wards:${provinceCode}`, async () => {
+            const data = await api.get<{ items?: WardOption[] }>(endpoints.poverty.locationWards(provinceCode));
+            return data.items ?? [];
+        });
+    }, []);
+
+    const fetchAreasByWard = useCallback(async (wardCode: string) => {
+        return requestCacheRef.current.run(`poverty:location:areas:${wardCode}`, async () => {
+            const data = await api.get<{ items?: PovertyArea[] }>(endpoints.poverty.locationAreas(wardCode));
+            return data.items ?? [];
+        });
+    }, []);
+
+    const loadProvinces = useCallback(async () => {
+        try {
+            const items = await fetchProvinces();
+            setProvinceOptions(items);
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải tỉnh/thành phố",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
+    }, [fetchProvinces, notification]);
+
+    const loadWardsByProvince = useCallback(async (provinceCode: string, target: "form" | "filter") => {
+        try {
+            const items = await fetchWardsByProvince(provinceCode);
+            if (target === "form") {
+                setFormWardOptions(items);
+            } else {
+                setFilterWardOptions(items);
+            }
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải xã/phường",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
+    }, [fetchWardsByProvince, notification]);
+
+    const loadAreasByWard = useCallback(async (wardCode: string, target: "form" | "filter") => {
+        try {
+            const items = await fetchAreasByWard(wardCode);
+            if (target === "form") {
+                setFormAreaOptions(items);
+            } else {
+                setFilterAreaOptions(items);
+            }
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải khu vực/ấp",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
+    }, [fetchAreasByWard, notification]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
             const query = buildQuery(filters, page, limit);
-            const data = await api.get<PaginatedResponse<PoorHousehold>>(`${endpoints.poverty.households}?${query}`);
+            const data = await requestCacheRef.current.run(`poverty:households:${query}`, async () => {
+                return api.get<PaginatedResponse<PoorHousehold>>(`${endpoints.poverty.households}?${query}`);
+            });
             setItems(data.items ?? []);
             setTotal(data.pagination?.total ?? 0);
         } catch (error) {
@@ -117,16 +215,52 @@ export default function PovertyHouseholdListPage() {
     }, [filters, limit, notification, page]);
 
     useEffect(() => {
+        void loadProvinces();
+    }, [loadProvinces]);
+
+    useEffect(() => {
         loadData();
     }, [loadData]);
 
+    useEffect(() => {
+        if (!modalOpen) return;
+        const provinceCode = getInitialProvinceCode(selectedFormProvinceCode);
+        if (!provinceCode) return;
+        void loadWardsByProvince(provinceCode, "form");
+    }, [loadWardsByProvince, modalOpen, selectedFormProvinceCode]);
+
+    useEffect(() => {
+        if (!modalOpen) return;
+        if (!selectedFormWardCode) {
+            setFormAreaOptions([]);
+            return;
+        }
+        void loadAreasByWard(String(selectedFormWardCode), "form");
+    }, [loadAreasByWard, modalOpen, selectedFormWardCode]);
+
+    useEffect(() => {
+        const provinceCode = getInitialProvinceCode(selectedFilterProvinceCode);
+        if (!provinceCode) return;
+        void loadWardsByProvince(provinceCode, "filter");
+    }, [loadWardsByProvince, selectedFilterProvinceCode]);
+
+    useEffect(() => {
+        if (!selectedFilterWardCode) {
+            setFilterAreaOptions([]);
+            return;
+        }
+        void loadAreasByWard(String(selectedFilterWardCode), "filter");
+    }, [loadAreasByWard, selectedFilterWardCode]);
+
     const openCreate = useCallback(() => {
         setEditing(null);
+        setFormAreaOptions([]);
         form.resetFields();
         form.setFieldsValue({
             year: currentYear,
             povertyType: "POOR",
             status: "ACTIVE",
+            provinceCode: DEFAULT_CANTHO_PROVINCE_CODE,
         });
         setCoordinatePickerOpen(false);
         setModalOpen(true);
@@ -134,14 +268,15 @@ export default function PovertyHouseholdListPage() {
 
     const openEdit = useCallback((record: PoorHousehold) => {
         setEditing(record);
+        setFormAreaOptions([]);
         form.setFieldsValue({
             code: record.code ?? undefined,
             year: record.year,
             povertyType: String(record.povertyType ?? "POOR"),
             status: String(record.status ?? "ACTIVE"),
-            provinceName: record.provinceName ?? undefined,
-            wardName: record.wardName ?? undefined,
-            areaName: record.areaName ?? undefined,
+            provinceCode: record.provinceCode ?? undefined,
+            wardCode: record.wardCode ?? undefined,
+            areaId: record.areaId ?? undefined,
             address: record.address ?? undefined,
             latitude: record.latitude ?? undefined,
             longitude: record.longitude ?? undefined,
@@ -197,6 +332,14 @@ export default function PovertyHouseholdListPage() {
         router.push(`/ho-ngheo/ban-do?householdId=${record.id}`);
     }, [notification, router]);
 
+    const openCollectionApp = useCallback((householdId?: string) => {
+        if (householdId) {
+            router.push(`/ho-ngheo/thu-thap?householdId=${householdId}`);
+            return;
+        }
+        router.push("/ho-ngheo/thu-thap");
+    }, [router]);
+
     const exportExcel = async () => {
         try {
             const query = buildQuery(filters, 1, limit);
@@ -209,6 +352,78 @@ export default function PovertyHouseholdListPage() {
             });
         }
     };
+
+    const buildExtraActionMenuItems = useCallback((record: PoorHousehold): MenuProps["items"] => {
+        const visibleActions = getVisibleHouseholdExtraActions([
+            {
+                key: "collection",
+                label: "Thu thập hiện trường",
+                iconAction: "more",
+                visible: canUpdateHousehold,
+            },
+            {
+                key: "assessmentTimeline",
+                label: "Xem timeline đánh giá",
+                iconAction: "timeline",
+                visible: canViewHouseholdDetail,
+            },
+            {
+                key: "supportTimeline",
+                label: "Xem timeline hỗ trợ",
+                iconAction: "supportTimeline",
+                visible: canViewHouseholdDetail,
+            },
+            {
+                key: "map",
+                label: "Xem trên bản đồ",
+                iconAction: "more",
+                visible: canViewMap,
+            },
+            {
+                key: "delete",
+                label: "Ngưng hoạt động",
+                iconAction: "delete",
+                visible: canDeleteHousehold,
+                danger: true,
+            },
+        ]);
+
+        return visibleActions.map((action) => ({
+            key: action.key,
+            danger: action.danger,
+            icon: action.key === "collection"
+                ? <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-sky-50 text-sky-600"><Smartphone size={18} strokeWidth={2.2} /></span>
+                : action.key === "map"
+                    ? <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-emerald-50 text-emerald-600"><MapPinned size={18} strokeWidth={2.2} /></span>
+                    : <ActionIcon action={action.iconAction} />,
+            label: action.label,
+            onClick: () => {
+                if (action.key === "collection") {
+                    openCollectionApp(record.id);
+                    return;
+                }
+                if (action.key === "assessmentTimeline") {
+                    setTimelineHousehold(record);
+                    return;
+                }
+                if (action.key === "supportTimeline") {
+                    setSupportTimelineHousehold(record);
+                    return;
+                }
+                if (action.key === "map") {
+                    openOnMap(record);
+                    return;
+                }
+                Modal.confirm({
+                    title: "Ngưng hoạt động hộ này?",
+                    okText: "Ngưng",
+                    cancelText: "Hủy",
+                    okButtonProps: { danger: true },
+                    onOk: async () => deactivate(record),
+                });
+            },
+        }));
+    }, [canDeleteHousehold, canUpdateHousehold, canViewHouseholdDetail, canViewMap, deactivate, openCollectionApp, openOnMap]);
 
     const columns: TableColumnsType<PoorHousehold> = useMemo(() => [
         {
@@ -253,43 +468,25 @@ export default function PovertyHouseholdListPage() {
         },
         {
             title: "Thao tác",
-            width: 256,
+            width: 176,
             fixed: "right",
-            render: (_, record) => (
-                <Space size={4} wrap={false}>
-                    <Button type="text" icon={<ActionIcon action="view" />} onClick={() => router.push(`/ho-ngheo/${record.id}`)} />
-                    {canViewHouseholdDetail ? <Tooltip title="Xem timeline đánh giá">
-                        <Button
-                            type="text"
-                            aria-label="Xem timeline đánh giá"
-                            icon={<ActionIcon action="timeline" />}
-                            onClick={() => setTimelineHousehold(record)}
-                        />
-                    </Tooltip> : null}
-                    {canViewHouseholdDetail ? <Tooltip title="Xem timeline hỗ trợ">
-                        <Button
-                            type="text"
-                            aria-label="Xem timeline hỗ trợ"
-                            icon={<ActionIcon action="supportTimeline" />}
-                            onClick={() => setSupportTimelineHousehold(record)}
-                        />
-                    </Tooltip> : null}
-                    {canViewMap ? <Tooltip title="Xem trên bản đồ">
-                        <Button
-                            type="text"
-                            aria-label="Xem trên bản đồ"
-                            icon={<span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-emerald-50 text-emerald-600"><MapPinned size={18} strokeWidth={2.2} /></span>}
-                            onClick={() => openOnMap(record)}
-                        />
-                    </Tooltip> : null}
-                    {canUpdateHousehold ? <Button type="text" icon={<ActionIcon action="edit" />} onClick={() => openEdit(record)} /> : null}
-                    {canDeleteHousehold ? <Popconfirm title="Ngưng hoạt động hộ này?" okText="Ngưng" cancelText="Hủy" onConfirm={() => deactivate(record)}>
-                        <Button type="text" icon={<ActionIcon action="delete" />} />
-                    </Popconfirm> : null}
-                </Space>
-            ),
+            render: (_, record) => {
+                const extraMenuItems = buildExtraActionMenuItems(record) ?? [];
+
+                return (
+                    <Space size={4} wrap={false}>
+                        <Button type="text" icon={<ActionIcon action="view" />} onClick={() => router.push(`/ho-ngheo/${record.id}`)} />
+                        {canUpdateHousehold ? <Button type="text" icon={<ActionIcon action="edit" />} onClick={() => openEdit(record)} /> : null}
+                        {extraMenuItems.length > 0 ? (
+                            <Dropdown menu={{ items: extraMenuItems }} trigger={["click"]} placement="bottomRight">
+                                <Button type="text" aria-label="Thêm thao tác" icon={<ActionIcon action="more" />} />
+                            </Dropdown>
+                        ) : null}
+                    </Space>
+                );
+            },
         },
-    ], [canDeleteHousehold, canUpdateHousehold, canViewHouseholdDetail, canViewMap, deactivate, limit, openEdit, openOnMap, page, router]);
+    ], [buildExtraActionMenuItems, canUpdateHousehold, limit, openEdit, page, router]);
 
     return (
         <div className="min-w-0 space-y-4 overflow-hidden">
@@ -298,12 +495,21 @@ export default function PovertyHouseholdListPage() {
                 actions={
                     <div
                         className="grid grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end [&_.ant-btn]:w-full sm:[&_.ant-btn]:w-auto"
-                        style={{ width: "min(100vw - 32px, 520px)" }}
+                        style={{ width: "min(100vw - 32px, 620px)" }}
                     >
                         {canImportHousehold ? <div className="min-w-0">
                             <SharedSpreadsheetImport moduleKey="poverty-households" onCommitted={loadData} />
                         </div> : null}
                         {canExportHousehold ? <ActionButton type="export-excel" onClick={exportExcel} /> : null}
+                        {/* {(canCreateHousehold || canUpdateHousehold) ? (
+                            <Button
+                                className="col-span-2 sm:col-span-1"
+                                icon={<Smartphone size={16} />}
+                                onClick={() => openCollectionApp()}
+                            >
+                                Thu thập mobile
+                            </Button>
+                        ) : null} */}
                         {canCreateHousehold ? <ActionButton className="col-span-2 sm:col-span-1" type="create" onClick={openCreate} /> : null}
                     </div>
                 }
@@ -331,20 +537,57 @@ export default function PovertyHouseholdListPage() {
 
                 {!filtersCollapsed ? (
                     <div className="p-4">
-                        <Form form={filterForm} layout="vertical" initialValues={{ year: currentYear }} onFinish={(values) => { setPage(1); setFilters(values); }}>
+                        <Form
+                            form={filterForm}
+                            layout="vertical"
+                            initialValues={{ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE }}
+                            onFinish={(values) => { setPage(1); setFilters(values); }}
+                        >
                             <Row gutter={[16, 0]}>
                                 <Col xs={24} md={8} lg={6}><Form.Item name="search" label="Tìm kiếm"><Input placeholder="Mã hộ, địa chỉ, địa bàn" /></Form.Item></Col>
 
                                 <Col xs={12} md={2} lg={2}><Form.Item name="povertyType" label="Loại hộ"><Select allowClear options={povertyTypeOptions} /></Form.Item></Col>
                                 <Col xs={12} md={2} lg={2}><Form.Item name="status" label="Trạng thái"><Select allowClear options={householdStatusOptions} /></Form.Item></Col>
-                                {/* <Col xs={12} md={6} lg={4}><Form.Item name="provinceName" label="Tỉnh/Thành phố"><Input /></Form.Item></Col> */}
-                                <Col xs={12} md={3} lg={3}><Form.Item name="wardName" label="Xã/Phường"><Input /></Form.Item></Col>
-                                <Col xs={12} md={3} lg={3}><Form.Item name="areaName" label="Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaOptions} /></Form.Item></Col>
+                                <Col xs={12} md={4} lg={4}>
+                                    <Form.Item name="provinceCode" label="Tỉnh/Thành phố">
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={provinceSelectOptions}
+                                            onChange={() => filterForm.setFieldsValue({ wardCode: undefined, areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={12} md={3} lg={3}>
+                                    <Form.Item name="wardCode" label="Xã/Phường">
+                                        <Select
+                                            allowClear
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={filterWardSelectOptions}
+                                            onChange={() => filterForm.setFieldsValue({ areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={12} md={3} lg={3}>
+                                    <Form.Item name="areaId" label="Khu vực">
+                                        <Select allowClear showSearch optionFilterProp="label" options={filterAreaSelectOptions} />
+                                    </Form.Item>
+                                </Col>
                                 <Col xs={12} md={2} lg={2}><Form.Item name="year" label="Năm"><InputNumber className="w-full" min={1900} max={2200} /></Form.Item></Col>
                             </Row>
                             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end [&_.ant-btn]:w-full sm:[&_.ant-btn]:w-auto mt-2">
                                 <ActionButton type="search" htmlType="submit" />
-                                <ActionButton type="refresh" variant="outlined" onClick={() => { filterForm.resetFields(); setFilters({ year: currentYear }); setPage(1); }} />
+                                <ActionButton
+                                    type="refresh"
+                                    variant="outlined"
+                                    onClick={() => {
+                                        filterForm.resetFields();
+                                        filterForm.setFieldsValue({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
+                                        setFilters({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
+                                        setPage(1);
+                                    }}
+                                />
                             </div>
                         </Form>
                     </div>
@@ -389,10 +632,41 @@ export default function PovertyHouseholdListPage() {
 
                         <section className="min-w-0 border-t border-gray-100 pt-4">
                             <div className="mb-3 text-sm font-semibold text-gray-800">Địa bàn cư trú</div>
+                            {editing && hasUnresolvedStandardizedLocation(editing) ? (
+                                <Alert
+                                    className="mb-4"
+                                    type="warning"
+                                    showIcon
+                                    message="Địa bàn cũ chưa chuẩn hóa hoàn toàn, vui lòng chọn lại theo danh mục chuẩn."
+                                    description={[editing.provinceName, editing.wardName, editing.areaName].filter(Boolean).join(" / ")}
+                                />
+                            ) : null}
                             <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="provinceName" label="Tỉnh/Thành phố"><Input /></Form.Item></Col>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="wardName" label="Xã/Phường"><Input /></Form.Item></Col>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="areaName" label="Thôn/Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaOptions} /></Form.Item></Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="provinceCode" label="Tỉnh/Thành phố" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={provinceSelectOptions}
+                                            onChange={() => form.setFieldsValue({ wardCode: undefined, areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="wardCode" label="Xã/Phường" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={formWardSelectOptions}
+                                            onChange={() => form.setFieldsValue({ areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="areaId" label="Thôn/Khu vực" rules={[{ required: true }]}>
+                                        <Select showSearch optionFilterProp="label" options={formAreaSelectOptions} />
+                                    </Form.Item>
+                                </Col>
                                 <Col xs={24}><Form.Item name="address" label="Địa chỉ cụ thể"><Input /></Form.Item></Col>
                             </Row>
                         </section>

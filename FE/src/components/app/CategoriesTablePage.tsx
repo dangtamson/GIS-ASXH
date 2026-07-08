@@ -4,7 +4,7 @@ import {api, ApiError} from "@/lib/api";
 import { getAccountEmailValidationMessage, isValidAccountEmailInput, normalizeAccountEmail } from "@/lib/accountEmail";
 import {extractList, getCategoryLabel, getRowId} from "@/lib/data-utils";
 import {endpoints} from "@/lib/endpoints";
-import {getWorkspaceId} from "@/lib/auth";
+import {getOrganizationId as getCurrentOrganizationId, getWorkspaceId} from "@/lib/auth";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {ChevronDown, ChevronRight, Search} from "lucide-react";
 import {TreeSelect} from "antd";
@@ -50,6 +50,7 @@ export type TreeSelectNode = {
     value: string;
     label: string;
     children: TreeSelectNode[];
+    disabled?: boolean;
 };
 
 export type VisibleOrganizationRow = {
@@ -91,6 +92,12 @@ const vietnameseLabels: Record<string, string> = {
     value: "Giá trị",
     note: "Ghi chú",
     address: "Địa chỉ",
+    provinceCode: "Mã tỉnh/thành",
+    provinceName: "Tỉnh/Thành phố",
+    wardCode: "Mã xã/phường",
+    wardName: "Xã/Phường",
+    areaId: "Mã khu vực",
+    areaName: "Khu vực/Ấp",
     sortOrder: "Sắp xếp",
 };
 
@@ -202,6 +209,10 @@ export function getOrganizationParentId(item: DataRow): string {
         parent?.uuid ??
         ""
     );
+}
+
+function getOrganizationParent(item: DataRow): DataRow | null {
+    return typeof item.parent === "object" && item.parent ? (item.parent as DataRow) : null;
 }
 
 export function getOrganizationName(item: DataRow): string {
@@ -381,6 +392,24 @@ export function buildPageConfig(slug: string, categories: DataRow[]): PageConfig
                     placeholder: "Nhập địa chỉ",
                 },
                 {
+                    key: "provinceCode",
+                    label: "Tỉnh/Thành phố",
+                    type: "select",
+                    placeholder: "Chọn tỉnh/thành phố",
+                },
+                {
+                    key: "wardCode",
+                    label: "Xã/Phường",
+                    type: "select",
+                    placeholder: "Chọn xã/phường",
+                },
+                {
+                    key: "areaId",
+                    label: "Khu vực/Ấp",
+                    type: "select",
+                    placeholder: "Chọn khu vực/ấp",
+                },
+                {
                     key: "email",
                     label: "Email",
                     type: "email",
@@ -532,6 +561,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
     const [isEditMode, setIsEditMode] = useState(false);
     const [isViewMode, setIsViewMode] = useState(false);
     const [editingId, setEditingId] = useState("");
+    const [editingRow, setEditingRow] = useState<DataRow | null>(null);
     const [formValues, setFormValues] = useState<Record<string, string>>({});
     const [sortKey, setSortKey] = useState("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -542,6 +572,10 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
     const [expandedOrganizationIds, setExpandedOrganizationIds] = useState<Record<string, boolean>>({});
+    const [provinceOptions, setProvinceOptions] = useState<SelectOption[]>([]);
+    const [wardOptions, setWardOptions] = useState<SelectOption[]>([]);
+    const [areaOptions, setAreaOptions] = useState<SelectOption[]>([]);
+    const currentOrganizationId = useMemo(() => getCurrentOrganizationId(), []);
 
     useEffect(() => {
         const loadCategories = async () => {
@@ -555,6 +589,82 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         };
         void loadCategories();
     }, []);
+
+    useEffect(() => {
+        if (!isOrganizationMode) {
+            return;
+        }
+
+        const loadProvinceOptions = async () => {
+            try {
+                const data = await api.get<unknown>(endpoints.poverty.locationProvinces);
+                const nextOptions = extractList<DataRow>(data).map((item) => ({
+                    value: String(item.code ?? ""),
+                    label: String(item.fullName ?? item.name ?? item.code ?? "")
+                })).filter((item) => item.value && item.label);
+                setProvinceOptions(nextOptions);
+            } catch {
+                setProvinceOptions([]);
+            }
+        };
+
+        void loadProvinceOptions();
+    }, [isOrganizationMode]);
+
+    useEffect(() => {
+        if (!isOrganizationMode) {
+            return;
+        }
+
+        const provinceCode = (formValues.provinceCode || "").trim();
+        if (!provinceCode) {
+            setWardOptions([]);
+            setAreaOptions([]);
+            return;
+        }
+
+        const loadWardOptions = async () => {
+            try {
+                const data = await api.get<unknown>(endpoints.poverty.locationWards(provinceCode));
+                const nextOptions = extractList<DataRow>(data).map((item) => ({
+                    value: String(item.code ?? ""),
+                    label: String(item.fullName ?? item.name ?? item.code ?? "")
+                })).filter((item) => item.value && item.label);
+                setWardOptions(nextOptions);
+            } catch {
+                setWardOptions([]);
+            }
+        };
+
+        void loadWardOptions();
+    }, [formValues.provinceCode, isOrganizationMode]);
+
+    useEffect(() => {
+        if (!isOrganizationMode) {
+            return;
+        }
+
+        const wardCode = (formValues.wardCode || "").trim();
+        if (!wardCode) {
+            setAreaOptions([]);
+            return;
+        }
+
+        const loadAreaOptions = async () => {
+            try {
+                const data = await api.get<unknown>(endpoints.poverty.locationAreas(wardCode));
+                const nextOptions = extractList<DataRow>(data).map((item) => ({
+                    value: String(item.id ?? ""),
+                    label: String(item.name ?? item.code ?? item.id ?? "")
+                })).filter((item) => item.value && item.label);
+                setAreaOptions(nextOptions);
+            } catch {
+                setAreaOptions([]);
+            }
+        };
+
+        void loadAreaOptions();
+    }, [formValues.wardCode, isOrganizationMode]);
 
     const pageConfig = useMemo<PageConfig>(() => buildPageConfig(slug, categories), [categories, slug]);
 
@@ -577,7 +687,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
             return ["username", "fullName", "email", "phone", "status"];
         }
         if (slug === "don-vi") {
-            return ["name", "code", "sortOrder", "address", "email", "phone", "status"];
+            return ["name", "code", "provinceName", "wardName", "areaName", "sortOrder", "address", "email", "phone", "status"];
         }
         return inferColumns(rows);
     }, [rows, slug]);
@@ -665,7 +775,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
 
         traverse("ROOT", 0);
         return result;
-    }, [expandedOrganizationIds, isOrganizationMode, organizationHierarchy, organizationRowsBySearch, search]);
+    }, [expandedOrganizationIds, isOrganizationMode, organizationHierarchy, organizationRowsBySearch, search, sortDirection, sortKey]);
 
     const organizationParentOptions = useMemo(() => {
         if (!isOrganizationMode) {
@@ -730,8 +840,37 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
                 });
         };
 
-        return buildNodes("ROOT");
-    }, [editingId, isOrganizationMode, organizationHierarchy]);
+        const tree = buildNodes("ROOT");
+        const currentParentId = editingRow ? getOrganizationParentId(editingRow) : "";
+        const currentParent = editingRow ? getOrganizationParent(editingRow) : null;
+
+        const hasNode = (nodes: TreeSelectNode[], value: string): boolean =>
+            nodes.some((node) => node.value === value || (node.children.length > 0 && hasNode(node.children, value)));
+
+        if (
+            currentParentId &&
+            currentParent &&
+            !descendants.has(currentParentId) &&
+            !hasNode(tree, currentParentId)
+        ) {
+            return [
+                {
+                    value: currentParentId,
+                    label: getOrganizationName(currentParent),
+                    children: [],
+                    disabled: true,
+                },
+                ...tree,
+            ];
+        }
+
+        return tree;
+    }, [editingId, editingRow, isOrganizationMode, organizationHierarchy]);
+
+    const isEditingCurrentOrganization = useMemo(
+        () => Boolean(isEditMode && currentOrganizationId && editingId && editingId === currentOrganizationId),
+        [currentOrganizationId, editingId, isEditMode]
+    );
 
     const organizationChildrenCount = useMemo(() => {
         if (!isOrganizationMode) {
@@ -885,6 +1024,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         setIsEditMode(false);
         setIsViewMode(false);
         setEditingId("");
+        setEditingRow(null);
 
         const initialValues = createBlankForm(pageConfig.formFields);
         if (isOrganizationMode) {
@@ -901,6 +1041,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         setIsEditMode(true);
         setIsViewMode(false);
         setEditingId(getRowId(row));
+        setEditingRow(row);
 
         const nextValues = createBlankForm(pageConfig.formFields, row);
         if (isOrganizationMode) {
@@ -917,6 +1058,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         setIsEditMode(false);
         setIsViewMode(true);
         setEditingId(getRowId(row));
+        setEditingRow(row);
 
         const nextValues = createBlankForm(pageConfig.formFields, row);
         if (isOrganizationMode) {
@@ -938,6 +1080,16 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
             if (field.key === "parentId" && isOrganizationMode) {
                 payload.parentId = value || null;
                 continue;
+            }
+
+            if (isOrganizationMode && ["provinceCode", "wardCode", "areaId"].includes(field.key)) {
+                const trimmedValue = String(value || "").trim();
+                if (!trimmedValue) {
+                    if (isEditMode) {
+                        payload[field.key] = null;
+                    }
+                    continue;
+                }
             }
 
             switch (field.valueType) {
@@ -1060,13 +1212,35 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         );
     };
 
-    const closeModal = () => setShowModal(false);
+    const closeModal = () => {
+        setShowModal(false);
+        setEditingRow(null);
+    };
     const closeDeleteModal = () => setDeleteTarget(null);
     const updateFieldValue = (key: string, value: string) =>
-        setFormValues((prev) => ({
-            ...prev,
-            [key]: value,
-        }));
+        setFormValues((prev) => {
+            if (key === "provinceCode") {
+                return {
+                    ...prev,
+                    provinceCode: value,
+                    wardCode: "",
+                    areaId: "",
+                };
+            }
+
+            if (key === "wardCode") {
+                return {
+                    ...prev,
+                    wardCode: value,
+                    areaId: "",
+                };
+            }
+
+            return {
+                ...prev,
+                [key]: value,
+            };
+        });
 
     return {
         columns,
@@ -1078,6 +1252,7 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         formValues,
         isEditMode,
         isOrganizationMode,
+        isEditingCurrentOrganization,
         isViewMode,
         loading,
         organizationChildrenCount,
@@ -1085,15 +1260,18 @@ export function useCategoriesTablePage(slug: string, source: "danh-muc" | "quan-
         organizationParentTree,
         pageConfig,
         pageSize,
+        provinceOptions,
         saving,
         search,
         status,
         showModal,
         sortDirection,
         sortKey,
+        areaOptions,
         totalPages,
         totalRows,
         visibleRows,
+        wardOptions,
         closeDeleteModal,
         closeModal,
         expandAllOrganizations,
@@ -1128,12 +1306,16 @@ type CategoriesTableViewProps = {
     formValues: Record<string, string>;
     isEditMode: boolean;
     isOrganizationMode: boolean;
+    isEditingCurrentOrganization: boolean;
     isViewMode: boolean;
     loading: boolean;
     organizationChildrenCount: Record<string, number>;
     organizationParentOptions: SelectOption[];
     organizationParentTree: TreeSelectNode[];
     pageSize: number;
+    provinceOptions: SelectOption[];
+    wardOptions: SelectOption[];
+    areaOptions: SelectOption[];
     saving: boolean;
     search: string;
     status: string;
@@ -1488,11 +1670,15 @@ function RecordModal({
     formValues,
     isEditMode,
     isOrganizationMode,
+    isEditingCurrentOrganization,
     isViewMode,
     organizationParentOptions,
     organizationParentTree,
     saving,
     showModal,
+    provinceOptions,
+    wardOptions,
+    areaOptions,
     onCloseModal,
     onSubmit,
     onUpdateFieldValue,
@@ -1503,9 +1689,13 @@ function RecordModal({
     | "formValues"
     | "isEditMode"
     | "isOrganizationMode"
+    | "isEditingCurrentOrganization"
     | "isViewMode"
     | "organizationParentOptions"
     | "organizationParentTree"
+    | "provinceOptions"
+    | "wardOptions"
+    | "areaOptions"
     | "saving"
     | "showModal"
     | "onCloseModal"
@@ -1518,7 +1708,18 @@ function RecordModal({
                 const options =
                     isOrganizationMode && field.key === "parentId"
                         ? organizationParentOptions
+                        : isOrganizationMode && field.key === "provinceCode"
+                            ? provinceOptions
+                            : isOrganizationMode && field.key === "wardCode"
+                                ? wardOptions
+                                : isOrganizationMode && field.key === "areaId"
+                                    ? areaOptions
                         : field.options || [];
+                const disabled =
+                    isViewMode ||
+                    (isOrganizationMode && field.key === "parentId" && isEditingCurrentOrganization) ||
+                    (isOrganizationMode && field.key === "wardCode" && !formValues.provinceCode) ||
+                    (isOrganizationMode && field.key === "areaId" && !formValues.wardCode);
 
                 return (
                     <div
@@ -1536,23 +1737,23 @@ function RecordModal({
                                 treeData={organizationParentTree}
                                 value={formValues[field.key] || undefined}
                                 onChange={(value) => onUpdateFieldValue(field.key, value)}
-                                allowClear
-                                disabled={isViewMode}
+                                allowClear={!disabled}
+                                disabled={disabled}
                                 style={{ width: "100%", height: "40px" }}
                             />
                         ) : field.type === "select" ? (
-                            <AppSelect hideTitle options={options} disabled={isViewMode} value={formValues[field.key] || ""}
+                            <AppSelect hideTitle options={options} disabled={disabled} value={formValues[field.key] || ""}
                                 onChange={(value) => onUpdateFieldValue(field.key, value || "")}
                             />
                         ) : field.type === "textarea" ? (
-                            <AppInput disabled={isViewMode} value={formValues[field.key] || ""}
+                            <AppInput disabled={disabled} value={formValues[field.key] || ""}
                                 onChange={value => onUpdateFieldValue(field.key, value || "")}
                                       type={'textarea'}
                                       placeholder={field.placeholder || ""}
                             />
                         ) : field.type === "number" ? (
                             <AppInput
-                                disabled={isViewMode}
+                                disabled={disabled}
                                 value={Number(formValues[field.key]) || 0}
                                 onChange={(value) => onUpdateFieldValue(field.key, String(value) || "0")}
                                 type={'number'}
@@ -1560,7 +1761,7 @@ function RecordModal({
                             />
                         ) : (
                             <AppInput
-                                disabled={isViewMode}
+                                disabled={disabled}
                                 value={formValues[field.key] || ""}
                                 onChange={(event) => onUpdateFieldValue(field.key, event)}
                                 placeholder={field.placeholder}
@@ -1672,9 +1873,13 @@ export default function CategoriesTablePage({ slug, source = "danh-muc" }: { slu
                 formValues={state.formValues}
                 isEditMode={state.isEditMode}
                 isOrganizationMode={state.isOrganizationMode}
+                isEditingCurrentOrganization={state.isEditingCurrentOrganization}
                 isViewMode={state.isViewMode}
                 organizationParentOptions={state.organizationParentOptions}
                 organizationParentTree={state.organizationParentTree}
+                provinceOptions={state.provinceOptions}
+                wardOptions={state.wardOptions}
+                areaOptions={state.areaOptions}
                 saving={state.saving}
                 showModal={state.showModal}
                 onCloseModal={state.closeModal}

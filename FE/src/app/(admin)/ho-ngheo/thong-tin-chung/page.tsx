@@ -1,5 +1,5 @@
-import PovertyYearOverviewPage from "@/components/poverty/PovertyYearOverviewPage";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-    return <PovertyYearOverviewPage />;
+    redirect("/quan-tri/thong-tin-chung");
 }

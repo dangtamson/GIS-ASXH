@@ -4,6 +4,12 @@ export type DonVi = {
     name: string;
     code: string;
     parentId: string | null;
+    provinceCode?: string | null;
+    wardCode?: string | null;
+    areaId?: string | null;
+    provinceName?: string | null;
+    wardName?: string | null;
+    areaName?: string | null;
     address: string | null;
     phone: string | null;
     email: string | null;

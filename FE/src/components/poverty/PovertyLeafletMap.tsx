@@ -1,22 +1,23 @@
 "use client";
 
 import canThoBoundaryGeoJson from "@/components/poverty/command-dashboard/data/cantho.json";
+import { getHouseholdContextCardTheme, getHouseholdSummaryCardTheme, resolveLatestHouseholdContextHistory } from "@/components/poverty/poverty-context-utils";
 import { api, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
-import type { HouseholdDetailResponse, HouseholdFieldPhoto, PovertyMarker } from "@/types/poverty";
+import type { HouseholdDetailResponse, HouseholdFieldPhoto, PovertyArea, PovertyMarker, ProvinceOption, WardOption } from "@/types/poverty";
 import { getValidGeoPosition, householdStatusLabel, householdStatusOptions, normalizePovertyType, povertyTypeColor, povertyTypeLabel, povertyTypeOptions } from "@/components/poverty/poverty-utils";
+import { buildPovertyMapAreaSummaries, DEFAULT_CANTHO_PROVINCE_CODE, filterPovertyMarkersBySelectedArea, hasUnresolvedStandardizedLocation } from "@/components/poverty/poverty-location-utils";
 import PovertyAssessmentTimelinePanel from "@/components/poverty/PovertyAssessmentTimelinePanel";
 import PovertyAssessmentTimelineModal from "@/components/poverty/PovertyAssessmentTimelineModal";
 import PovertySupportTimelinePanel from "@/components/poverty/PovertySupportTimelinePanel";
 import PovertySupportTimelineModal from "@/components/poverty/PovertySupportTimelineModal";
 import ActionIcon from "@/components/controller/ActionIcon";
-import { usePovertyCategoryOptions } from "@/components/poverty/usePovertyCategoryOptions";
-import { App, Button, Checkbox, Col, Empty, Form, Input, InputNumber, Modal, Row, Select, Skeleton, Space, Tag, Tooltip } from "antd";
+import { Alert, App, Button, Checkbox, Col, Empty, Form, Input, InputNumber, Modal, Row, Select, Skeleton, Space, Tabs, Tag, Tooltip } from "antd";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import L, { type LatLngExpression, type LeafletEvent } from "leaflet";
 import "leaflet.heat";
 import "leaflet.markercluster";
-import { ChevronLeft, ChevronRight, CircleHelp, Crosshair, ImageIcon, Layers, LocateFixed, MapPinPlus, Maximize2, Navigation, RotateCcw, Search, UserRound, X, TagIcon, Sliders } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, CircleHelp, Crosshair, Home, ImageIcon, Layers, LocateFixed, MapPinPlus, Maximize2, Navigation, RotateCcw, Search, UserRound, UsersRound, X, TagIcon, Sliders } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { type MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +26,7 @@ import { CircleMarker, GeoJSON, MapContainer, Pane, ScaleControl, TileLayer, Zoo
 
 type PovertyLeafletMapProps = {
     markers: PovertyMarker[];
+    mode?: "admin" | "public";
     loading?: boolean;
     focusedMarkerId?: string | null;
     highlightedWardName?: string | null;
@@ -34,8 +36,8 @@ type PovertyLeafletMapProps = {
     canViewAssessmentTimeline?: boolean;
     canUpdateHousehold?: boolean;
     canViewHouseholdDetail?: boolean;
-    onRefresh: () => void;
-    onMarkerPositionChange: (marker: PovertyMarker, latitude: number, longitude: number) => Promise<void>;
+    onRefresh?: () => void | Promise<void>;
+    onMarkerPositionChange?: (marker: PovertyMarker, latitude: number, longitude: number) => Promise<void>;
 };
 
 type MarkerPosition = {
@@ -48,9 +50,9 @@ type HouseholdEditForm = {
     year?: number;
     povertyType?: string;
     status?: string;
-    provinceName?: string;
-    wardName?: string;
-    areaName?: string;
+    provinceCode?: string;
+    wardCode?: string;
+    areaId?: string;
     address?: string;
     latitude?: number;
     longitude?: number;
@@ -59,6 +61,8 @@ type HouseholdEditForm = {
 const DEFAULT_CENTER: LatLngExpression = [10.0452, 105.7469];
 const DEFAULT_ZOOM = 12;
 const currentYear = new Date().getFullYear();
+const DETAIL_CARD_ICON_WRAPPER_CLASSNAME = "h-8 w-8";
+const DETAIL_CARD_ICON_SIZE = 16;
 
 const PovertyCoordinatePicker = dynamic(() => import("@/components/poverty/PovertyCoordinatePicker"), {
     ssr: false,
@@ -88,6 +92,7 @@ type PovertyVisibilityKey = "POOR" | "NEAR_POOR" | "NONE";
 type CheckboxValue = string | number | boolean;
 type PhotoPreviewMap = Record<string, string>;
 type HeatLayerKey = "householdHeat" | "supportHeat" | "wardBoundary";
+type LeftPanelTabKey = "list" | "area";
 type WardBoundaryProperties = {
     name?: string;
     level?: string;
@@ -677,7 +682,7 @@ function MapActions({
     const controlRef = useRef<HTMLDivElement | null>(null);
     const utilityControlRef = useRef<HTMLDivElement | null>(null);
     const mapElementRef = useRef<HTMLElement | null>(null);
-    const [isClient, setIsClient] = useState(false);
+    const isClient = true;
     const [locating, setLocating] = useState(false);
     const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
     const [baseLayerPickerOpen, setBaseLayerPickerOpen] = useState(false);
@@ -686,10 +691,6 @@ function MapActions({
     const [guideOpen, setGuideOpen] = useState(false);
     const [nearbyRadiusKm, setNearbyRadiusKm] = useState<number | null>(null);
     const canCreateHouseholdFromMap = Boolean(canCreateHousehold && canCreateHouseholdOnMap);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
 
     const poorMarkerCount = useMemo(
         () => markers.filter((marker) => normalizePovertyType(marker.povertyType) === "POOR").length,
@@ -1284,6 +1285,7 @@ function MapLayerControls({
 
 function MarkerDetailPanel({
     marker,
+    mode,
     detail,
     loading,
     previewUrls,
@@ -1297,6 +1299,7 @@ function MarkerDetailPanel({
     onEditHousehold,
 }: {
     marker: PovertyMarker | null;
+    mode: "admin" | "public";
     detail: HouseholdDetailResponse | null;
     loading?: boolean;
     previewUrls: PhotoPreviewMap;
@@ -1310,10 +1313,17 @@ function MarkerDetailPanel({
     onEditHousehold: (marker: PovertyMarker) => void;
 }) {
     if (!marker) return null;
+    const isPublicMode = mode === "public";
 
     const household = detail?.household ?? marker;
     const assessments = detail?.assessments ?? [];
     const supports = detail?.supports ?? [];
+    const latestContextHistory = resolveLatestHouseholdContextHistory(detail?.latestContextHistory ?? null, detail?.contextHistories ?? []);
+    const ownerTheme = getHouseholdSummaryCardTheme("owner");
+    const membersTheme = getHouseholdSummaryCardTheme("members");
+    const locationTheme = getHouseholdSummaryCardTheme("location");
+    const familySituationTheme = getHouseholdContextCardTheme("familySituation");
+    const currentStatusTheme = getHouseholdContextCardTheme("currentStatus");
     const photos = detail?.fieldPhotos ?? marker.fieldPhotos ?? [];
     const area = [household.provinceName, household.wardName, household.areaName].filter(Boolean).join(" / ") || "-";
     const coverPhoto = photos[0] ?? null;
@@ -1326,6 +1336,7 @@ function MarkerDetailPanel({
     const directionUrl = householdPosition
         ? buildGoogleMapsDirectionsUrl(householdPosition.latitude, householdPosition.longitude)
         : null;
+    const latestContextRecordedAt = latestContextHistory?.recordedAt ? formatDate(latestContextHistory.recordedAt) : "-";
 
     return (
         <div className="absolute inset-y-4 left-4 z-[810] w-[min(420px,calc(100%-32px))] overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm">
@@ -1360,7 +1371,7 @@ function MarkerDetailPanel({
                                 />
                             </Tooltip>
                         ) : null}
-                        {canUpdateHousehold ? (
+                        {canUpdateHousehold && !isPublicMode ? (
                             <Tooltip title="Sửa thông tin hộ">
                                 <Button
                                     type="text"
@@ -1387,36 +1398,38 @@ function MarkerDetailPanel({
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                                <button
-                                    type="button"
-                                    className="relative block h-[190px] w-full overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 text-left"
-                                    onClick={() => onOpenPhotoGallery(galleryMarker)}
-                                    disabled={photos.length === 0}
-                                >
-                                    {coverUrl ? (
-                                        <img src={coverUrl} alt={coverPhoto?.fileName || "Ảnh hộ"} className="h-full w-full object-cover" />
-                                    ) : (
-                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
-                                            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
-                                                <ImageIcon size={24} />
-                                            </span>
-                                            <span className="text-sm font-medium">{photos.length > 0 ? "Đang tải ảnh xem trước" : "Chưa có ảnh thực địa"}</span>
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-3 text-white">
-                                        <div className="flex items-end justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="truncate text-base font-semibold">{household.headFullName || "Chưa có thông tin chủ hộ"}</div>
-                                                <div className="truncate text-xs text-white/80">{area}</div>
+                            {!isPublicMode ? (
+                                <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                                    <button
+                                        type="button"
+                                        className="relative block h-[190px] w-full overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 text-left"
+                                        onClick={() => onOpenPhotoGallery(galleryMarker)}
+                                        disabled={photos.length === 0}
+                                    >
+                                        {coverUrl ? (
+                                            <img src={coverUrl} alt={coverPhoto?.fileName || "Ảnh hộ"} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
+                                                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+                                                    <ImageIcon size={24} />
+                                                </span>
+                                                <span className="text-sm font-medium">{photos.length > 0 ? "Đang tải ảnh xem trước" : "Chưa có ảnh thực tế"}</span>
                                             </div>
-                                            <div className="rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium">
-                                                {photos.length.toLocaleString("vi-VN")} ảnh
+                                        )}
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-3 text-white">
+                                            <div className="flex items-end justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="truncate text-base font-semibold">{household.headFullName || "Chưa có thông tin chủ hộ"}</div>
+                                                    <div className="truncate text-xs text-white/80">{area}</div>
+                                                </div>
+                                                <div className="rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium">
+                                                    {photos.length.toLocaleString("vi-VN")} ảnh
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </button>
-                            </section>
+                                    </button>
+                                </section>
+                            ) : null}
 
                             <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                                 <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -1424,59 +1437,115 @@ function MarkerDetailPanel({
                                     <Tag className="m-0" color={household.status === "ACTIVE" ? "green" : "default"}>{householdStatusLabel(household.status)}</Tag>
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-xl bg-slate-50 p-3">
-                                        <p className="text-xs font-semibold uppercase text-gray-500">Chủ hộ</p>
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">{household.headFullName || "-"}</p>
-                                        <p className="mt-1 text-xs text-gray-500">CCCD: {household.headCitizenId || "-"}</p>
+                                    <div className={`rounded-xl p-3 ${ownerTheme.cardClassName}`}>
+                                        <div className="flex items-start gap-3">
+                                            <span className={`inline-flex shrink-0 items-center justify-center rounded-xl shadow-sm ${DETAIL_CARD_ICON_WRAPPER_CLASSNAME} ${ownerTheme.iconClassName}`}>
+                                                <UserRound size={DETAIL_CARD_ICON_SIZE} />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className={`text-xs font-semibold uppercase ${ownerTheme.labelClassName}`}>Chủ hộ</p>
+                                                <p className={`mt-2 truncate text-sm font-semibold ${ownerTheme.textClassName}`}>{household.headFullName || "-"}</p>
+                                                {!isPublicMode ? (
+                                                    <p className="mt-2 text-xs text-slate-500">CCCD: {household.headCitizenId || "-"}</p>
+                                                ) : null}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="rounded-xl bg-slate-50 p-3">
-                                        <p className="text-xs font-semibold uppercase text-gray-500">Nhân khẩu</p>
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">{Number(household.memberCount ?? 0).toLocaleString("vi-VN")}</p>
-                                        <p className="mt-1 text-xs text-gray-500">Năm quản lý: {household.year || "-"}</p>
+                                    <div className={`rounded-xl p-3 ${membersTheme.cardClassName}`}>
+                                        <div className="flex items-start gap-3">
+                                            <span className={`inline-flex shrink-0 items-center justify-center rounded-xl shadow-sm ${DETAIL_CARD_ICON_WRAPPER_CLASSNAME} ${membersTheme.iconClassName}`}>
+                                                <UsersRound size={DETAIL_CARD_ICON_SIZE} />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className={`text-xs font-semibold uppercase ${membersTheme.labelClassName}`}>Nhân khẩu</p>
+                                                <p className={`mt-2 text-sm font-semibold ${membersTheme.textClassName}`}>{Number(household.memberCount ?? 0).toLocaleString("vi-VN")} người</p>
+                                                <p className="mt-2 text-xs text-slate-500">Năm quản lý: {household.year || "-"}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2">
-                                        <p className="text-xs font-semibold uppercase text-gray-500">Địa bàn</p>
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">{area}</p>
-                                        <p className="mt-2 text-xs text-gray-500">Địa chỉ: {household.address || "-"}</p>
+                                    <div className={`rounded-xl p-3 sm:col-span-2 ${locationTheme.cardClassName}`}>
+                                        <div className="flex items-start gap-3">
+                                            <span className={`inline-flex shrink-0 items-center justify-center rounded-xl shadow-sm ${DETAIL_CARD_ICON_WRAPPER_CLASSNAME} ${locationTheme.iconClassName}`}>
+                                                <MapPinPlus size={DETAIL_CARD_ICON_SIZE} />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className={`text-xs font-semibold uppercase ${locationTheme.labelClassName}`}>Địa bàn</p>
+                                                <p className={`mt-2 break-words text-sm font-semibold ${locationTheme.textClassName}`}>{area}</p>
+                                                <p className="mt-2 break-words text-xs text-slate-500">Địa chỉ: {household.address || "-"}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
 
-                            <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                                <div className="mb-3 flex items-center justify-between gap-2">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-900">Quá trình đánh giá</p>
-                                        <p className="text-xs text-gray-500">Theo dõi diễn biến đánh giá từ đầu đến hiện tại.</p>
-                                    </div>
-                                    <Tooltip title="Xem ở modal">
-                                        <Button
-                                            type="text"
-                                            aria-label="Xem quá trình đánh giá"
-                                            icon={<ActionIcon action="timeline" />}
-                                            onClick={() => onOpenAssessmentTimeline(marker)}
-                                        />
-                                    </Tooltip>
-                                </div>
-                                <PovertyAssessmentTimelinePanel household={household} assessments={assessments} loading={loading} showHouseholdInfo={false} variant="compact" />
-                            </section>
+                            {!isPublicMode ? (
+                                <>
+                                    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                                        <div className="mb-3">
+                                            <p className="text-sm font-semibold text-gray-900">Hiện trạng và hoàn cảnh</p>
+                                            <p className="text-xs text-gray-500">Cập nhật gần nhất: {latestContextRecordedAt}</p>
+                                        </div>
+                                        <div className={`rounded-xl p-3 ${familySituationTheme.cardClassName}`}>
+                                            <div className="flex items-start gap-3">
+                                                <span className={`inline-flex shrink-0 items-center justify-center rounded-xl shadow-sm ${DETAIL_CARD_ICON_WRAPPER_CLASSNAME} ${familySituationTheme.iconClassName}`}>
+                                                    <Home size={DETAIL_CARD_ICON_SIZE} />
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className={`text-xs font-semibold uppercase ${familySituationTheme.labelClassName}`}>Hoàn cảnh gia đình</p>
+                                                    <div className={`mt-2 min-h-[44px] break-words text-sm ${familySituationTheme.textClassName}`}>{latestContextHistory?.familySituation || "-"}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className={`mt-2 rounded-xl p-3 ${currentStatusTheme.cardClassName}`}>
+                                            <div className="flex items-start gap-3">
+                                                <span className={`inline-flex shrink-0 items-center justify-center rounded-xl shadow-sm ${DETAIL_CARD_ICON_WRAPPER_CLASSNAME} ${currentStatusTheme.iconClassName}`}>
+                                                    <Activity size={DETAIL_CARD_ICON_SIZE} />
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className={`text-xs font-semibold uppercase ${currentStatusTheme.labelClassName}`}>Hiện trạng</p>
+                                                    <div className={`mt-2 min-h-[44px] break-words text-sm ${currentStatusTheme.textClassName}`}>{latestContextHistory?.currentStatus || "-"}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
 
-                            <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                                <div className="mb-3 flex items-center justify-between gap-2">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-900">Quá trình hỗ trợ</p>
-                                        <p className="text-xs text-gray-500">Theo dõi các đợt hỗ trợ đã ghi nhận.</p>
-                                    </div>
-                                    <Tooltip title="Xem ở modal">
-                                        <Button
-                                            type="text"
-                                            aria-label="Xem quá trình hỗ trợ"
-                                            icon={<ActionIcon action="supportTimeline" />}
-                                            onClick={() => onOpenSupportTimeline(marker)}
-                                        />
-                                    </Tooltip>
-                                </div>
-                                <PovertySupportTimelinePanel supports={supports} loading={loading} variant="compact" />
-                            </section>
+                                    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                                        <div className="mb-3 flex items-center justify-between gap-2">
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900">Quá trình đánh giá</p>
+                                                <p className="text-xs text-gray-500">Theo dõi diễn biến đánh giá từ đầu đến hiện tại.</p>
+                                            </div>
+                                            <Tooltip title="Xem chi tiết">
+                                                <Button
+                                                    type="text"
+                                                    aria-label="Xem quá trình đánh giá"
+                                                    icon={<ActionIcon action="timeline" />}
+                                                    onClick={() => onOpenAssessmentTimeline(marker)}
+                                                />
+                                            </Tooltip>
+                                        </div>
+                                        <PovertyAssessmentTimelinePanel household={household} assessments={assessments} loading={loading} showHouseholdInfo={false} variant="compact" />
+                                    </section>
+
+                                    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                                        <div className="mb-3 flex items-center justify-between gap-2">
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900">Quá trình hỗ trợ</p>
+                                                <p className="text-xs text-gray-500">Theo dõi các đợt hỗ trợ đã ghi nhận.</p>
+                                            </div>
+                                            <Tooltip title="Xem chi tiết">
+                                                <Button
+                                                    type="text"
+                                                    aria-label="Xem quá trình hỗ trợ"
+                                                    icon={<ActionIcon action="supportTimeline" />}
+                                                    onClick={() => onOpenSupportTimeline(marker)}
+                                                />
+                                            </Tooltip>
+                                        </div>
+                                        <PovertySupportTimelinePanel supports={supports} loading={loading} variant="compact" />
+                                    </section>
+                                </>
+                            ) : null}
                         </div>
                     )}
                 </div>
@@ -1529,7 +1598,7 @@ function FieldPhotoGalleryModal({
 
     return (
         <Modal
-            title={`Ảnh thực địa ${marker?.code ? `- ${marker.code}` : ""}`}
+            title={`Ảnh thực tế ${marker?.code ? `- ${marker.code}` : ""}`}
             open={open}
             onCancel={onClose}
             footer={null}
@@ -1540,7 +1609,7 @@ function FieldPhotoGalleryModal({
                 <div className="space-y-4">
                     <div className="flex min-h-[320px] items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 md:min-h-[480px]">
                         {selectedPreviewUrl ? (
-                            <img src={selectedPreviewUrl} alt={selectedPhoto?.fileName ?? "Ảnh thực địa"} className="max-h-[70vh] max-w-full object-contain" />
+                            <img src={selectedPreviewUrl} alt={selectedPhoto?.fileName ?? "Ảnh thực tế"} className="max-h-[70vh] max-w-full object-contain" />
                         ) : (
                             <div className="text-sm text-gray-500">Không thể tải ảnh xem trước</div>
                         )}
@@ -1568,7 +1637,7 @@ function FieldPhotoGalleryModal({
                     </div>
                 </div>
             ) : (
-                <Empty description="Chưa có ảnh thực địa" />
+                <Empty description="Chưa có ảnh thực tế" />
             )}
         </Modal>
     );
@@ -1576,6 +1645,7 @@ function FieldPhotoGalleryModal({
 
 export default function PovertyLeafletMap({
     markers,
+    mode = "admin",
     loading,
     focusedMarkerId,
     canCreateHousehold,
@@ -1584,9 +1654,10 @@ export default function PovertyLeafletMap({
     canViewAssessmentTimeline,
     canUpdateHousehold,
     canViewHouseholdDetail,
-    onRefresh,
-    onMarkerPositionChange,
+    onRefresh = async () => undefined,
+    onMarkerPositionChange = async () => undefined,
 }: PovertyLeafletMapProps) {
+    const isPublicMode = mode === "public";
     const router = useRouter();
     const { notification } = App.useApp();
     const [editForm] = Form.useForm<HouseholdEditForm>();
@@ -1610,22 +1681,130 @@ export default function PovertyLeafletMap({
     const [createSelectionMode, setCreateSelectionMode] = useState(false);
     const [createCoordinatePickerOpen, setCreateCoordinatePickerOpen] = useState(false);
     const [listSearch, setListSearch] = useState("");
+    const [activeLeftTab, setActiveLeftTab] = useState<LeftPanelTabKey>("list");
+    const [selectedAreaKey, setSelectedAreaKey] = useState<string | null>(null);
     const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-    const areaOptions = usePovertyCategoryOptions("AREA");
+    const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+    const [editWardOptions, setEditWardOptions] = useState<WardOption[]>([]);
+    const [editAreaOptions, setEditAreaOptions] = useState<PovertyArea[]>([]);
+    const [createWardOptions, setCreateWardOptions] = useState<WardOption[]>([]);
+    const [createAreaOptions, setCreateAreaOptions] = useState<PovertyArea[]>([]);
     const markerRefs = useRef<Record<string, L.Marker | null>>({});
     const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
     const activeFocusMarkerId = activeMarkerId ?? focusedMarkerId;
-    const canCreateHouseholdFromMap = Boolean(canCreateHousehold && canCreateHouseholdOnMap);
     const createLatitudeValue = Form.useWatch("latitude", createForm);
     const createLongitudeValue = Form.useWatch("longitude", createForm);
+    const editProvinceCode = Form.useWatch("provinceCode", editForm);
+    const editWardCode = Form.useWatch("wardCode", editForm);
+    const createProvinceCode = Form.useWatch("provinceCode", createForm);
+    const createWardCode = Form.useWatch("wardCode", createForm);
+
+    const provinceSelectOptions = useMemo(
+        () => provinceOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [provinceOptions]
+    );
+    const editWardSelectOptions = useMemo(
+        () => editWardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [editWardOptions]
+    );
+    const editAreaSelectOptions = useMemo(
+        () => editAreaOptions.map((item) => ({ value: item.id, label: item.name })),
+        [editAreaOptions]
+    );
+    const createWardSelectOptions = useMemo(
+        () => createWardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name })),
+        [createWardOptions]
+    );
+    const createAreaSelectOptions = useMemo(
+        () => createAreaOptions.map((item) => ({ value: item.id, label: item.name })),
+        [createAreaOptions]
+    );
+
+    const loadProvinces = useCallback(async () => {
+        const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
+        setProvinceOptions(data.items ?? []);
+    }, []);
+
+    const loadWards = useCallback(async (provinceCode: string, target: "edit" | "create") => {
+        const data = await api.get<{ items?: WardOption[] }>(endpoints.poverty.locationWards(provinceCode));
+        if (target === "edit") {
+            setEditWardOptions(data.items ?? []);
+        } else {
+            setCreateWardOptions(data.items ?? []);
+        }
+    }, []);
+
+    const loadAreas = useCallback(async (wardCode: string, target: "edit" | "create") => {
+        const data = await api.get<{ items?: PovertyArea[] }>(endpoints.poverty.locationAreas(wardCode));
+        if (target === "edit") {
+            setEditAreaOptions(data.items ?? []);
+        } else {
+            setCreateAreaOptions(data.items ?? []);
+        }
+    }, []);
 
     useEffect(() => {
         if (focusedMarkerId) setActiveMarkerId(focusedMarkerId);
     }, [focusedMarkerId]);
 
-    const validMarkers = useMemo(
-        () => markers.filter((marker) => toMarkerPosition(marker)),
+    useEffect(() => {
+        if (isPublicMode) return;
+        void loadProvinces();
+    }, [isPublicMode, loadProvinces]);
+
+    useEffect(() => {
+        if (isPublicMode) return;
+        if (!editProvinceCode) return;
+        void loadWards(String(editProvinceCode), "edit");
+    }, [editProvinceCode, isPublicMode, loadWards]);
+
+    useEffect(() => {
+        if (isPublicMode) return;
+        if (!editWardCode) {
+            setEditAreaOptions([]);
+            return;
+        }
+        void loadAreas(String(editWardCode), "edit");
+    }, [editWardCode, isPublicMode, loadAreas]);
+
+    useEffect(() => {
+        if (isPublicMode) return;
+        if (!createProvinceCode) return;
+        void loadWards(String(createProvinceCode), "create");
+    }, [createProvinceCode, isPublicMode, loadWards]);
+
+    useEffect(() => {
+        if (isPublicMode) return;
+        if (!createWardCode) {
+            setCreateAreaOptions([]);
+            return;
+        }
+        void loadAreas(String(createWardCode), "create");
+    }, [createWardCode, isPublicMode, loadAreas]);
+
+    const areaSummaries = useMemo(
+        () => buildPovertyMapAreaSummaries(markers),
         [markers]
+    );
+    const markersBySelectedArea = useMemo(
+        () => filterPovertyMarkersBySelectedArea(markers, selectedAreaKey),
+        [markers, selectedAreaKey]
+    );
+    const selectedAreaSummary = useMemo(
+        () => areaSummaries.find((item) => item.key === selectedAreaKey) ?? null,
+        [areaSummaries, selectedAreaKey]
+    );
+    const overallPoorCount = useMemo(
+        () => areaSummaries.reduce((total, item) => total + item.poorCount, 0),
+        [areaSummaries]
+    );
+    const overallNearPoorCount = useMemo(
+        () => areaSummaries.reduce((total, item) => total + item.nearPoorCount, 0),
+        [areaSummaries]
+    );
+    const validMarkers = useMemo(
+        () => markersBySelectedArea.filter((marker) => toMarkerPosition(marker)),
+        [markersBySelectedArea]
     );
     const visibleMarkers = useMemo(
         () => validMarkers.filter((marker) => {
@@ -1636,9 +1815,9 @@ export default function PovertyLeafletMap({
     );
     const filteredListMarkers = useMemo(() => {
         const keyword = listSearch.trim().toLowerCase();
-        if (!keyword) return markers;
+        if (!keyword) return markersBySelectedArea;
 
-        return markers.filter((marker) => {
+        return markersBySelectedArea.filter((marker) => {
             const searchableText = [
                 marker.headFullName,
                 marker.areaName,
@@ -1649,18 +1828,18 @@ export default function PovertyLeafletMap({
 
             return searchableText.includes(keyword);
         });
-    }, [listSearch, markers]);
+    }, [listSearch, markersBySelectedArea]);
     const poorCount = useMemo(
-        () => markers.filter((item) => normalizePovertyType(item.povertyType) === "POOR").length,
-        [markers]
+        () => markersBySelectedArea.filter((item) => normalizePovertyType(item.povertyType) === "POOR").length,
+        [markersBySelectedArea]
     );
     const nearPoorCount = useMemo(
-        () => markers.filter((item) => normalizePovertyType(item.povertyType) === "NEAR_POOR").length,
-        [markers]
+        () => markersBySelectedArea.filter((item) => normalizePovertyType(item.povertyType) === "NEAR_POOR").length,
+        [markersBySelectedArea]
     );
     const noneCount = useMemo(
-        () => markers.filter((item) => normalizePovertyType(item.povertyType) === "NONE").length,
-        [markers]
+        () => markersBySelectedArea.filter((item) => normalizePovertyType(item.povertyType) === "NONE").length,
+        [markersBySelectedArea]
     );
     const visiblePoorCount = useMemo(
         () => visibleMarkers.filter((item) => normalizePovertyType(item.povertyType) === "POOR").length,
@@ -1675,25 +1854,45 @@ export default function PovertyLeafletMap({
         [visibleMarkers]
     );
     const supportedCount = useMemo(
-        () => markers.filter((item) => Number(item.supportCount ?? 0) > 0 || Number(item.supportTotalAmount ?? 0) > 0).length,
-        [markers]
+        () => markersBySelectedArea.filter((item) => Number(item.supportCount ?? 0) > 0 || Number(item.supportTotalAmount ?? 0) > 0).length,
+        [markersBySelectedArea]
     );
     const unsupportedCount = useMemo(
-        () => Math.max(markers.length - supportedCount, 0),
-        [markers.length, supportedCount]
+        () => Math.max(markersBySelectedArea.length - supportedCount, 0),
+        [markersBySelectedArea.length, supportedCount]
     );
     const visibleSupportedCount = useMemo(
         () => visibleMarkers.filter((item) => Number(item.supportCount ?? 0) > 0 || Number(item.supportTotalAmount ?? 0) > 0).length,
         [visibleMarkers]
     );
     const supportRate = useMemo(
-        () => markers.length > 0 ? Math.round((supportedCount / markers.length) * 100) : 0,
-        [markers.length, supportedCount]
+        () => markersBySelectedArea.length > 0 ? Math.round((supportedCount / markersBySelectedArea.length) * 100) : 0,
+        [markersBySelectedArea.length, supportedCount]
     );
     const coordinateRate = useMemo(
-        () => markers.length > 0 ? Math.round((validMarkers.length / markers.length) * 100) : 0,
-        [markers.length, validMarkers.length]
+        () => markersBySelectedArea.length > 0 ? Math.round((validMarkers.length / markersBySelectedArea.length) * 100) : 0,
+        [markersBySelectedArea.length, validMarkers.length]
     );
+
+    useEffect(() => {
+        if (selectedAreaKey && !areaSummaries.some((item) => item.key === selectedAreaKey)) {
+            setSelectedAreaKey(null);
+        }
+    }, [areaSummaries, selectedAreaKey]);
+
+    useEffect(() => {
+        if (activeMarkerId && !markersBySelectedArea.some((item) => item.id === activeMarkerId)) {
+            setActiveMarkerId(null);
+        }
+
+        if (selectedDetailMarker?.id && !markersBySelectedArea.some((item) => item.id === selectedDetailMarker.id)) {
+            setSelectedDetailMarker(null);
+            setSelectedDetail(null);
+            setSelectedDetailPreviewUrls({});
+            setSelectedDetailLoading(false);
+        }
+    }, [activeMarkerId, markersBySelectedArea, selectedDetailMarker?.id]);
+
     const selectedGoogleLayer = GOOGLE_LAYERS[baseLayer];
     const selectedDetailPhotos = useMemo(
         () => selectedDetail?.fieldPhotos ?? [],
@@ -1706,6 +1905,44 @@ export default function PovertyLeafletMap({
     const mapGridClassName = leftPanelCollapsed
         ? "grid min-w-0 gap-4 bg-gray-50 p-4 2xl:grid-cols-[minmax(0,1fr)_320px]"
         : "grid min-w-0 gap-4 bg-gray-50 p-4 2xl:grid-cols-[360px_minmax(0,1fr)_320px]";
+    const listTabLabel = (
+        <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition ${activeLeftTab === "list"
+                ? "bg-cyan-600 text-white shadow-sm"
+                : "bg-cyan-50 text-cyan-700"
+                }`}
+        >
+            <UsersRound size={14} />
+            <span>Danh sách</span>
+            <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${activeLeftTab === "list"
+                    ? "bg-white/18 text-white"
+                    : "bg-white text-cyan-700"
+                    }`}
+            >
+                {markersBySelectedArea.length.toLocaleString("vi-VN")}
+            </span>
+        </span>
+    );
+    const areaTabLabel = (
+        <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition ${activeLeftTab === "area"
+                ? "bg-sky-600 text-white shadow-sm"
+                : "bg-sky-50 text-sky-700"
+                }`}
+        >
+            <Home size={14} />
+            <span>Khu vực</span>
+            <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${activeLeftTab === "area"
+                    ? "bg-white/18 text-white"
+                    : "bg-white text-sky-700"
+                    }`}
+            >
+                {areaSummaries.length.toLocaleString("vi-VN")}
+            </span>
+        </span>
+    );
 
     const openMarkerDetailPanel = useCallback((marker: PovertyMarker) => {
         if (selectedDetailMarker?.id && selectedDetailMarker.id !== marker.id) {
@@ -1714,9 +1951,9 @@ export default function PovertyLeafletMap({
         setSelectedDetailMarker(marker);
         setSelectedDetail(null);
         setSelectedDetailPreviewUrls({});
-        setSelectedDetailLoading(true);
+        setSelectedDetailLoading(!isPublicMode);
         setActiveMarkerId(marker.id);
-    }, [markerRefs, selectedDetailMarker?.id]);
+    }, [isPublicMode, markerRefs, selectedDetailMarker?.id]);
 
     const focusMarkerFromList = useCallback((marker: PovertyMarker) => {
         const position = toMarkerPosition(marker);
@@ -1757,9 +1994,9 @@ export default function PovertyLeafletMap({
             year: marker.year,
             povertyType: String(marker.povertyType ?? "POOR"),
             status: String(marker.status ?? "ACTIVE"),
-            provinceName: marker.provinceName ?? undefined,
-            wardName: marker.wardName ?? undefined,
-            areaName: marker.areaName ?? undefined,
+            provinceCode: marker.provinceCode ?? undefined,
+            wardCode: marker.wardCode ?? undefined,
+            areaId: marker.areaId ?? undefined,
             address: marker.address ?? undefined,
         });
     }, [editForm]);
@@ -1785,6 +2022,7 @@ export default function PovertyLeafletMap({
             year: currentYear,
             povertyType: "POOR",
             status: "ACTIVE",
+            provinceCode: DEFAULT_CANTHO_PROVINCE_CODE,
             latitude,
             longitude,
         });
@@ -1842,6 +2080,10 @@ export default function PovertyLeafletMap({
     }, [createForm, notification, onRefresh, visibleTypes]);
 
     useEffect(() => {
+        if (isPublicMode) {
+            setSelectedDetailLoading(false);
+            return;
+        }
         if (!selectedDetailMarker?.id) return;
 
         let cancelled = false;
@@ -1863,9 +2105,10 @@ export default function PovertyLeafletMap({
         return () => {
             cancelled = true;
         };
-    }, [notification, selectedDetailMarker?.id]);
+    }, [isPublicMode, notification, selectedDetailMarker?.id]);
 
     useEffect(() => {
+        if (isPublicMode) return;
         if (selectedDetailPhotos.length === 0) return;
 
         let cancelled = false;
@@ -1876,7 +2119,7 @@ export default function PovertyLeafletMap({
         return () => {
             cancelled = true;
         };
-    }, [selectedDetailPhotoIds, selectedDetailPhotos]);
+    }, [isPublicMode, selectedDetailPhotoIds, selectedDetailPhotos]);
 
     return (
         <>
@@ -1892,9 +2135,11 @@ export default function PovertyLeafletMap({
                         <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
                             <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
                                 <div className="min-w-0">
-                                    <h4 className="text-sm font-semibold text-gray-800">Danh sách hộ</h4>
+                                    <h4 className="text-sm font-semibold text-gray-800">Hộ và khu vực</h4>
                                     <p className="mt-1 text-xs text-gray-500">
-                                        {filteredListMarkers.length.toLocaleString("vi-VN")} / {markers.length.toLocaleString("vi-VN")} hộ trong danh sách
+                                        {selectedAreaSummary
+                                            ? `${selectedAreaSummary.areaName} • ${markersBySelectedArea.length.toLocaleString("vi-VN")} hộ theo bộ lọc`
+                                            : `${markers.length.toLocaleString("vi-VN")} hộ theo bộ lọc hiện tại`}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -1919,134 +2164,204 @@ export default function PovertyLeafletMap({
                                     </Tooltip>
                                 </div>
                             </div>
-                            <div className="border-b border-gray-100 bg-white px-3 py-3">
-                                <Input
-                                    allowClear
-                                    value={listSearch}
-                                    prefix={<Search size={15} className="text-gray-400" />}
-                                    placeholder="Tìm tên chủ hộ hoặc khu vực"
-                                    onChange={(event) => setListSearch(event.target.value)}
-                                />
-                            </div>
-
-                            <div className="max-h-[420px] space-y-2 overflow-y-auto bg-gray-50 p-3 md:max-h-[620px]">
-                                {filteredListMarkers.length > 0 ? filteredListMarkers.map((marker) => {
-                                    const position = toMarkerPosition(marker);
-                                    const normalizedType = normalizePovertyType(marker.povertyType);
-                                    const isPoor = normalizedType === "POOR";
-                                    const isActive = marker.id === activeFocusMarkerId;
-                                    const area = [marker.provinceName, marker.wardName, marker.areaName].filter(Boolean).join(" / ");
-                                    const toneClassName = normalizedType === "POOR"
-                                        ? "border-red-200 bg-red-50/70 hover:border-red-300 hover:bg-red-50"
-                                        : normalizedType === "NEAR_POOR"
-                                            ? "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50"
-                                            : "border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-slate-50";
-                                    const activeClassName = normalizedType === "POOR"
-                                        ? "border-red-500 ring-2 ring-red-100"
-                                        : normalizedType === "NEAR_POOR"
-                                            ? "border-amber-500 ring-2 ring-amber-100"
-                                            : "border-slate-500 ring-2 ring-slate-100";
-
-                                    return (
-                                        <div
-                                            key={marker.id}
-                                            role="button"
-                                            tabIndex={0}
-                                            className={`w-full rounded-lg border p-3 text-left shadow-sm transition ${isActive ? activeClassName : toneClassName}`}
-                                            onClick={() => focusMarkerFromList(marker)}
-                                            onKeyDown={(event) => {
-                                                if (event.key === "Enter" || event.key === " ") {
-                                                    event.preventDefault();
-                                                    focusMarkerFromList(marker);
-                                                }
-                                            }}
-                                        >
-                                            <div className="flex min-w-0 items-start justify-between gap-1">
-                                                <div className="min-w-0">
-                                                    <div className="truncate text-sm font-semibold text-gray-900">{marker.code || `Hộ #${marker.id}`}</div>
-                                                    <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-gray-600">
-                                                        <UserRound size={15} strokeWidth={1.9} className="shrink-0" />
-                                                        <div className="truncate text-sm font-semibold text-gray-500">{marker.headFullName || "Chưa có thông tin chủ hộ"}</div>
-                                                    </div>
-
-                                                    <div className="mt-2 flex flex-wrap gap-1.5">
-                                                        <Tag className="m-0" color={isPoor ? "red" : normalizedType === "NEAR_POOR" ? "gold" : "default"}>{povertyTypeLabel(marker.povertyType)}</Tag>
-                                                        <Tag className="m-0" color={marker.status === "ACTIVE" ? "green" : "default"}>{householdStatusLabel(marker.status)}</Tag>
-                                                    </div>
+                            <Tabs
+                                activeKey={activeLeftTab}
+                                onChange={(value) => setActiveLeftTab(value as LeftPanelTabKey)}
+                                className="poverty-map-left-tabs px-3 pt-3"
+                                centered
+                                tabBarGutter={8}
+                                items={[
+                                    {
+                                        key: "list",
+                                        label: listTabLabel,
+                                        children: (
+                                            <>
+                                                <div className="border-b border-gray-100 bg-white px-3 py-3">
+                                                    <Input
+                                                        allowClear
+                                                        value={listSearch}
+                                                        prefix={<Search size={15} className="text-gray-400" />}
+                                                        placeholder="Tìm tên chủ hộ hoặc khu vực"
+                                                        onChange={(event) => setListSearch(event.target.value)}
+                                                    />
                                                 </div>
-                                                {/* <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${position ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"}`}>
-                                                    {position ? <MapPin size={17} /> : <MapPinOff size={17} />}
-                                                </span> */}
-                                                <div className="flex shrink-0 items-center gap-1">
-                                                    {/* {canViewHouseholdDetail ? (
-                                                        <Tooltip title="Xem timeline hỗ trợ">
-                                                            <Button
-                                                                className="rounded-full"
-                                                                type="text"
-                                                                aria-label="Xem timeline hỗ trợ"
-                                                                icon={<ActionIcon action="supportTimeline" />}
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    setSupportTimelineMarker(marker);
+
+                                                <div className="max-h-[420px] space-y-2 overflow-y-auto bg-gray-50 p-3 md:max-h-[620px]">
+                                                    {filteredListMarkers.length > 0 ? filteredListMarkers.map((marker) => {
+                                                        const position = toMarkerPosition(marker);
+                                                        const normalizedType = normalizePovertyType(marker.povertyType);
+                                                        const isPoor = normalizedType === "POOR";
+                                                        const isActive = marker.id === activeFocusMarkerId;
+                                                        const area = [marker.provinceName, marker.wardName, marker.areaName].filter(Boolean).join(" / ");
+                                                        const toneClassName = normalizedType === "POOR"
+                                                            ? "border-red-200 bg-red-50/70 hover:border-red-300 hover:bg-red-50"
+                                                            : normalizedType === "NEAR_POOR"
+                                                                ? "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50"
+                                                                : "border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-slate-50";
+                                                        const activeClassName = normalizedType === "POOR"
+                                                            ? "border-red-500 ring-2 ring-red-100"
+                                                            : normalizedType === "NEAR_POOR"
+                                                                ? "border-amber-500 ring-2 ring-amber-100"
+                                                                : "border-slate-500 ring-2 ring-slate-100";
+
+                                                        return (
+                                                            <div
+                                                                key={marker.id}
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                className={`w-full rounded-lg border p-3 text-left shadow-sm transition ${isActive ? activeClassName : toneClassName}`}
+                                                                onClick={() => focusMarkerFromList(marker)}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter" || event.key === " ") {
+                                                                        event.preventDefault();
+                                                                        focusMarkerFromList(marker);
+                                                                    }
                                                                 }}
-                                                            />
-                                                        </Tooltip>
-                                                    ) : null} */}
-                                                    {canViewHouseholdDetail ? (
-                                                        <Tooltip title="Xem chi tiết hộ">
-                                                            <Button
-                                                                className="rounded-full"
-                                                                type="text"
-                                                                aria-label="Xem chi tiết hộ"
-                                                                icon={<ActionIcon action="view" />}
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    router.push(`/ho-ngheo/${marker.id}?from=map&householdId=${marker.id}`);
-                                                                }}
-                                                            />
-                                                        </Tooltip>
-                                                    ) : null}
-                                                    {canUpdateHousehold ? (
-                                                        <Tooltip title="Sửa thông tin hộ">
-                                                            <Button
-                                                                className="rounded-full"
-                                                                type="text"
-                                                                aria-label="Sửa thông tin hộ"
-                                                                icon={<ActionIcon action="edit" />}
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    openEditHousehold(marker);
-                                                                }}
-                                                            />
-                                                        </Tooltip>
-                                                    ) : null}
+                                                            >
+                                                                <div className="flex min-w-0 items-start justify-between gap-1">
+                                                                    <div className="min-w-0">
+                                                                        <div className="truncate text-sm font-semibold text-gray-900">{marker.code || `Hộ #${marker.id}`}</div>
+                                                                        <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-gray-600">
+                                                                            <UserRound size={15} strokeWidth={1.9} className="shrink-0" />
+                                                                            <div className="truncate text-sm font-semibold text-gray-500">{marker.headFullName || "Chưa có thông tin chủ hộ"}</div>
+                                                                        </div>
+
+                                                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                            <Tag className="m-0" color={isPoor ? "red" : normalizedType === "NEAR_POOR" ? "gold" : "default"}>{povertyTypeLabel(marker.povertyType)}</Tag>
+                                                                            <Tag className="m-0" color={marker.status === "ACTIVE" ? "green" : "default"}>{householdStatusLabel(marker.status)}</Tag>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex shrink-0 items-center gap-1">
+                                                                        {canViewHouseholdDetail ? (
+                                                                            <Tooltip title="Xem chi tiết hộ">
+                                                                                <Button
+                                                                                    className="rounded-full"
+                                                                                    type="text"
+                                                                                    aria-label="Xem chi tiết hộ"
+                                                                                    icon={<ActionIcon action="view" />}
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
+                                                                                        router.push(`/ho-ngheo/${marker.id}?from=map&householdId=${marker.id}`);
+                                                                                    }}
+                                                                                />
+                                                                            </Tooltip>
+                                                                        ) : null}
+                                                                        {canUpdateHousehold ? (
+                                                                            <Tooltip title="Sửa thông tin hộ">
+                                                                                <Button
+                                                                                    className="rounded-full"
+                                                                                    type="text"
+                                                                                    aria-label="Sửa thông tin hộ"
+                                                                                    icon={<ActionIcon action="edit" />}
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
+                                                                                        openEditHousehold(marker);
+                                                                                    }}
+                                                                                />
+                                                                            </Tooltip>
+                                                                        ) : null}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="mt-3 space-y-1 text-xs text-gray-600">
+                                                                    <div className="line-clamp-2">{area || "Chưa có địa bàn"}</div>
+                                                                    <div className="line-clamp-2">{marker.address || "Chưa có địa chỉ"}</div>
+                                                                </div>
+
+                                                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                                                    {position ? (
+                                                                        <div className="inline-flex items-center gap-1 text-xs font-medium text-blue-600">
+                                                                            <LocateFixed size={14} />
+                                                                            Zoom tới điểm
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }) : (
+                                                        <div className="rounded-lg bg-white py-8">
+                                                            <Empty description={markersBySelectedArea.length > 0 ? "Không tìm thấy hộ phù hợp" : "Chưa có dữ liệu hộ"} />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </div>
-
-                                            <div className="mt-3 space-y-1 text-xs text-gray-600">
-                                                <div className="line-clamp-2">{area || "Chưa có địa bàn"}</div>
-                                                <div className="line-clamp-2">{marker.address || "Chưa có địa chỉ"}</div>
-                                            </div>
-
-                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                                                {position ? (
-                                                    <div className="inline-flex items-center gap-1 text-xs font-medium text-blue-600">
-                                                        <LocateFixed size={14} />
-                                                        Zoom tới điểm
+                                            </>
+                                        ),
+                                    },
+                                    {
+                                        key: "area",
+                                        label: areaTabLabel,
+                                        children: (
+                                            <div className="max-h-[490px] space-y-3 overflow-y-auto bg-gray-50 p-3 md:max-h-[690px]">
+                                                <button
+                                                    type="button"
+                                                    className={`w-full rounded-xl border p-3 text-left shadow-sm transition ${!selectedAreaKey
+                                                        ? "border-sky-500 bg-sky-50 ring-2 ring-sky-100"
+                                                        : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
+                                                        }`}
+                                                    onClick={() => setSelectedAreaKey(null)}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <div className="text-sm font-semibold text-slate-900">Tất cả khu vực</div>
+                                                            <p className="mt-1 text-xs text-slate-500">Tổng quan toàn bộ khu vực theo bộ lọc hiện tại</p>
+                                                        </div>
+                                                        <span className="rounded-full bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white">
+                                                            {markers.length.toLocaleString("vi-VN")}
+                                                        </span>
                                                     </div>
-                                                ) : (
-                                                    <span />
+                                                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="rounded-lg bg-red-50 px-3 py-2 text-red-700">
+                                                            Hộ nghèo: <span className="font-semibold">{overallPoorCount.toLocaleString("vi-VN")}</span>
+                                                        </div>
+                                                        <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-700">
+                                                            Cận nghèo: <span className="font-semibold">{overallNearPoorCount.toLocaleString("vi-VN")}</span>
+                                                        </div>
+                                                    </div>
+                                                </button>
+
+                                                {areaSummaries.length > 0 ? areaSummaries.map((summary) => {
+                                                    const isActive = summary.key === selectedAreaKey;
+
+                                                    return (
+                                                        <button
+                                                            key={summary.key}
+                                                            type="button"
+                                                            className={`w-full rounded-xl border p-3 text-left shadow-sm transition ${isActive
+                                                                ? "border-sky-500 bg-sky-50 ring-2 ring-sky-100"
+                                                                : "border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40"
+                                                                }`}
+                                                            onClick={() => setSelectedAreaKey(summary.key)}
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="min-w-0">
+                                                                    <div className="truncate text-sm font-semibold text-slate-900">{summary.areaName}</div>
+                                                                </div>
+                                                                <span className="rounded-full bg-blue-500 px-2.5 py-1 text-xs font-semibold text-white">
+                                                                    {summary.totalCount.toLocaleString("vi-VN")}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                                                <div className="rounded-lg bg-red-50 px-3 py-2 text-red-700">
+                                                                    Hộ nghèo: <span className="font-semibold">{summary.poorCount.toLocaleString("vi-VN")}</span>
+                                                                </div>
+                                                                <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-700">
+                                                                    Cận nghèo: <span className="font-semibold">{summary.nearPoorCount.toLocaleString("vi-VN")}</span>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                }) : (
+                                                    <div className="rounded-lg bg-white py-8">
+                                                        <Empty description="Chưa có dữ liệu khu vực" />
+                                                    </div>
                                                 )}
-
                                             </div>
-                                        </div>
-                                    );
-                                }) : (
-                                    <div className="rounded-lg bg-white py-8">
-                                        <Empty description={markers.length > 0 ? "Không tìm thấy hộ phù hợp" : "Chưa có dữ liệu hộ"} />
-                                    </div>
-                                )}
-                            </div>
+                                        ),
+                                    },
+                                ]}
+                            />
                         </div>
                     </aside>
 
@@ -2067,6 +2382,7 @@ export default function PovertyLeafletMap({
                         ) : null}
                         <MarkerDetailPanel
                             marker={selectedDetailMarker}
+                            mode={mode}
                             detail={selectedDetail}
                             loading={selectedDetailLoading}
                             previewUrls={selectedDetailPreviewUrls}
@@ -2203,11 +2519,11 @@ export default function PovertyLeafletMap({
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Hộ nghèo/cận nghèo</p>
-                                    <h4 className="mt-1 text-sm font-semibold text-slate-900">Tổng số hộ: {markers.length.toLocaleString("vi-VN")}</h4>
+                                    <h4 className="mt-1 text-sm font-semibold text-slate-900">Tổng số hộ: {markersBySelectedArea.length.toLocaleString("vi-VN")}</h4>
                                     <p className="mt-1 text-xs text-slate-600">Đang hiển thị trên bản đồ: {visibleMarkers.length.toLocaleString("vi-VN")} hộ</p>
                                 </div>
                                 <div className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-700 shadow-sm">
-                                    {markers.length > 0 ? `${Math.round((visibleMarkers.length / markers.length) * 100)}%` : "0%"}
+                                    {markersBySelectedArea.length > 0 ? `${Math.round((visibleMarkers.length / markersBySelectedArea.length) * 100)}%` : "0%"}
                                 </div>
                             </div>
 
@@ -2239,7 +2555,7 @@ export default function PovertyLeafletMap({
                                 <div className="rounded-lg border border-white/70 bg-white/80 p-3">
                                     <div className="mb-1 flex items-center justify-between gap-2">
                                         <span className="font-medium text-emerald-700">Tình hình hỗ trợ</span>
-                                        <span className="font-semibold">{supportedCount.toLocaleString("vi-VN")} / {markers.length.toLocaleString("vi-VN")} ({supportRate}%)</span>
+                                        <span className="font-semibold">{supportedCount.toLocaleString("vi-VN")} / {markersBySelectedArea.length.toLocaleString("vi-VN")} ({supportRate}%)</span>
                                     </div>
                                     <div className="h-2 overflow-hidden rounded-full bg-emerald-100">
                                         <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" style={{ width: `${supportRate}%` }} />
@@ -2255,12 +2571,12 @@ export default function PovertyLeafletMap({
                                 <div className="rounded-lg border border-white/70 bg-white/80 p-3">
                                     <div className="mb-1 flex items-center justify-between gap-2">
                                         <span className="font-medium text-blue-700">Tiến độ cập nhật tọa độ</span>
-                                        <span className="font-semibold">{validMarkers.length.toLocaleString("vi-VN")} / {markers.length.toLocaleString("vi-VN")} ({coordinateRate}%)</span>
+                                        <span className="font-semibold">{validMarkers.length.toLocaleString("vi-VN")} / {markersBySelectedArea.length.toLocaleString("vi-VN")} ({coordinateRate}%)</span>
                                     </div>
                                     <div className="h-2 overflow-hidden rounded-full bg-blue-100">
                                         <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: `${coordinateRate}%` }} />
                                     </div>
-                                    <p className="mt-1 text-[11px] text-slate-600">Chưa có tọa độ: {Math.max(markers.length - validMarkers.length, 0).toLocaleString("vi-VN")} hộ</p>
+                                    <p className="mt-1 text-[11px] text-slate-600">Chưa có tọa độ: {Math.max(markersBySelectedArea.length - validMarkers.length, 0).toLocaleString("vi-VN")} hộ</p>
                                 </div>
                             </div>
                         </div>
@@ -2268,21 +2584,25 @@ export default function PovertyLeafletMap({
                     </aside>
                 </div>
             </div>
-            <FieldPhotoGalleryModal
-                marker={photoGalleryMarker}
-                open={Boolean(photoGalleryMarker)}
-                onClose={() => setPhotoGalleryMarker(null)}
-            />
-            <PovertyAssessmentTimelineModal
-                household={assessmentTimelineMarker}
-                open={Boolean(assessmentTimelineMarker)}
-                onClose={() => setAssessmentTimelineMarker(null)}
-            />
-            <PovertySupportTimelineModal
-                household={supportTimelineMarker}
-                open={Boolean(supportTimelineMarker)}
-                onClose={() => setSupportTimelineMarker(null)}
-            />
+            {!isPublicMode ? (
+                <>
+                    <FieldPhotoGalleryModal
+                        marker={photoGalleryMarker}
+                        open={Boolean(photoGalleryMarker)}
+                        onClose={() => setPhotoGalleryMarker(null)}
+                    />
+                    <PovertyAssessmentTimelineModal
+                        household={assessmentTimelineMarker}
+                        open={Boolean(assessmentTimelineMarker)}
+                        onClose={() => setAssessmentTimelineMarker(null)}
+                    />
+                    <PovertySupportTimelineModal
+                        household={supportTimelineMarker}
+                        open={Boolean(supportTimelineMarker)}
+                        onClose={() => setSupportTimelineMarker(null)}
+                    />
+                </>
+            ) : null}
             <Modal
                 title="Thêm mới hộ"
                 open={createModalOpen}
@@ -2313,9 +2633,31 @@ export default function PovertyLeafletMap({
                         <section className="min-w-0 border-t border-gray-100 pt-4">
                             <div className="mb-3 text-sm font-semibold text-gray-800">Địa bàn cư trú</div>
                             <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="provinceName" label="Tỉnh/Thành phố"><Input /></Form.Item></Col>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="wardName" label="Xã/Phường"><Input /></Form.Item></Col>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="areaName" label="Thôn/Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaOptions} /></Form.Item></Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="provinceCode" label="Tỉnh/Thành phố" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={provinceSelectOptions}
+                                            onChange={() => createForm.setFieldsValue({ wardCode: undefined, areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="wardCode" label="Xã/Phường" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={createWardSelectOptions}
+                                            onChange={() => createForm.setFieldsValue({ areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="areaId" label="Thôn/Khu vực" rules={[{ required: true }]}>
+                                        <Select showSearch optionFilterProp="label" options={createAreaSelectOptions} />
+                                    </Form.Item>
+                                </Col>
                                 <Col xs={24}><Form.Item name="address" label="Địa chỉ cụ thể"><Input /></Form.Item></Col>
                             </Row>
                         </section>
@@ -2380,10 +2722,41 @@ export default function PovertyLeafletMap({
 
                         <section className="min-w-0 border-t border-gray-100 pt-4">
                             <div className="mb-3 text-sm font-semibold text-gray-800">Địa bàn cư trú</div>
+                            {editingHousehold && hasUnresolvedStandardizedLocation(editingHousehold) ? (
+                                <Alert
+                                    className="mb-4"
+                                    type="warning"
+                                    showIcon
+                                    message="Địa bàn cũ chưa chuẩn hóa hoàn toàn, vui lòng chọn lại theo danh mục chuẩn."
+                                    description={[editingHousehold.provinceName, editingHousehold.wardName, editingHousehold.areaName].filter(Boolean).join(" / ")}
+                                />
+                            ) : null}
                             <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="provinceName" label="Tỉnh/Thành phố"><Input /></Form.Item></Col>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="wardName" label="Xã/Phường"><Input /></Form.Item></Col>
-                                <Col xs={24} sm={12} md={8}><Form.Item name="areaName" label="Thôn/Khu vực"><Select allowClear showSearch optionFilterProp="label" options={areaOptions} /></Form.Item></Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="provinceCode" label="Tỉnh/Thành phố" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={provinceSelectOptions}
+                                            onChange={() => editForm.setFieldsValue({ wardCode: undefined, areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="wardCode" label="Xã/Phường" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            options={editWardSelectOptions}
+                                            onChange={() => editForm.setFieldsValue({ areaId: undefined })}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                    <Form.Item name="areaId" label="Thôn/Khu vực" rules={[{ required: true }]}>
+                                        <Select showSearch optionFilterProp="label" options={editAreaSelectOptions} />
+                                    </Form.Item>
+                                </Col>
                                 <Col xs={24}><Form.Item name="address" label="Địa chỉ cụ thể"><Input /></Form.Item></Col>
                             </Row>
                         </section>

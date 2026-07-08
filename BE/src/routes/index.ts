@@ -27,6 +27,11 @@ import {
   updateWorkspace,
   updateWorkspaceProfile
 } from "@/handlers/workspaces/workspaces.handlers.ts";
+import {
+  getPublicPovertyAreaBySlugAndAreaSlug,
+  getPublicPovertyHouseholdBySlugAndHouseholdId,
+  getPublicPovertyWardBySlug
+} from "@/handlers/admin/resources/poverty/index.ts";
 import { permissions, test } from "@/helpers/index.ts";
 import { checkAccountStatus } from "@/middleware/checkAccountStatus.ts";
 import { isAuthenticated } from "@/middleware/isAuthenticated.ts";
@@ -48,6 +53,9 @@ export function routes(app: Application): void {
   app.get(API_ROUTES.ssoLoginUrl, authRateLimit, isAuthenticated, isAuthorized, getSsoLoginUrl);
   app.post(API_ROUTES.ssoExchange, authRateLimit, isAuthenticated, isAuthorized, signInWithSsoCode);
   app.post(API_ROUTES.changePassword, authRateLimit, isAuthenticated, isAuthorized, changePassword);
+  app.get(API_ROUTES.publicPovertyWardBySlug, isAuthenticated, isAuthorized, getPublicPovertyWardBySlug);
+  app.get(API_ROUTES.publicPovertyAreaBySlug, isAuthenticated, isAuthorized, getPublicPovertyAreaBySlugAndAreaSlug);
+  app.get(API_ROUTES.publicPovertyHouseholdBySlug, isAuthenticated, isAuthorized, getPublicPovertyHouseholdBySlugAndHouseholdId);
 
   // User profile route - critical to check status here
   app.get(API_ROUTES.me, isAuthenticated, checkAccountStatus, isAuthorized, getCurrentUser);

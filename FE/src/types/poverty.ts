@@ -7,6 +7,9 @@ export type PoorHousehold = {
     year: number;
     povertyType: PovertyType | string;
     status?: HouseholdStatus | string | null;
+    provinceCode?: string | null;
+    wardCode?: string | null;
+    areaId?: string | null;
     provinceName?: string | null;
     wardName?: string | null;
     areaName?: string | null;
@@ -19,6 +22,24 @@ export type PoorHousehold = {
     createdAt?: string | null;
     updatedAt?: string | null;
 };
+
+export type PoorHouseholdCreatePayload = {
+    code?: string;
+    year: number;
+    povertyType: PovertyType | string;
+    status?: HouseholdStatus | string;
+    provinceCode: string;
+    wardCode: string;
+    areaId: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    headFullName?: string;
+    headCitizenId?: string;
+    memberCount?: number;
+};
+
+export type PoorHouseholdUpdatePayload = Partial<PoorHouseholdCreatePayload>;
 
 export type HouseholdMember = {
     id: string;
@@ -65,6 +86,24 @@ export type HouseholdSupport = {
     updatedAt?: string | null;
 };
 
+export type HouseholdContextHistory = {
+    id: string;
+    householdId: string;
+    recordedAt: string;
+    familySituation?: string | null;
+    currentStatus?: string | null;
+    note?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+};
+
+export type HouseholdHistoryPayload = {
+    recordedAt: string;
+    familySituation?: string;
+    currentStatus?: string;
+    note?: string;
+};
+
 export type HouseholdChangeLog = {
     id: string;
     householdId?: string | null;
@@ -91,13 +130,17 @@ export type HouseholdFieldPhoto = {
 
 export type PovertyMarker = Pick<
     PoorHousehold,
-    "id" | "code" | "year" | "povertyType" | "status" | "provinceName" | "wardName" | "areaName" | "address" | "latitude" | "longitude" | "headFullName" | "headCitizenId" | "memberCount"
+    "id" | "code" | "year" | "povertyType" | "status" | "provinceCode" | "wardCode" | "areaId" | "provinceName" | "wardName" | "areaName" | "address" | "latitude" | "longitude" | "headFullName" | "headCitizenId" | "memberCount"
 > & {
     fieldPhotos?: HouseholdFieldPhoto[];
     supportCount?: number;
     supportTotalAmount?: number;
     latestSupportDate?: string | null;
     latestSupportMonthAmount?: number;
+};
+
+export type PublicPovertyMarker = Omit<PovertyMarker, "headCitizenId" | "fieldPhotos"> & {
+    fieldPhotoCount?: number;
 };
 
 export type PovertyReportRow = {
@@ -111,15 +154,182 @@ export type PovertyReportRow = {
     nearPoorRatePercent: number;
 };
 
-export type PovertyYearOverview = {
-    id: string;
+export type PovertyDashboardOverview = {
     year: number;
     population: number;
     totalHouseholds: number;
     totalMembers: number;
+    naturalArea?: number | null;
+    provinceCode?: string | null;
+    wardCode?: string | null;
     note?: string | null;
     createdAt?: string | null;
     updatedAt?: string | null;
+};
+
+export type ProvinceOption = {
+    code: string;
+    name: string;
+    fullName?: string | null;
+    administrativeUnitName?: string | null;
+    administrativeRegionName?: string | null;
+};
+
+export type WardOption = {
+    code: string;
+    name: string;
+    fullName?: string | null;
+    administrativeUnitName?: string | null;
+};
+
+export type PovertyArea = {
+    id: string;
+    provinceCode: string;
+    wardCode: string;
+    code?: string | null;
+    name: string;
+    secretaryName?: string | null;
+    secretaryPhone?: string | null;
+    hamletHeadName?: string | null;
+    hamletHeadPhone?: string | null;
+    securityTeamLeaderName?: string | null;
+    securityTeamLeaderPhone?: string | null;
+    naturalArea?: number | null;
+    description?: string | null;
+    note?: string | null;
+    status?: boolean;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+};
+
+export type PovertyWardOverview = {
+    id: string;
+    provinceCode: string;
+    wardCode: string;
+    year: number;
+    population: number;
+    totalHouseholds: number;
+    totalMembers: number;
+    naturalArea: number;
+    note?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+};
+
+export type PovertyWardPublicLink = {
+    id: string;
+    workspaceId: string;
+    provinceCode: string;
+    wardCode: string;
+    publicSlug: string;
+    isPublic: boolean;
+    publishedAt?: string | null;
+    createdBy?: string | null;
+    updatedBy?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+};
+
+export type PublicPovertyWardResponse = {
+    share: {
+        publicSlug: string;
+        wardCode: string;
+        provinceCode: string;
+        wardName?: string | null;
+        provinceName?: string | null;
+        currentYear: number;
+    };
+    overview?: PovertyDashboardOverview | null;
+    summary?: {
+        total: number;
+        poor: number;
+        nearPoor: number;
+        active: number;
+    };
+    markers?: PublicPovertyMarker[];
+};
+
+export type PublicPovertyAreaDetailResponse = {
+    share: {
+        publicSlug: string;
+        wardCode: string;
+        provinceCode: string;
+        wardName?: string | null;
+        provinceName?: string | null;
+        currentYear: number;
+    };
+    area: {
+        id: string;
+        name: string;
+        code?: string | null;
+        naturalArea?: number | null;
+        description?: string | null;
+        note?: string | null;
+        secretaryName?: string | null;
+        secretaryPhone?: string | null;
+        hamletHeadName?: string | null;
+        hamletHeadPhone?: string | null;
+        securityTeamLeaderName?: string | null;
+        securityTeamLeaderPhone?: string | null;
+    };
+    summary: {
+        total: number;
+        poor: number;
+        nearPoor: number;
+        normal: number;
+    };
+    households: PublicPovertyMarker[];
+};
+
+export type PublicHouseholdFieldPhoto = {
+    uuid: string;
+    fileName: string;
+    filePath: string;
+    mimeType?: string | null;
+};
+
+export type PublicHouseholdSupportItem = {
+    id: string;
+    supportDate?: string | null;
+    supportTypes: string[];
+    content?: string | null;
+    supportingUnit?: string | null;
+};
+
+export type PublicPovertyHouseholdDetailResponse = {
+    share: {
+        publicSlug: string;
+        wardCode: string;
+        provinceCode: string;
+        wardName?: string | null;
+        provinceName?: string | null;
+        currentYear: number;
+    };
+    household: {
+        id: string;
+        code?: string | null;
+        headFullName?: string | null;
+        povertyType?: PovertyType | string;
+        status?: HouseholdStatus | string | null;
+        memberCount?: number | null;
+        areaId?: string | null;
+        areaName?: string | null;
+        wardName?: string | null;
+        address?: string | null;
+        latitude?: number | null;
+        longitude?: number | null;
+    };
+    summary?: {
+        fieldPhotoCount: number;
+        supportCount: number;
+    };
+    latestContext?: {
+        familySituation?: string | null;
+        currentStatus?: string | null;
+        recordedAt?: string | null;
+    } | null;
+    fieldPhotos?: PublicHouseholdFieldPhoto[];
+    supports?: PublicHouseholdSupportItem[];
 };
 
 export type PovertyReportDetailRow = {
@@ -139,7 +349,7 @@ export type PovertyDashboard = {
         nearPoor?: number;
         active?: number;
     };
-    overview?: PovertyYearOverview | null;
+    overview?: PovertyDashboardOverview | null;
     byArea?: PovertyReportRow[];
     yearlyTrend?: {
         year: number;
@@ -166,6 +376,8 @@ export type HouseholdDetailResponse = {
     members?: HouseholdMember[];
     assessments?: HouseholdAssessment[];
     supports?: HouseholdSupport[];
+    contextHistories?: HouseholdContextHistory[];
+    latestContextHistory?: HouseholdContextHistory | null;
     changeLogs?: HouseholdChangeLog[];
     fieldPhotos?: HouseholdFieldPhoto[];
 };

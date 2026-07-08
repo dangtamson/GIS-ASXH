@@ -1,18 +1,23 @@
 "use client";
 
 import { api, ApiError } from "@/lib/api";
+import { getAccount } from "@/lib/auth";
 import { endpoints } from "@/lib/endpoints";
-import type { PovertyDashboard, PovertyMarker, PovertyReportRow } from "@/types/poverty";
-import { formatNumber, getValidGeoPosition, povertyTypeLabel } from "@/components/poverty/poverty-utils";
+import type { PovertyDashboard, PovertyMarker, PovertyReportRow, ProvinceOption, WardOption } from "@/types/poverty";
+import { formatNumber, getValidGeoPosition } from "@/components/poverty/poverty-utils";
+import {
+    buildPovertyDashboardQuery,
+    resolvePovertyDashboardSelectedWardName,
+    shouldShowPovertyDashboardLocationSelect,
+} from "@/components/poverty/poverty-location-utils";
 import { App, Button, Empty, Select, Spin, Tag } from "antd";
-import { MapPin, MapPinned, RefreshCw } from "lucide-react";
+import { MapPinned, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CommandDashboardActions from "@/components/poverty/command-dashboard/CommandDashboardActions";
 import { useCommandDashboardStore } from "@/components/poverty/command-dashboard/useCommandDashboardStore";
 import SupportSummaryPanel from "@/components/poverty/command-dashboard/SupportSummaryPanel";
 import HouseholdRatioPanel from "@/components/poverty/command-dashboard/HouseholdRatioPanel";
-import canThoRegions from "@/components/poverty/command-dashboard/data/cantho-regions.json";
 
 const PovertyCommandMap = dynamic(() => import("@/components/poverty/command-dashboard/PovertyCommandMap"), {
     ssr: false,
@@ -37,36 +42,46 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
     );
 }
 
-function buildMarkerQuery() {
+function buildMarkerQuery(filters: { provinceCode?: string; wardCode?: string }) {
     const params = new URLSearchParams();
     params.set("limit", "10000");
+    if (filters.provinceCode) {
+        params.set("provinceCode", filters.provinceCode);
+    }
+    if (filters.wardCode) {
+        params.set("wardCode", filters.wardCode);
+    }
     return params.toString();
 }
-
-const normalizeLocationName = (value?: string | null) =>
-    String(value ?? "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/đ/g, "d")
-        .replace(/Đ/g, "D")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
 
 export default function PovertyCommandDashboardPage() {
     const { notification } = App.useApp();
     const showPanels = useCommandDashboardStore((state) => state.mode);
+    const account = useMemo(() => getAccount(), []);
+    const showLocationSelect = shouldShowPovertyDashboardLocationSelect(account?.isSuperAdmin);
     const [dashboard, setDashboard] = useState<PovertyDashboard>({});
     const [markers, setMarkers] = useState<PovertyMarker[]>([]);
+    const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+    const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>();
+    const [selectedWardCode, setSelectedWardCode] = useState<string>();
     const [loading, setLoading] = useState(false);
-    const [selectedRegionName, setSelectedRegionName] = useState<string>();
 
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
+            const query = buildPovertyDashboardQuery({
+                provinceCode: selectedProvinceCode,
+                wardCode: selectedWardCode,
+            });
             const [dashboardData, markerData] = await Promise.all([
-                api.get<PovertyDashboard>(endpoints.poverty.dashboard),
-                api.get<{ items?: PovertyMarker[] }>(`${endpoints.poverty.gisMarkers}?${buildMarkerQuery()}`),
+                api.get<PovertyDashboard>(query ? `${endpoints.poverty.dashboard}?${query}` : endpoints.poverty.dashboard),
+                api.get<{ items?: PovertyMarker[] }>(
+                    `${endpoints.poverty.gisMarkers}?${buildMarkerQuery({
+                        provinceCode: selectedProvinceCode,
+                        wardCode: selectedWardCode,
+                    })}`
+                ),
             ]);
             setDashboard(dashboardData);
             setMarkers(markerData.items ?? []);
@@ -78,32 +93,77 @@ export default function PovertyCommandDashboardPage() {
         } finally {
             setLoading(false);
         }
+    }, [notification, selectedProvinceCode, selectedWardCode]);
+
+    const loadProvinces = useCallback(async () => {
+        try {
+            const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
+            const items = data.items ?? [];
+            setProvinceOptions(items);
+            setSelectedProvinceCode((current) => {
+                if (current && items.some((item) => item.code === current)) {
+                    return current;
+                }
+                return items.length === 1 ? items[0]?.code : undefined;
+            });
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải danh sách tỉnh/thành",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
+    }, [notification, showLocationSelect]);
+
+    const loadWards = useCallback(async (provinceCode: string) => {
+        try {
+            const data = await api.get<{ items?: WardOption[] }>(endpoints.poverty.locationWards(provinceCode));
+            const items = data.items ?? [];
+            setWardOptions(items);
+            setSelectedWardCode((current) => {
+                if (current && items.some((item) => item.code === current)) {
+                    return current;
+                }
+                return items.length === 1 ? items[0]?.code : undefined;
+            });
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải danh sách xã/phường",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
     }, [notification]);
 
     useEffect(() => {
-        loadData();
+        void loadData();
     }, [loadData]);
+
+    useEffect(() => {
+        void loadProvinces();
+    }, [loadProvinces]);
+
+    useEffect(() => {
+        if (!selectedProvinceCode) {
+            setWardOptions([]);
+            setSelectedWardCode(undefined);
+            return;
+        }
+        void loadWards(selectedProvinceCode);
+    }, [loadWards, selectedProvinceCode]);
 
     const regions = useMemo<PovertyReportRow[]>(() => dashboard.byArea ?? [], [dashboard.byArea]);
     const positionedMarkers = useMemo(
         () => markers.filter((marker) => getValidGeoPosition(marker.latitude, marker.longitude)),
         [markers]
     );
-    const regionOptions = useMemo(() => [...canThoRegions]
-        .sort((first, second) => first.name.localeCompare(second.name, "vi"))
-        .map((region) => ({
-            value: region.name,
-            label: `${region.name} (${region.level})`,
-        })), []);
-    const visiblePositionedMarkers = useMemo(() => {
-        const selectedKey = normalizeLocationName(selectedRegionName);
-        if (!selectedKey) return positionedMarkers;
-
-        return positionedMarkers.filter((marker) =>
-            normalizeLocationName(marker.wardName) === selectedKey
-            || normalizeLocationName(marker.areaName) === selectedKey
-        );
-    }, [positionedMarkers, selectedRegionName]);
+    const selectedWardName = useMemo(
+        () => resolvePovertyDashboardSelectedWardName({
+            selectedWardCode,
+            wardOptions,
+            markerWardNames: markers.map((item) => item.wardName),
+        }),
+        [markers, selectedWardCode, wardOptions]
+    );
+    const visiblePositionedMarkers = positionedMarkers;
     const topAreas = useMemo(() => [...regions].sort((a, b) => Number(b.total ?? 0) - Number(a.total ?? 0)).slice(0, 8), [regions]);
     const latestMarkers = useMemo(() => visiblePositionedMarkers.slice(0, 8), [visiblePositionedMarkers]);
 
@@ -123,7 +183,8 @@ export default function PovertyCommandDashboardPage() {
                     <PovertyCommandMap
                         regions={regions}
                         markers={visiblePositionedMarkers}
-                        selectedRegionName={selectedRegionName}
+                        selectedRegionName={selectedWardName}
+                        preferDeepFocus={!showLocationSelect && Boolean(selectedWardName)}
                     />
 
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_30%,rgba(255,247,237,0.78)_76%)]" />
@@ -138,17 +199,42 @@ export default function PovertyCommandDashboardPage() {
                                 <h1 className="text-xl font-semibold text-gray-950 md:text-2xl">Dashboard hộ nghèo Cần Thơ</h1>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                                <Select
-                                    allowClear
-                                    showSearch
-                                    optionFilterProp="label"
-                                    value={selectedRegionName}
-                                    options={regionOptions}
-                                    placeholder="Toàn Cần Thơ"
-                                    suffixIcon={<MapPinned size={16} />}
-                                    className="min-w-[220px]"
-                                    onChange={setSelectedRegionName}
-                                />
+                                {showLocationSelect ? (
+                                    <>
+                                        <Select
+                                            allowClear
+                                            showSearch
+                                            optionFilterProp="label"
+                                            value={selectedProvinceCode}
+                                            options={provinceOptions.map((item) => ({
+                                                value: item.code,
+                                                label: item.fullName || item.name,
+                                            }))}
+                                            placeholder="Tất cả tỉnh/thành"
+                                            suffixIcon={<MapPinned size={16} />}
+                                            className="min-w-[220px]"
+                                            onChange={(value) => {
+                                                setSelectedProvinceCode(value);
+                                                setSelectedWardCode(undefined);
+                                            }}
+                                        />
+                                        <Select
+                                            allowClear
+                                            showSearch
+                                            optionFilterProp="label"
+                                            value={selectedWardCode}
+                                            options={wardOptions.map((item) => ({
+                                                value: item.code,
+                                                label: item.fullName || item.name,
+                                            }))}
+                                            placeholder="Tất cả xã/phường"
+                                            suffixIcon={<MapPinned size={16} />}
+                                            className="min-w-[220px]"
+                                            disabled={!selectedProvinceCode}
+                                            onChange={setSelectedWardCode}
+                                        />
+                                    </>
+                                ) : null}
                                 <Tag color="red">Hộ nghèo {formatNumber(poor)}</Tag>
                                 <Tag color="orange">Cận nghèo {formatNumber(nearPoor)}</Tag>
                                 <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs text-gray-600">

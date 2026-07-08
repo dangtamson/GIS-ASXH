@@ -109,6 +109,8 @@ export const API_ROUTES = {
   povertyHouseholdMemberById: "/poverty/households/:id/members/:memberId",
   povertyHouseholdAssessments: "/poverty/households/:id/assessments",
   povertyHouseholdAssessmentById: "/poverty/households/:id/assessments/:assessmentId",
+  povertyHouseholdContextHistories: "/poverty/households/:id/context-histories",
+  povertyHouseholdContextHistoryById: "/poverty/households/:id/context-histories/:contextHistoryId",
   povertyHouseholdSupports: "/poverty/households/:id/supports",
   povertyHouseholdSupportById: "/poverty/households/:id/supports/:supportId",
   povertyHouseholdChangeLogs: "/poverty/households/:id/change-logs",
@@ -121,8 +123,17 @@ export const API_ROUTES = {
   povertyReportExportExcel: "/poverty/reports/export-excel",
   povertyReportDetail: "/poverty/reports/detail",
   povertyReportDetailExportExcel: "/poverty/reports/detail/export-excel",
-  povertyYearOverviews: "/poverty/year-overviews",
-  povertyYearOverviewById: "/poverty/year-overviews/:id"
+  povertyLocationProvinces: "/poverty/locations/provinces",
+  povertyLocationWards: "/poverty/locations/wards",
+  povertyLocationAreas: "/poverty/locations/areas",
+  povertyWardPublicLinks: "/poverty/ward-public-links",
+  povertyWardOverviews: "/poverty/ward-overviews",
+  povertyWardOverviewById: "/poverty/ward-overviews/:id",
+  povertyWardAreas: "/poverty/wards/:wardCode/areas",
+  povertyWardAreaById: "/poverty/wards/:wardCode/areas/:areaId",
+  publicPovertyWardBySlug: "/public/poverty/wards/:slug",
+  publicPovertyAreaBySlug: "/public/poverty/wards/:slug/areas/:areaSlug",
+  publicPovertyHouseholdBySlug: "/public/poverty/wards/:slug/households/:householdId"
 } as const;
 
 export type RouteName = keyof typeof API_ROUTES;
@@ -180,6 +191,8 @@ const RESOURCE_PERMISSION_CODES = {
   AdminRbac: buildCrudPermissionCodes("admin.rbac"),
   PovertyHousehold: buildCrudPermissionCodes("poverty.household"),
   PovertyHouseholdDetail: buildCrudPermissionCodes("poverty.household.detail"),
+  PovertyWardOverview: buildCrudPermissionCodes("poverty.ward_overview"),
+  PovertyWardArea: buildCrudPermissionCodes("poverty.ward_area"),
   PovertyMap: buildReadPermissionCode("poverty.map"),
   PovertyDashboard: buildReadPermissionCode("poverty.dashboard"),
   PovertyReport: buildReadPermissionCode("poverty.report")
@@ -244,6 +257,14 @@ export const PERMISSION_CODES = {
   PovertyHouseholdExport: "poverty.household.export",
   PovertyHouseholdDetailView: RESOURCE_PERMISSION_CODES.PovertyHouseholdDetail.View,
   PovertyHouseholdDetailUpdate: RESOURCE_PERMISSION_CODES.PovertyHouseholdDetail.Update,
+  PovertyWardOverviewView: RESOURCE_PERMISSION_CODES.PovertyWardOverview.View,
+  PovertyWardOverviewCreate: RESOURCE_PERMISSION_CODES.PovertyWardOverview.Create,
+  PovertyWardOverviewUpdate: RESOURCE_PERMISSION_CODES.PovertyWardOverview.Update,
+  PovertyWardOverviewDelete: RESOURCE_PERMISSION_CODES.PovertyWardOverview.Delete,
+  PovertyWardAreaView: RESOURCE_PERMISSION_CODES.PovertyWardArea.View,
+  PovertyWardAreaCreate: RESOURCE_PERMISSION_CODES.PovertyWardArea.Create,
+  PovertyWardAreaUpdate: RESOURCE_PERMISSION_CODES.PovertyWardArea.Update,
+  PovertyWardAreaDelete: RESOURCE_PERMISSION_CODES.PovertyWardArea.Delete,
   PovertyMapView: RESOURCE_PERMISSION_CODES.PovertyMap.Read,
   PovertyMapCreateHousehold: "poverty.map.create_household",
   PovertyMapUpdatePosition: "poverty.map.update_position",
@@ -1063,6 +1084,21 @@ permissions.set(API_ROUTES.povertyHouseholdAssessmentById, {
   workspaceScoped: true
 });
 
+permissions.set(API_ROUTES.povertyHouseholdContextHistories, {
+  permissions: { GET: PERMISSION_CODES.PovertyHouseholdDetailView, POST: PERMISSION_CODES.PovertyHouseholdDetailUpdate },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyHouseholdContextHistoryById, {
+  permissions: {
+    PATCH: PERMISSION_CODES.PovertyHouseholdDetailUpdate,
+    DELETE: PERMISSION_CODES.PovertyHouseholdDetailUpdate
+  },
+  authenticated: true,
+  workspaceScoped: true
+});
+
 permissions.set(API_ROUTES.povertyHouseholdSupports, {
   permissions: { GET: PERMISSION_CODES.PovertyHouseholdDetailView, POST: PERMISSION_CODES.PovertyHouseholdDetailUpdate },
   authenticated: true,
@@ -1138,16 +1174,67 @@ permissions.set(API_ROUTES.povertyReportDetailExportExcel, {
   workspaceScoped: true
 });
 
-permissions.set(API_ROUTES.povertyYearOverviews, {
-  permissions: { GET: PERMISSION_CODES.PovertyReportView, PUT: PERMISSION_CODES.PovertyHouseholdUpdate },
+permissions.set(API_ROUTES.povertyLocationProvinces, {
+  permissions: { GET: PERMISSION_CODES.PovertyHouseholdView },
   authenticated: true,
   workspaceScoped: true
 });
 
-permissions.set(API_ROUTES.povertyYearOverviewById, {
-  permissions: { DELETE: PERMISSION_CODES.PovertyHouseholdDelete },
+permissions.set(API_ROUTES.povertyLocationWards, {
+  permissions: { GET: PERMISSION_CODES.PovertyHouseholdView },
   authenticated: true,
   workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyLocationAreas, {
+  permissions: { GET: PERMISSION_CODES.PovertyHouseholdView },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyWardPublicLinks, {
+  permissions: { GET: PERMISSION_CODES.PovertyWardOverviewView, PUT: PERMISSION_CODES.PovertyWardOverviewUpdate },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyWardOverviews, {
+  permissions: { GET: PERMISSION_CODES.PovertyWardOverviewView, PUT: PERMISSION_CODES.PovertyWardOverviewUpdate },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyWardOverviewById, {
+  permissions: { DELETE: PERMISSION_CODES.PovertyWardOverviewDelete },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyWardAreas, {
+  permissions: { GET: PERMISSION_CODES.PovertyWardAreaView, POST: PERMISSION_CODES.PovertyWardAreaCreate },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.povertyWardAreaById, {
+  permissions: { PATCH: PERMISSION_CODES.PovertyWardAreaUpdate, DELETE: PERMISSION_CODES.PovertyWardAreaDelete },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.publicPovertyWardBySlug, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicPovertyAreaBySlug, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicPovertyHouseholdBySlug, {
+  permissions: {},
+  authenticated: false
 });
 
 

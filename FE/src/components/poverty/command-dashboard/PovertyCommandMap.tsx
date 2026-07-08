@@ -27,6 +27,12 @@ import {
 
 import type { PovertyMarker } from "@/types/poverty";
 import canThoMapData from "./data/cantho.json";
+import {
+    filterCommandMapMarkersBySelection,
+    filterCommandMapItemsBySelection,
+    getCommandMapFocusConfig,
+    resolveCommandMapFeatureDisplayName,
+} from "./PovertyCommandMap.utils";
 import { commandMapTileZoom, useCanThoTileTexture } from "./tileTexture";
 import { useCommandDashboardStore } from "./useCommandDashboardStore";
 
@@ -40,6 +46,7 @@ type RegionStat = {
 type GeoFeature = {
     properties: {
         name: string;
+        mergedFrom?: string;
         center?: number[];
         centroid?: number[];
     };
@@ -54,6 +61,8 @@ type GeoJsonData = {
 
 type RegionMeshData = {
     name: string;
+    displayName: string;
+    mergedFrom?: string;
     center: [number, number, number];
     bounds: Box2;
     points: Vector2[][];
@@ -64,6 +73,7 @@ type PovertyCommandMapProps = {
     regions: RegionStat[];
     markers: PovertyMarker[];
     selectedRegionName?: string | null;
+    preferDeepFocus?: boolean;
 };
 
 const EMPTY_STAT: RegionStat = {
@@ -87,8 +97,6 @@ const toLngLat = (value?: number[]): [number, number] => [
     Number(value?.[0] ?? 0),
     Number(value?.[1] ?? 0),
 ];
-
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 function fitProjection(data: GeoJsonData): GeoProjection {
     const projection = geoMercator().scale(7000).translate([0, 0]);
@@ -150,17 +158,15 @@ function useMapRegions(regions: RegionStat[], selectedRegionName?: string | null
 
             return {
                 name: feature.properties.name,
+                displayName: resolveCommandMapFeatureDisplayName(feature.properties, selectedRegionName),
+                mergedFrom: feature.properties.mergedFrom,
                 center: [x, -y, 7],
                 bounds: regionBounds,
                 points,
                 stat,
             };
         });
-
-        const selectedKey = normalizeKey(selectedRegionName);
-        const visibleItems = selectedKey
-            ? items.filter((item) => normalizeKey(item.name) === selectedKey)
-            : items;
+        const visibleItems = filterCommandMapItemsBySelection(items, selectedRegionName);
 
         return { items: visibleItems, bbox, projection };
     }, [mapData, regions, selectedRegionName]);
@@ -243,8 +249,8 @@ function DataBar({ region, maxValue, visible }: { region: RegionMeshData; maxVal
                 <meshBasicMaterial color="#fb923c" transparent opacity={0.9} />
             </mesh>
             <Html position={[0, 0, height + 2]} center distanceFactor={82}>
-                <div className="pointer-events-none min-w-[116px] rounded-lg border border-orange-200 bg-white/95 px-2 py-1 text-center text-[11px] shadow-lg">
-                    <div className="truncate font-semibold text-gray-900">{region.name}</div>
+                    <div className="pointer-events-none min-w-[116px] rounded-lg border border-orange-200 bg-white/95 px-2 py-1 text-center text-[11px] shadow-lg">
+                    <div className="truncate font-semibold text-gray-900">{region.displayName}</div>
                     <div className="font-semibold text-red-600">{total.toLocaleString("vi-VN")} hộ</div>
                 </div>
             </Html>
@@ -525,12 +531,16 @@ function CameraFocus({
     return null;
 }
 
-function Scene({ regions, markers, selectedRegionName }: PovertyCommandMapProps) {
+function Scene({ regions, markers, selectedRegionName, preferDeepFocus = false }: PovertyCommandMapProps) {
     const controlsRef = useRef<OrbitControlsImpl | null>(null);
     const { bar, cloud, rotation, baseLayer } = useCommandDashboardStore();
     const mapData = canThoMapData as unknown as GeoJsonData;
     const { items, bbox, projection } = useMapRegions(regions, selectedRegionName);
-    const markerPoints = useMapMarkers(markers, projection);
+    const visibleMarkers = useMemo(
+        () => filterCommandMapMarkersBySelection(markers, selectedRegionName),
+        [markers, selectedRegionName]
+    );
+    const markerPoints = useMapMarkers(visibleMarkers, projection);
     const maxValue = Math.max(1, ...items.map((item) => Number(item.stat.total ?? 0)));
     const selectedRegion = selectedRegionName ? items[0] : null;
     const selectedRegionKey = normalizeKey(selectedRegion?.name);
@@ -564,9 +574,15 @@ function Scene({ regions, markers, selectedRegionName }: PovertyCommandMapProps)
         if (!selectedRegion) return new Vector2(0, 0);
         return selectedRegion.bounds.getCenter(new Vector2());
     }, [selectedRegion]);
-    const selectedRegionScale = selectedRegion && selectedRegionSize > 0
-        ? clamp((fullMapSize / selectedRegionSize) * 0.58, 1.8, 7)
-        : 1;
+    const focusConfig = useMemo(
+        () => getCommandMapFocusConfig({
+            selectedRegionSize,
+            fullMapSize,
+            preferDeepFocus,
+        }),
+        [fullMapSize, preferDeepFocus, selectedRegionSize]
+    );
+    const selectedRegionScale = selectedRegion ? focusConfig.selectedRegionScale : 1;
     const mapGroupPosition: [number, number, number] = selectedRegion
         ? [
             -selectedRegionCenter.x * selectedRegionScale,
@@ -574,9 +590,7 @@ function Scene({ regions, markers, selectedRegionName }: PovertyCommandMapProps)
             selectedRegionCenter.y * selectedRegionScale,
         ]
         : [0, 0, 0];
-    const focusDistance = selectedRegion
-        ? clamp((selectedRegionSize * selectedRegionScale) * 0.98, 42, 96)
-        : 160;
+    const focusDistance = selectedRegion ? focusConfig.focusDistance : 160;
 
     return (
         <>
@@ -612,8 +626,8 @@ function Scene({ regions, markers, selectedRegionName }: PovertyCommandMapProps)
                 enableDamping
                 dampingFactor={0.08}
                 zoomSpeed={0.35}
-                minDistance={selectedRegion ? clamp(focusDistance * 0.45, 18, 44) : 92}
-                maxDistance={selectedRegion ? clamp(focusDistance * 1.75, 88, 190) : 310}
+                minDistance={selectedRegion ? focusConfig.minDistance : 92}
+                maxDistance={selectedRegion ? focusConfig.maxDistance : 310}
                 maxPolarAngle={1.45}
                 target={focusTarget}
             />
@@ -621,7 +635,7 @@ function Scene({ regions, markers, selectedRegionName }: PovertyCommandMapProps)
     );
 }
 
-export default function PovertyCommandMap({ regions, markers, selectedRegionName }: PovertyCommandMapProps) {
+export default function PovertyCommandMap({ regions, markers, selectedRegionName, preferDeepFocus }: PovertyCommandMapProps) {
     return (
         <div className="absolute inset-0">
             <Canvas
@@ -630,7 +644,12 @@ export default function PovertyCommandMap({ regions, markers, selectedRegionName
                 dpr={[1, 1.7]}
             >
                 <color attach="background" args={["#fff7ed"]} />
-                <Scene regions={regions} markers={markers} selectedRegionName={selectedRegionName} />
+                <Scene
+                    regions={regions}
+                    markers={markers}
+                    selectedRegionName={selectedRegionName}
+                    preferDeepFocus={preferDeepFocus}
+                />
             </Canvas>
         </div>
     );

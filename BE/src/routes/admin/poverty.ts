@@ -1,11 +1,15 @@
 import {
+  createPovertyAreaAdmin,
   createHouseholdAdmin,
   createHouseholdAssessmentAdmin,
+  createHouseholdContextHistoryAdmin,
   createHouseholdMemberAdmin,
   createHouseholdSupportAdmin,
-  deletePovertyYearOverviewAdminById,
+  deletePovertyAreaAdminById,
+  deletePovertyWardOverviewAdminById,
   deleteHouseholdAdminById,
   deleteHouseholdAssessmentAdminById,
+  deleteHouseholdContextHistoryAdminById,
   deleteHouseholdMemberAdminById,
   deleteHouseholdSupportAdminById,
   exportHouseholdsAdmin,
@@ -15,19 +19,28 @@ import {
   getPovertyDashboardAdmin,
   getPovertyReportDetailAdmin,
   getPovertyReportSummaryAdmin,
-  listPovertyYearOverviewsAdmin,
+  getPovertyWardPublicLinkAdmin,
+  listPovertyAreasAdmin,
+  listPovertyLocationAreasAdmin,
+  listPovertyLocationProvincesAdmin,
+  listPovertyLocationWardsAdmin,
+  listPovertyWardOverviewsAdmin,
   importHouseholdsAdmin,
   listHouseholdAssessmentsAdmin,
+  listHouseholdContextHistoriesAdmin,
   listHouseholdChangeLogsAdmin,
   listHouseholdMembersAdmin,
   listHouseholdSupportsAdmin,
   listHouseholdsAdmin,
   listPovertyGisMarkersAdmin,
+  updatePovertyAreaAdminById,
+  upsertPovertyWardPublicLinkAdmin,
+  upsertPovertyWardOverviewAdmin,
   updateHouseholdAdminById,
   updateHouseholdAssessmentAdminById,
+  updateHouseholdContextHistoryAdminById,
   updateHouseholdMemberAdminById,
   updateHouseholdSupportAdminById,
-  upsertPovertyYearOverviewAdmin
 } from "@/handlers/admin/resources/poverty/index.ts";
 import { API_ROUTES } from "@/helpers/permissions.ts";
 import type { Application, RequestHandler } from "express";
@@ -52,6 +65,11 @@ export function registerPovertyAdminRoutes(app: Application, guards: readonly Re
   app.patch(API_ROUTES.povertyHouseholdAssessmentById, ...guards, updateHouseholdAssessmentAdminById);
   app.delete(API_ROUTES.povertyHouseholdAssessmentById, ...guards, deleteHouseholdAssessmentAdminById);
 
+  app.get(API_ROUTES.povertyHouseholdContextHistories, ...guards, listHouseholdContextHistoriesAdmin);
+  app.post(API_ROUTES.povertyHouseholdContextHistories, ...guards, createHouseholdContextHistoryAdmin);
+  app.patch(API_ROUTES.povertyHouseholdContextHistoryById, ...guards, updateHouseholdContextHistoryAdminById);
+  app.delete(API_ROUTES.povertyHouseholdContextHistoryById, ...guards, deleteHouseholdContextHistoryAdminById);
+
   app.get(API_ROUTES.povertyHouseholdSupports, ...guards, listHouseholdSupportsAdmin);
   app.post(API_ROUTES.povertyHouseholdSupports, ...guards, createHouseholdSupportAdmin);
   app.patch(API_ROUTES.povertyHouseholdSupportById, ...guards, updateHouseholdSupportAdminById);
@@ -65,7 +83,16 @@ export function registerPovertyAdminRoutes(app: Application, guards: readonly Re
   app.get(API_ROUTES.povertyReportExportExcel, ...guards, exportPovertyReportAdmin);
   app.get(API_ROUTES.povertyReportDetail, ...guards, getPovertyReportDetailAdmin);
   app.get(API_ROUTES.povertyReportDetailExportExcel, ...guards, exportPovertyReportDetailAdmin);
-  app.get(API_ROUTES.povertyYearOverviews, ...guards, listPovertyYearOverviewsAdmin);
-  app.put(API_ROUTES.povertyYearOverviews, ...guards, upsertPovertyYearOverviewAdmin);
-  app.delete(API_ROUTES.povertyYearOverviewById, ...guards, deletePovertyYearOverviewAdminById);
+  app.get(API_ROUTES.povertyLocationProvinces, ...guards, listPovertyLocationProvincesAdmin);
+  app.get(API_ROUTES.povertyLocationWards, ...guards, listPovertyLocationWardsAdmin);
+  app.get(API_ROUTES.povertyLocationAreas, ...guards, listPovertyLocationAreasAdmin);
+  app.get(API_ROUTES.povertyWardPublicLinks, ...guards, getPovertyWardPublicLinkAdmin);
+  app.put(API_ROUTES.povertyWardPublicLinks, ...guards, upsertPovertyWardPublicLinkAdmin);
+  app.get(API_ROUTES.povertyWardOverviews, ...guards, listPovertyWardOverviewsAdmin);
+  app.put(API_ROUTES.povertyWardOverviews, ...guards, upsertPovertyWardOverviewAdmin);
+  app.delete(API_ROUTES.povertyWardOverviewById, ...guards, deletePovertyWardOverviewAdminById);
+  app.get(API_ROUTES.povertyWardAreas, ...guards, listPovertyAreasAdmin);
+  app.post(API_ROUTES.povertyWardAreas, ...guards, createPovertyAreaAdmin);
+  app.patch(API_ROUTES.povertyWardAreaById, ...guards, updatePovertyAreaAdminById);
+  app.delete(API_ROUTES.povertyWardAreaById, ...guards, deletePovertyAreaAdminById);
 }

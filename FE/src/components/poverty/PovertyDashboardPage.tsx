@@ -1,11 +1,16 @@
 "use client";
 
 import { api, ApiError } from "@/lib/api";
+import { getAccount } from "@/lib/auth";
 import { endpoints } from "@/lib/endpoints";
-import type { PovertyDashboard } from "@/types/poverty";
+import type { PovertyDashboard, ProvinceOption, WardOption } from "@/types/poverty";
 import { formatNumber } from "@/components/poverty/poverty-utils";
+import {
+    buildPovertyDashboardQuery,
+    shouldShowPovertyDashboardLocationSelect,
+} from "@/components/poverty/poverty-location-utils";
 import { TitleSpace } from "@/components/controller";
-import { App, Spin } from "antd";
+import { App, Select, Spin } from "antd";
 import type { ApexOptions } from "apexcharts";
 import { Activity, Home, ShieldCheck, UsersRound } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -71,13 +76,25 @@ function ChartPanel({
 
 export default function PovertyDashboardPage() {
     const { notification } = App.useApp();
+    const account = useMemo(() => getAccount(), []);
+    const showLocationSelect = shouldShowPovertyDashboardLocationSelect(account?.isSuperAdmin);
     const [data, setData] = useState<PovertyDashboard>({});
+    const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
+    const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>();
+    const [selectedWardCode, setSelectedWardCode] = useState<string>();
     const [loading, setLoading] = useState(false);
 
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await api.get<PovertyDashboard>(endpoints.poverty.dashboard);
+            const query = buildPovertyDashboardQuery({
+                provinceCode: selectedProvinceCode,
+                wardCode: selectedWardCode,
+            });
+            const result = await api.get<PovertyDashboard>(
+                query ? `${endpoints.poverty.dashboard}?${query}` : endpoints.poverty.dashboard
+            );
             setData(result);
         } catch (error) {
             notification.error({
@@ -87,11 +104,60 @@ export default function PovertyDashboardPage() {
         } finally {
             setLoading(false);
         }
+    }, [notification, selectedProvinceCode, selectedWardCode]);
+
+    const loadProvinces = useCallback(async () => {
+        if (!showLocationSelect) return;
+
+        try {
+            const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
+            const items = data.items ?? [];
+            setProvinceOptions(items);
+            setSelectedProvinceCode((current) => {
+                if (current && items.some((item) => item.code === current)) {
+                    return current;
+                }
+                return items.length === 1 ? items[0]?.code : undefined;
+            });
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải danh sách tỉnh/thành",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
+    }, [notification, showLocationSelect]);
+
+    const loadWards = useCallback(async (provinceCode: string) => {
+        try {
+            const data = await api.get<{ items?: WardOption[] }>(endpoints.poverty.locationWards(provinceCode));
+            const items = data.items ?? [];
+            setWardOptions(items);
+            setSelectedWardCode((current) => (current && items.some((item) => item.code === current) ? current : undefined));
+        } catch (error) {
+            notification.error({
+                message: "Không thể tải danh sách xã/phường",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        }
     }, [notification]);
 
     useEffect(() => {
-        loadData();
+        void loadData();
     }, [loadData]);
+
+    useEffect(() => {
+        void loadProvinces();
+    }, [loadProvinces]);
+
+    useEffect(() => {
+        if (!showLocationSelect) return;
+        if (!selectedProvinceCode) {
+            setWardOptions([]);
+            setSelectedWardCode(undefined);
+            return;
+        }
+        void loadWards(selectedProvinceCode);
+    }, [loadWards, selectedProvinceCode, showLocationSelect]);
 
     const ratioOptions: ApexOptions = useMemo(() => ({
         labels: ["Hộ nghèo", "Hộ cận nghèo"],
@@ -158,6 +224,40 @@ export default function PovertyDashboardPage() {
     return (
         <div className="min-w-0 space-y-5">
             <TitleSpace title="Dashboard hộ nghèo" />
+            {showLocationSelect ? (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                    <Select
+                        allowClear
+                        showSearch
+                        optionFilterProp="label"
+                        value={selectedProvinceCode}
+                        options={provinceOptions.map((item) => ({
+                            value: item.code,
+                            label: item.fullName || item.name,
+                        }))}
+                        placeholder="Tất cả tỉnh/thành"
+                        className="min-w-[220px]"
+                        onChange={(value) => {
+                            setSelectedProvinceCode(value);
+                            setSelectedWardCode(undefined);
+                        }}
+                    />
+                    <Select
+                        allowClear
+                        showSearch
+                        optionFilterProp="label"
+                        value={selectedWardCode}
+                        options={wardOptions.map((item) => ({
+                            value: item.code,
+                            label: item.fullName || item.name,
+                        }))}
+                        placeholder="Tất cả xã/phường"
+                        className="min-w-[240px]"
+                        disabled={!selectedProvinceCode}
+                        onChange={setSelectedWardCode}
+                    />
+                </div>
+            ) : null}
             <Spin spinning={loading}>
                 <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                     <StatCard
