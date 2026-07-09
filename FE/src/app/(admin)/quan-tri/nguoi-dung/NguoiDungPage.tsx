@@ -1,12 +1,12 @@
 "use client";
 
-import {App, Col, Form, Input, Radio, Row, Select, Switch, TreeSelect} from "antd";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import { App, Col, Form, Input, Radio, Row, Select, Switch, TreeSelect } from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {api, ApiError} from "@/lib/api";
-import {getAccount, getWorkspaceId} from "@/lib/auth";
-import {extractList} from "@/lib/data-utils";
-import {endpoints} from "@/lib/endpoints";
+import { api, ApiError } from "@/lib/api";
+import { getAccount, getWorkspaceId } from "@/lib/auth";
+import { extractList } from "@/lib/data-utils";
+import { endpoints } from "@/lib/endpoints";
 
 import {
     ActionButton,
@@ -186,23 +186,23 @@ function extractAccounts(payload: unknown): Account[] {
             workspaceId: item.workspaceId
                 ? String(item.workspaceId)
                 : item.workspace_id
-                  ? String(item.workspace_id)
-                  : undefined,
+                    ? String(item.workspace_id)
+                    : undefined,
             organizationId: item.organizationId
                 ? String(item.organizationId)
                 : item.organization_id
-                  ? String(item.organization_id)
-                  : undefined,
+                    ? String(item.organization_id)
+                    : undefined,
             workspaceName: item.workspaceName
                 ? String(item.workspaceName)
                 : item.workspace_name
-                  ? String(item.workspace_name)
-                  : undefined,
+                    ? String(item.workspace_name)
+                    : undefined,
             organizationName: item.organizationName
                 ? String(item.organizationName)
                 : item.organization_name
-                  ? String(item.organization_name)
-                  : undefined,
+                    ? String(item.organization_name)
+                    : undefined,
         }))
         .filter((item) => item.id.length > 0);
 }
@@ -319,6 +319,24 @@ function extractSecurityPolicy(payload: unknown): SecurityPolicy | null {
 
 function roleKey(role: Role): string {
     return String(role.id ?? role.uuid ?? "").trim();
+}
+
+function normalizeSearchText(value: string): string {
+    return value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+}
+
+function isSystemAdminRole(role: Role): boolean {
+    const code = String(role.code ?? "").trim().toUpperCase();
+    if (code === "SUPER_ADMIN" || code === "SYSTEM_ADMIN") {
+        return true;
+    }
+
+    const name = normalizeSearchText(String(role.name ?? ""));
+    return name.includes("super admin") || name.includes("quan tri he thong");
 }
 
 function normalizeRoleInput(value: string): string | number {
@@ -443,7 +461,7 @@ export default function NguoiDungPage() {
     const userWorkspaceId = Form.useWatch("workspaceId", userForm);
     const permissionWorkspaceId = Form.useWatch("workspaceId", permissionForm);
     const roleOptions = useMemo(
-        () => roles.filter((role) => String(role.status ?? "Hoạt động") !== "Ngưng"),
+        () => roles.filter((role) => String(role.status ?? "Hoạt động") !== "Ngưng" && !isSystemAdminRole(role)),
         [roles]
     );
 
@@ -775,7 +793,7 @@ export default function NguoiDungPage() {
                     membershipIsAdmin: membership.isAdmin,
                 }),
             });
-        } catch {}
+        } catch { }
     }, [defaultRoleId, editingAccount, loadAccountMembership, modalMode, userForm]);
 
     const populatePermissionFormForWorkspace = useCallback(async (account: Account, workspaceId: string) => {
@@ -819,6 +837,14 @@ export default function NguoiDungPage() {
     };
 
     const openEditModal = async (account: Account) => {
+        if (!creatorIsSuperAdmin && account.isSuperAdmin) {
+            notification.warning({
+                title: "Không có quyền",
+                description: "Quản trị đơn vị không thể chỉnh sửa tài khoản Super Admin.",
+            });
+            return;
+        }
+
         const initialWorkspaceId = creatorIsSuperAdmin
             ? account.workspaceId || defaultWorkspaceId
             : creatorWorkspaceId;
@@ -850,7 +876,7 @@ export default function NguoiDungPage() {
                     membershipIsAdmin: membership.isAdmin,
                 }),
             });
-        } catch {}
+        } catch { }
     };
 
     const closeModal = () => {
@@ -862,6 +888,14 @@ export default function NguoiDungPage() {
     };
 
     const openPermissionModal = async (account: Account) => {
+        if (!creatorIsSuperAdmin && account.isSuperAdmin) {
+            notification.warning({
+                title: "Không có quyền",
+                description: "Quản trị đơn vị không thể phân quyền tài khoản Super Admin.",
+            });
+            return;
+        }
+
         const initialWorkspaceId = account.workspaceId || defaultWorkspaceId || creatorWorkspaceId;
 
         console.log('account', account);
@@ -1003,8 +1037,8 @@ export default function NguoiDungPage() {
                     err instanceof ApiError
                         ? err.message
                         : err instanceof Error
-                          ? err.message
-                          : "Không thể lưu thông tin người dùng.",
+                            ? err.message
+                            : "Không thể lưu thông tin người dùng.",
             });
         } finally {
             setSaving(false);
@@ -1070,8 +1104,8 @@ export default function NguoiDungPage() {
                     err instanceof ApiError
                         ? err.message
                         : err instanceof Error
-                          ? err.message
-                          : "Không thể lưu phân quyền người dùng.",
+                            ? err.message
+                            : "Không thể lưu phân quyền người dùng.",
             });
         } finally {
             setPermissionSaving(false);
@@ -1210,20 +1244,30 @@ export default function NguoiDungPage() {
                                             </td>
                                             <td className="data-table-cell">
                                                 <div className="flex items-center gap-2">
-                                                    <button onClick={() => void openEditModal(item)} title="Sửa" aria-label="Sửa">
+                                                    <button
+                                                        onClick={() => void openEditModal(item)}
+                                                        title={!creatorIsSuperAdmin && item.isSuperAdmin ? "Không có quyền sửa Super Admin" : "Sửa"}
+                                                        aria-label="Sửa"
+                                                        disabled={!creatorIsSuperAdmin && item.isSuperAdmin}
+                                                        className="disabled:cursor-not-allowed disabled:opacity-40"
+                                                    >
                                                         <ActionIcon action="edit" />
                                                     </button>
                                                     <button
                                                         onClick={() => void openPermissionModal(item)}
-                                                        title="Phân quyền"
+                                                        title={!creatorIsSuperAdmin && item.isSuperAdmin ? "Không có quyền phân quyền Super Admin" : "Phân quyền"}
                                                         aria-label="Phân quyền"
+                                                        disabled={!creatorIsSuperAdmin && item.isSuperAdmin}
+                                                        className="disabled:cursor-not-allowed disabled:opacity-40"
                                                     >
                                                         <ActionIcon action="permission" />
                                                     </button>
                                                     <button
                                                         onClick={() => setDeleteTarget(item)}
-                                                        title="Xóa"
+                                                        title={!creatorIsSuperAdmin && item.isSuperAdmin ? "Không có quyền xóa Super Admin" : "Xóa"}
                                                         aria-label="Xóa"
+                                                        disabled={!creatorIsSuperAdmin && item.isSuperAdmin}
+                                                        className="disabled:cursor-not-allowed disabled:opacity-40"
                                                     >
                                                         <ActionIcon action="delete" />
                                                     </button>

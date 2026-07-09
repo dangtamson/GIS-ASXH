@@ -152,6 +152,38 @@ async function resolveActorWorkspaceId(accountId: string, requestedWorkspaceId?:
   return membership?.workspaceId ?? null;
 }
 
+async function getActorActiveMembership(accountId: string, workspaceId: string): Promise<{
+  workspaceId: string;
+  organizationId: string | null;
+  isAdmin: boolean;
+} | null> {
+  const [membership] = await db
+    .select({
+      workspaceId: workspaceMemberships.workspaceId,
+      organizationId: workspaceMemberships.organizationId,
+      isAdmin: workspaceMemberships.isAdmin
+    })
+    .from(workspaceMemberships)
+    .where(
+      and(
+        eq(workspaceMemberships.accountId, accountId),
+        eq(workspaceMemberships.workspaceId, workspaceId),
+        eq(workspaceMemberships.status, true)
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    return null;
+  }
+
+  return {
+    workspaceId: membership.workspaceId,
+    organizationId: membership.organizationId ?? null,
+    isAdmin: Boolean(membership.isAdmin)
+  };
+}
+
 async function resolveWorkspaceForAccountMutation(params: {
   actor: ActorContext;
   requestedWorkspaceId?: string;
@@ -326,21 +358,11 @@ export const listAllAccounts = asyncHandler(async (req: Request, res: Response):
     return;
   }
 
-  if (!actor.isSuperAdmin) {
-    const [actorMembership] = await db
-      .select({
-        isAdmin: workspaceMemberships.isAdmin
-      })
-      .from(workspaceMemberships)
-      .where(
-        and(
-          eq(workspaceMemberships.accountId, actor.accountId),
-          eq(workspaceMemberships.workspaceId, scopedWorkspaceId),
-          eq(workspaceMemberships.status, true)
-        )
-      )
-      .limit(1);
+  const actorMembership = !actor.isSuperAdmin
+    ? await getActorActiveMembership(actor.accountId, scopedWorkspaceId)
+    : null;
 
+  if (!actor.isSuperAdmin) {
     if (!actorMembership?.isAdmin) {
       const response = apiResponse.error(
         HttpErrors.Forbidden("Only super admin or workspace admin can view account list")
@@ -379,6 +401,10 @@ export const listAllAccounts = asyncHandler(async (req: Request, res: Response):
       and(
         eq(workspaceMemberships.workspaceId, scopedWorkspaceId),
         eq(workspaceMemberships.status, true),
+        ...(!actor.isSuperAdmin && actorMembership?.organizationId
+          ? [eq(workspaceMemberships.organizationId, actorMembership.organizationId)]
+          : []),
+        ...(!actor.isSuperAdmin ? [eq(accounts.isSuperAdmin, false)] : []),
         ...(accountConditions.length ? accountConditions : [])
       )
     )
@@ -408,6 +434,10 @@ export const listAllAccounts = asyncHandler(async (req: Request, res: Response):
 
     if (scopedWorkspaceId) {
       membershipConditions.push(eq(workspaceMemberships.workspaceId, scopedWorkspaceId));
+    }
+
+    if (!actor.isSuperAdmin && actorMembership?.organizationId) {
+      membershipConditions.push(eq(workspaceMemberships.organizationId, actorMembership.organizationId));
     }
 
     const memberships = await db
@@ -692,7 +722,14 @@ export const updateAccountForUser = asyncHandler(async (req: Request, res: Respo
   await validateWorkspaceAndOrganization(resolvedWorkspaceId, organizationId ?? undefined);
 
   const [targetAccount] = await db
-    .select({ uuid: accounts.uuid, email: accounts.email, fullName: accounts.fullName, phone: accounts.phone, status: accounts.status })
+    .select({
+      uuid: accounts.uuid,
+      email: accounts.email,
+      fullName: accounts.fullName,
+      phone: accounts.phone,
+      status: accounts.status,
+      isSuperAdmin: accounts.isSuperAdmin
+    })
     .from(accounts)
     .where(eq(accounts.uuid, targetAccountId))
     .limit(1);
@@ -701,6 +738,48 @@ export const updateAccountForUser = asyncHandler(async (req: Request, res: Respo
     const response = apiResponse.error(HttpErrors.NotFound("Account"));
     res.status(response.code).send(response);
     return;
+  }
+
+  const actorMembership = !actor.isSuperAdmin
+    ? await getActorActiveMembership(actor.accountId, resolvedWorkspaceId)
+    : null;
+
+  if (!actor.isSuperAdmin) {
+    if (!actorMembership?.isAdmin) {
+      const response = apiResponse.error(
+        HttpErrors.Forbidden("Only super admin or workspace admin can update account")
+      );
+      res.status(response.code).send(response);
+      return;
+    }
+
+    if (targetAccount.isSuperAdmin) {
+      const response = apiResponse.error(HttpErrors.Forbidden("Workspace admin cannot edit super admin account"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    const targetScopeConditions: SQL[] = [
+      eq(workspaceMemberships.accountId, targetAccountId),
+      eq(workspaceMemberships.workspaceId, resolvedWorkspaceId),
+      eq(workspaceMemberships.status, true)
+    ];
+
+    if (actorMembership.organizationId) {
+      targetScopeConditions.push(eq(workspaceMemberships.organizationId, actorMembership.organizationId));
+    }
+
+    const [targetMembership] = await db
+      .select({ id: workspaceMemberships.uuid })
+      .from(workspaceMemberships)
+      .where(and(...targetScopeConditions))
+      .limit(1);
+
+    if (!targetMembership) {
+      const response = apiResponse.error(HttpErrors.Forbidden("Account is outside your management scope"));
+      res.status(response.code).send(response);
+      return;
+    }
   }
 
   if (email && email !== targetAccount.email) {
@@ -794,6 +873,13 @@ export const updateAccountRole = asyncHandler(async (req: Request, res: Response
 
   if (!accountId) {
     const response = apiResponse.error(HttpErrors.Unauthorized());
+    res.status(response.code).send(response);
+    return;
+  }
+
+  const actor = await getActorContext(accountId);
+  if (!actor.isSuperAdmin) {
+    const response = apiResponse.error(HttpErrors.Forbidden("Only super admin can update super admin role"));
     res.status(response.code).send(response);
     return;
   }
@@ -1018,7 +1104,7 @@ export const createAdminWorkspace = asyncHandler(async (req: Request, res: Respo
     })
     .returning();
 
-  if(workspace) {
+  if (workspace) {
     await db
       .insert(categories)
       .values([
@@ -1211,14 +1297,45 @@ export const listAllMemberships = asyncHandler(async (req: Request, res: Respons
   const offset = (page - 1) * limit;
   const workspaceId = req.query.workspaceId as string;
   const accountId = req.query.accountId as string;
+  const actorAccountId = req.accountId;
+
+  if (!actorAccountId) {
+    const response = apiResponse.error(HttpErrors.Unauthorized());
+    res.status(response.code).send(response);
+    return;
+  }
+
+  const actor = await getActorContext(actorAccountId);
+  const scopedWorkspaceId = actor.isSuperAdmin
+    ? (workspaceId?.trim() || req.workspaceId?.trim() || null)
+    : await resolveActorWorkspaceId(actor.accountId, req.workspaceId);
+
+  if (!scopedWorkspaceId) {
+    const response = apiResponse.error(HttpErrors.Forbidden("Workspace context is required"));
+    res.status(response.code).send(response);
+    return;
+  }
+
+  const actorMembership = !actor.isSuperAdmin
+    ? await getActorActiveMembership(actor.accountId, scopedWorkspaceId)
+    : null;
+
+  if (!actor.isSuperAdmin && !actorMembership?.isAdmin) {
+    const response = apiResponse.error(
+      HttpErrors.Forbidden("Only super admin or workspace admin can view memberships")
+    );
+    res.status(response.code).send(response);
+    return;
+  }
 
   // Build conditions for filtering
-  const conditions = [];
-  if (workspaceId) {
-    conditions.push(eq(workspaceMemberships.workspaceId, workspaceId));
-  }
+  const conditions: SQL[] = [eq(workspaceMemberships.workspaceId, scopedWorkspaceId)];
   if (accountId) {
     conditions.push(eq(workspaceMemberships.accountId, accountId));
+  }
+
+  if (!actor.isSuperAdmin && actorMembership?.organizationId) {
+    conditions.push(eq(workspaceMemberships.organizationId, actorMembership.organizationId));
   }
 
   // Build base query
