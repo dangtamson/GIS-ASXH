@@ -249,7 +249,7 @@ function DataBar({ region, maxValue, visible }: { region: RegionMeshData; maxVal
                 <meshBasicMaterial color="#fb923c" transparent opacity={0.9} />
             </mesh>
             <Html position={[0, 0, height + 2]} center distanceFactor={82}>
-                    <div className="pointer-events-none min-w-[116px] rounded-lg border border-orange-200 bg-white/95 px-2 py-1 text-center text-[11px] shadow-lg">
+                <div className="pointer-events-none min-w-[116px] rounded-lg border border-orange-200 bg-white/95 px-2 py-1 text-center text-[11px] shadow-lg">
                     <div className="truncate font-semibold text-gray-900">{region.displayName}</div>
                     <div className="font-semibold text-red-600">{total.toLocaleString("vi-VN")} hộ</div>
                 </div>
@@ -258,7 +258,13 @@ function DataBar({ region, maxValue, visible }: { region: RegionMeshData; maxVal
     );
 }
 
-function HouseholdPoint({ item }: { item: { marker: PovertyMarker; position: [number, number, number] } }) {
+function HouseholdPoint({
+    item,
+    visualScale = 1,
+}: {
+    item: { marker: PovertyMarker; position: [number, number, number] };
+    visualScale?: number;
+}) {
     const baseGlowRef = useRef<Mesh>(null);
     const beamMeshRef = useRef<InstancedMesh>(null);
     const isPoor = item.marker.povertyType === "POOR";
@@ -313,7 +319,7 @@ function HouseholdPoint({ item }: { item: { marker: PovertyMarker; position: [nu
     });
 
     return (
-        <group position={item.position}>
+        <group position={item.position} scale={[visualScale, visualScale, visualScale]}>
             <pointLight color={color} intensity={2.4} distance={24} position={[0, 0, beamHeight / 2]} />
             <mesh renderOrder={5} position={[0, 0, beamHeight / 2]} raycast={() => null}>
                 <instancedMesh
@@ -346,13 +352,13 @@ function HouseholdPoint({ item }: { item: { marker: PovertyMarker; position: [nu
                 />
             </mesh>
             <mesh ref={baseGlowRef} renderOrder={6} raycast={() => null}>
-                <planeGeometry args={[5, 5]} />
+                <planeGeometry args={[2, 2]} />
                 <meshBasicMaterial
                     transparent
                     color={markerColor}
                     map={baseGlowTexture}
                     alphaMap={baseGlowTexture}
-                    opacity={1}
+                    opacity={0.8}
                     depthTest={false}
                     depthWrite={false}
                     blending={AdditiveBlending}
@@ -583,6 +589,9 @@ function Scene({ regions, markers, selectedRegionName, preferDeepFocus = false }
         [fullMapSize, preferDeepFocus, selectedRegionSize]
     );
     const selectedRegionScale = selectedRegion ? focusConfig.selectedRegionScale : 1;
+    const markerVisualScale = selectedRegion
+        ? Math.max(0.3, Math.min(1, 1 / selectedRegionScale))
+        : 1;
     const mapGroupPosition: [number, number, number] = selectedRegion
         ? [
             -selectedRegionCenter.x * selectedRegionScale,
@@ -613,7 +622,7 @@ function Scene({ regions, markers, selectedRegionName, preferDeepFocus = false }
                     <RegionMesh key={region.name} region={region} bbox={textureBbox} maxValue={maxValue} mapTexture={mapTexture} showBar={bar} />
                 ))}
                 {markerPoints.map((item) => (
-                    <HouseholdPoint key={item.marker.id} item={item} />
+                    <HouseholdPoint key={item.marker.id} item={item} visualScale={markerVisualScale} />
                 ))}
             </group>
             <BottomGrid visible={rotation} />

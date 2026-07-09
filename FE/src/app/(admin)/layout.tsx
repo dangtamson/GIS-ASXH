@@ -73,11 +73,13 @@ export default function AdminLayout({
       {isStandaloneCollectionApp ? (
         <button
           type="button"
-          className="fixed left-4 top-4 z-[1100] inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/92 px-4 py-2 text-sm font-medium text-gray-800 shadow-lg backdrop-blur-xl"
+          className="fixed left-3 top-3 z-[1100] inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/92 text-gray-800 shadow-lg backdrop-blur-xl transition hover:bg-white sm:left-4 sm:top-4 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2 sm:text-sm sm:font-medium"
           onClick={() => setShowStandaloneChrome((current) => !current)}
+          aria-label={shouldShowLayoutChrome ? "Thu gọn menu" : "Mở menu"}
+          title={shouldShowLayoutChrome ? "Thu gọn menu" : "Mở menu"}
         >
           {shouldShowLayoutChrome ? <X size={16} /> : <Menu size={16} />}
-          <span>{shouldShowLayoutChrome ? "Thu gọn menu" : "Mở menu"}</span>
+          <span className="hidden sm:inline">{shouldShowLayoutChrome ? "Thu gọn menu" : "Mở menu"}</span>
         </button>
       ) : null}
 
