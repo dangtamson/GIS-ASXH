@@ -22,8 +22,8 @@ const beVietnamPro = Be_Vietnam_Pro({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Hệ thống cập nhật, theo dõi tiến độ thực hiện nhiệm vụ',
-    template: "%s | Hệ thống cập nhật, theo dõi tiến độ thực hiện nhiệm vụ",
+    default: 'Hệ thống cập nhật, theo dõi An sinh xã hội | GIS ASXH',
+    template: "%s | Hệ thống cập nhật, theo dõi An sinh xã hội | GIS ASXH",
   },
   manifest: "/manifest.webmanifest",
   icons: {
