@@ -53,8 +53,11 @@ export function useSessionTimeout(config: SessionTimeoutConfig = {}) {
             localStorage.removeItem("auth_user");
             sessionStorage.clear();
 
+            const nextPath = `${window.location.pathname}${window.location.search}`;
+            const redirectParam = encodeURIComponent(nextPath || "/");
+
             // Redirect to login
-            router.push("/signin?reason=" + reason);
+            router.push(`/signin?reason=${reason}&redirect=${redirectParam}`);
         };
 
         // Set up event listeners for user activity

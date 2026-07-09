@@ -17,6 +17,15 @@ const optionalText = z.preprocess(
     .optional()
 );
 
+const optionalNonNegativeInt = z.preprocess(
+  (value) => {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value === "string" && value.trim().length === 0) return undefined;
+    return value;
+  },
+  z.coerce.number().int().min(0).optional()
+);
+
 const optionalDateText = z
   .string()
   .trim()
@@ -99,7 +108,7 @@ export const householdCreateSchema = z.object({
   address: optionalText,
   headFullName: optionalText,
   headCitizenId: optionalText,
-  memberCount: z.coerce.number().int().min(0).optional(),
+  memberCount: optionalNonNegativeInt,
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   changeNote: optionalText

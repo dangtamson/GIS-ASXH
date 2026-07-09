@@ -3,8 +3,11 @@ import { getTableColumns } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {
   aggregateWardOverviewRows,
+  buildDashboardMemberTotals,
   attachHeadMemberSummaries,
   attachMemberCounts,
+  buildDashboardMonthlyTrend,
+  buildDashboardTrendAvailableYears,
   buildPublicAreaSlug,
   buildBackfillException,
   deriveHouseholdLocationNames,
@@ -134,6 +137,123 @@ describe("aggregateWardOverviewRows", () => {
       wardCode: null,
       createdAt: null,
       updatedAt: null
+    });
+  });
+});
+
+describe("buildDashboardMonthlyTrend", () => {
+  it("groups assessment counts by month, keeps the latest record per household-year, and ignores invalid decision dates", () => {
+    expect(
+      buildDashboardMonthlyTrend([
+        {
+          householdId: "household-2",
+          assessmentYear: 2026,
+          povertyType: "NEAR_POOR",
+          decisionDate: "2026-01-10",
+          createdAt: "2026-01-11T08:00:00.000Z"
+        },
+        {
+          householdId: "household-1",
+          assessmentYear: 2026,
+          povertyType: "POOR",
+          decisionDate: "2026-01-15",
+          createdAt: "2026-01-15T08:00:00.000Z"
+        },
+        {
+          householdId: "household-1",
+          assessmentYear: 2026,
+          povertyType: "NEAR_POOR",
+          decisionDate: "2026-01-25",
+          createdAt: "2026-01-26T08:00:00.000Z"
+        },
+        {
+          householdId: "household-3",
+          assessmentYear: 2026,
+          povertyType: "POOR",
+          decisionDate: "2026-02-05",
+          createdAt: "2026-02-06T08:00:00.000Z"
+        },
+        {
+          householdId: "household-4",
+          assessmentYear: 2025,
+          povertyType: "POOR",
+          decisionDate: "2024-12-31",
+          createdAt: "2025-01-02T08:00:00.000Z"
+        },
+        {
+          householdId: "household-5",
+          assessmentYear: 2025,
+          povertyType: "POOR",
+          decisionDate: null,
+          createdAt: "2025-03-01T08:00:00.000Z"
+        }
+      ])
+    ).toEqual([
+      {
+        year: 2026,
+        months: [
+          { month: 1, poor: 0, nearPoor: 2, total: 2 },
+          { month: 2, poor: 1, nearPoor: 0, total: 1 }
+        ]
+      }
+    ]);
+  });
+});
+
+describe("buildDashboardTrendAvailableYears", () => {
+  it("deduplicates and sorts available trend years", () => {
+    expect(
+      buildDashboardTrendAvailableYears([
+        { year: 2026, months: [{ month: 1, poor: 1, nearPoor: 0, total: 1 }] },
+        { year: 2024, months: [{ month: 2, poor: 0, nearPoor: 1, total: 1 }] },
+        { year: 2026, months: [{ month: 3, poor: 1, nearPoor: 1, total: 2 }] },
+        { year: 2025, months: [] }
+      ])
+    ).toEqual([2024, 2025, 2026]);
+  });
+});
+
+describe("buildDashboardMemberTotals", () => {
+  it("sums memberCount by poor and near-poor households", () => {
+    expect(
+      buildDashboardMemberTotals([
+        { povertyType: "POOR", memberCount: 4 },
+        { povertyType: "POOR", memberCount: 2 },
+        { povertyType: "NEAR_POOR", memberCount: 3 },
+        { povertyType: "NONE", memberCount: 9 },
+        { povertyType: "POOR", memberCount: null }
+      ])
+    ).toEqual({
+      total: 9,
+      poor: 6,
+      nearPoor: 3
+    });
+  });
+
+  it("falls back to actual member counts when the household snapshot is empty", () => {
+    expect(
+      buildDashboardMemberTotals([
+        { povertyType: "POOR", memberCount: null, actualMemberCount: 5 },
+        { povertyType: "NEAR_POOR", memberCount: 3, actualMemberCount: 7 },
+        { povertyType: "NEAR_POOR", memberCount: null, actualMemberCount: 4 }
+      ])
+    ).toEqual({
+      total: 12,
+      poor: 5,
+      nearPoor: 7
+    });
+  });
+
+  it("falls back to actual member counts when blank snapshot values were coerced to zero", () => {
+    expect(
+      buildDashboardMemberTotals([
+        { povertyType: "POOR", memberCount: 0, actualMemberCount: 5 },
+        { povertyType: "NEAR_POOR", memberCount: 0, actualMemberCount: 4 }
+      ])
+    ).toEqual({
+      total: 9,
+      poor: 5,
+      nearPoor: 4
     });
   });
 });

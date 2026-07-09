@@ -31,10 +31,18 @@ import type {
     ProvinceOption,
     WardOption,
 } from "@/types/poverty";
-import { App, Button, Spin } from "antd";
-import { ArrowLeft, Search } from "lucide-react";
+import { Alert, App, Button, Spin } from "antd";
+import { ArrowLeft, Download, Search, Smartphone, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+type BeforeInstallPromptEvent = Event & {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{
+        outcome: "accepted" | "dismissed";
+        platform: string;
+    }>;
+};
 
 const currentYear = new Date().getFullYear();
 const fieldPhotoEntityType = "poor_household";
@@ -91,14 +99,52 @@ export default function PovertyCollectionPage() {
     const [loading, setLoading] = useState(false);
     const [searching, setSearching] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+    const [showInstallBanner, setShowInstallBanner] = useState(false);
+    const [showStandaloneBanner, setShowStandaloneBanner] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
+    const [isIosInstallHint, setIsIosInstallHint] = useState(false);
+    const [installing, setInstalling] = useState(false);
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canUpdateHousehold } = usePermission("poverty.household.update");
 
     const canOpenCollection = canCreateHousehold || canUpdateHousehold;
     const currentHouseholdId = searchParams.get("householdId");
     const currentMode = searchParams.get("mode");
+    const currentSource = searchParams.get("source");
+    const isPwaLaunch = currentSource === "pwa";
 
     const isCreateStep = collectionState.mode === "create-step-1" || collectionState.mode === "create-step-2";
+
+    const dismissInstallBanner = useCallback(() => {
+        setShowInstallBanner(false);
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem("poverty-collection-pwa-banner-dismissed", "1");
+        }
+    }, []);
+
+    const dismissStandaloneBanner = useCallback(() => {
+        setShowStandaloneBanner(false);
+        if (typeof window !== "undefined") {
+            window.localStorage.setItem("poverty-collection-pwa-standalone-banner-seen", "1");
+        }
+    }, []);
+
+    const handleInstallApp = useCallback(async () => {
+        if (!installPromptEvent) return;
+
+        setInstalling(true);
+        try {
+            await installPromptEvent.prompt();
+            const choice = await installPromptEvent.userChoice;
+            if (choice.outcome === "accepted") {
+                setShowInstallBanner(false);
+            }
+        } finally {
+            setInstalling(false);
+            setInstallPromptEvent(null);
+        }
+    }, [installPromptEvent]);
 
     const loadProvinces = useCallback(async () => {
         const data = await api.get<{ items?: ProvinceOption[] }>(endpoints.poverty.locationProvinces);
@@ -371,6 +417,58 @@ export default function PovertyCollectionPage() {
         setCollectionState(createInitialCollectionState());
     }, [currentHouseholdId, currentMode, loadHouseholdDetail]);
 
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const dismissed = window.sessionStorage.getItem("poverty-collection-pwa-banner-dismissed") === "1";
+        const standaloneBannerSeen = window.localStorage.getItem("poverty-collection-pwa-standalone-banner-seen") === "1";
+        const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        const isIos = /iphone|ipad|ipod/.test(userAgent);
+        const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios/.test(userAgent);
+
+        setIsStandalone(standalone);
+        if (standalone) {
+            setShowInstallBanner(false);
+            const shouldShowStandaloneBanner = isPwaLaunch && !standaloneBannerSeen;
+            setShowStandaloneBanner(shouldShowStandaloneBanner);
+            if (shouldShowStandaloneBanner) {
+                window.localStorage.setItem("poverty-collection-pwa-standalone-banner-seen", "1");
+            }
+        } else {
+            setShowStandaloneBanner(false);
+        }
+
+        setIsIosInstallHint(isIos && isSafari);
+
+        const handleBeforeInstallPrompt = (event: Event) => {
+            event.preventDefault();
+            setInstallPromptEvent(event as BeforeInstallPromptEvent);
+            setShowInstallBanner(true);
+        };
+
+        const handleAppInstalled = () => {
+            setShowInstallBanner(false);
+            setInstallPromptEvent(null);
+        };
+
+        window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        window.addEventListener("appinstalled", handleAppInstalled);
+
+        if (!standalone && !dismissed && isIos && isSafari) {
+            setShowInstallBanner(true);
+        }
+
+        if (!standalone && dismissed) {
+            setShowInstallBanner(false);
+        }
+
+        return () => {
+            window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+            window.removeEventListener("appinstalled", handleAppInstalled);
+        };
+    }, [isPwaLaunch]);
+
     const actions = (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {collectionState.step ? (
@@ -388,6 +486,51 @@ export default function PovertyCollectionPage() {
 
     return (
         <div className="min-w-0 space-y-4 pb-6">
+            {showStandaloneBanner && isStandalone ? (
+                <Alert
+                    type="success"
+                    showIcon
+                    icon={<Smartphone size={18} />}
+                    className="rounded-[24px] border border-emerald-200/80 bg-[linear-gradient(135deg,rgba(236,253,243,0.98)_0%,rgba(209,250,223,0.92)_100%)] shadow-sm"
+                    message={<span className="font-semibold text-gray-900">Bạn đang ở chế độ mini-app cài đặt</span>}
+                    description="Trang thu thập đang được tối ưu như ứng dụng riêng trên điện thoại. Thanh điều hướng đã được thu gọn, bạn có thể dùng nút nổi để mở lại bất cứ lúc nào."
+                    closable
+                    closeIcon={<X size={16} />}
+                    onClose={dismissStandaloneBanner}
+                />
+            ) : null}
+
+            {showInstallBanner && !isStandalone ? (
+                <Alert
+                    type="info"
+                    showIcon
+                    icon={<Smartphone size={18} />}
+                    className="rounded-[24px] border border-brand-200/70 bg-[linear-gradient(135deg,rgba(255,247,246,0.96)_0%,rgba(255,239,237,0.92)_100%)] shadow-sm"
+                    message={<span className="font-semibold text-gray-900">Cài ứng dụng thu thập lên điện thoại</span>}
+                    description={isIosInstallHint
+                        ? "Trên iPhone/iPad, mở menu Chia sẻ của Safari rồi chọn Thêm vào Màn hình chính để vào thẳng mini-app này ở lần sau."
+                        : "Cài mini-app để mở thẳng trang thu thập, thao tác nhanh hơn và tự quay lại đúng màn hình này sau khi đăng nhập lại."}
+                    action={isIosInstallHint ? (
+                        <Button className="rounded-xl" onClick={dismissInstallBanner}>
+                            Đã hiểu
+                        </Button>
+                    ) : installPromptEvent ? (
+                        <Button
+                            type="primary"
+                            className="rounded-xl"
+                            icon={<Download size={16} />}
+                            loading={installing}
+                            onClick={() => { void handleInstallApp(); }}
+                        >
+                            Cài ngay
+                        </Button>
+                    ) : undefined}
+                    closable
+                    closeIcon={<X size={16} />}
+                    onClose={dismissInstallBanner}
+                />
+            ) : null}
+
             <TitleSpace
                 title="Thu thập hộ nghèo"
                 actions={actions}

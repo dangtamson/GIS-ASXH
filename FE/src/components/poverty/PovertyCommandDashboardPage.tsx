@@ -10,7 +10,7 @@ import {
     resolvePovertyDashboardSelectedWardName,
     shouldShowPovertyDashboardLocationSelect,
 } from "@/components/poverty/poverty-location-utils";
-import { App, Button, Empty, Select, Spin, Tag } from "antd";
+import { App, Button, Select, Spin, Tag } from "antd";
 import { MapPinned, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -27,20 +27,6 @@ const PovertyCommandMap = dynamic(() => import("@/components/poverty/command-das
         </div>
     ),
 });
-
-const ReactApexChart = dynamic(() => import("react-apexcharts"), {
-    ssr: false,
-    loading: () => <div className="h-[240px] animate-pulse bg-white/50" />,
-});
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <div className="overflow-hidden rounded-lg border border-white/20 bg-white/88 p-4 shadow-lg shadow-orange-950/10 backdrop-blur">
-            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-            <div className="mt-3">{children}</div>
-        </div>
-    );
-}
 
 function buildMarkerQuery(filters: { provinceCode?: string; wardCode?: string }) {
     const params = new URLSearchParams();
@@ -112,7 +98,7 @@ export default function PovertyCommandDashboardPage() {
                 description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
             });
         }
-    }, [notification, showLocationSelect]);
+    }, [notification]);
 
     const loadWards = useCallback(async (provinceCode: string) => {
         try {
@@ -164,17 +150,16 @@ export default function PovertyCommandDashboardPage() {
         [markers, selectedWardCode, wardOptions]
     );
     const visiblePositionedMarkers = positionedMarkers;
-    const topAreas = useMemo(() => [...regions].sort((a, b) => Number(b.total ?? 0) - Number(a.total ?? 0)).slice(0, 8), [regions]);
-    const latestMarkers = useMemo(() => visiblePositionedMarkers.slice(0, 8), [visiblePositionedMarkers]);
-
     const total = Number(dashboard.totals?.total ?? 0);
     const poor = Number(dashboard.totals?.poor ?? 0);
     const nearPoor = Number(dashboard.totals?.nearPoor ?? 0);
     const active = Number(dashboard.totals?.active ?? 0);
     const totalHouseholds = Number(dashboard.overview?.totalHouseholds ?? 0);
     const totalMembers = Number(dashboard.overview?.totalMembers ?? 0);
+    const targetedMemberTotal = Number(dashboard.memberTotals?.total ?? 0);
+    const poorMemberTotal = Number(dashboard.memberTotals?.poor ?? 0);
+    const nearPoorMemberTotal = Number(dashboard.memberTotals?.nearPoor ?? 0);
     const overviewYear = dashboard.overview?.year;
-    const coordinateRatio = markers.length > 0 ? Math.round((positionedMarkers.length / markers.length) * 100) : 0;
 
     return (
         <div className="min-w-0">
@@ -195,8 +180,7 @@ export default function PovertyCommandDashboardPage() {
                             showPanels ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0 pointer-events-none",
                         ].join(" ")}>
                             <div>
-                                <p className="text-xs font-medium uppercase tracking-wide text-orange-700">Trung tâm điều hành</p>
-                                <h1 className="text-xl font-semibold text-gray-950 md:text-2xl">Dashboard hộ nghèo Cần Thơ</h1>
+                                <p className="text-xl font-medium uppercase tracking-wide text-orange-700 md:text-2xl">Trung tâm điều hành</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                                 {showLocationSelect ? (
@@ -354,6 +338,27 @@ export default function PovertyCommandDashboardPage() {
                                         </div>
                                     </div>
                                 </Panel> */}
+                                <div className="overflow-hidden rounded-xl border border-violet-200/60 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 shadow-lg shadow-violet-900/10 backdrop-blur">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Nhân khẩu nhóm hộ nghèo/cận nghèo</p>
+                                    <div className="mt-2">
+                                        <p className="text-[28px] font-bold leading-none text-violet-800">{formatNumber(targetedMemberTotal)}</p>
+                                        <p className="mt-1 text-xs text-violet-800/80">tổng nhân khẩu hộ nghèo và cận nghèo</p>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-3 gap-2">
+                                        <div className="rounded-lg bg-white/85 p-2.5 ring-1 ring-violet-100">
+                                            <p className="text-[11px] text-gray-500">Tổng</p>
+                                            <p className="mt-1 text-sm font-semibold text-violet-700">{formatNumber(targetedMemberTotal)}</p>
+                                        </div>
+                                        <div className="rounded-lg bg-white/85 p-2.5 ring-1 ring-rose-100">
+                                            <p className="text-[11px] text-gray-500">Nhân khẩu nghèo</p>
+                                            <p className="mt-1 text-sm font-semibold text-rose-700">{formatNumber(poorMemberTotal)}</p>
+                                        </div>
+                                        <div className="rounded-lg bg-white/85 p-2.5 ring-1 ring-orange-100">
+                                            <p className="text-[11px] text-gray-500">Nhân khẩu cận nghèo</p>
+                                            <p className="mt-1 text-sm font-semibold text-orange-700">{formatNumber(nearPoorMemberTotal)}</p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <SupportSummaryPanel markers={visiblePositionedMarkers} />
                             </div>
                         </div>

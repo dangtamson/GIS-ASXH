@@ -284,6 +284,32 @@ type ContextHistoryWithRecordedAt = {
   createdAt?: string | Date | null;
 };
 
+type DashboardMonthlyAssessmentRow = {
+  householdId: string;
+  assessmentYear: number;
+  povertyType: string | null;
+  decisionDate: string | Date | null;
+  createdAt?: string | Date | null;
+};
+
+type DashboardMemberTotalsRow = {
+  povertyType: string | null;
+  memberCount: number | null;
+  actualMemberCount?: number | null;
+};
+
+type DashboardMonthlyTrendMonth = {
+  month: number;
+  poor: number;
+  nearPoor: number;
+  total: number;
+};
+
+type DashboardMonthlyTrendYear = {
+  year: number;
+  months: DashboardMonthlyTrendMonth[];
+};
+
 export const normalizeLocationText = (value: string | null | undefined): string =>
   String(value ?? "")
     .normalize("NFD")
@@ -738,6 +764,124 @@ export const aggregateWardOverviewRows = <
     }
   );
 };
+
+const coerceTrendDateMeta = (
+  value: string | Date | null | undefined
+): { year: number; month: number; timestamp: number } | null => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    const timestamp = value.getTime();
+    if (Number.isNaN(timestamp)) return null;
+    return {
+      year: value.getUTCFullYear(),
+      month: value.getUTCMonth() + 1,
+      timestamp
+    };
+  }
+
+  const normalized = value.trim();
+  const year = Number(normalized.slice(0, 4));
+  const month = Number(normalized.slice(5, 7));
+  const parsed = new Date(normalized);
+  const timestamp = parsed.getTime();
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12 || Number.isNaN(timestamp)) {
+    return null;
+  }
+
+  return { year, month, timestamp };
+};
+
+const isDashboardAssessmentRowMoreRecent = (
+  candidate: DashboardMonthlyAssessmentRow,
+  current: DashboardMonthlyAssessmentRow
+): boolean => {
+  const candidateCreatedAt = new Date(candidate.createdAt ?? 0).getTime();
+  const currentCreatedAt = new Date(current.createdAt ?? 0).getTime();
+  if (candidateCreatedAt !== currentCreatedAt) {
+    return candidateCreatedAt > currentCreatedAt;
+  }
+
+  const candidateDecision = coerceTrendDateMeta(candidate.decisionDate);
+  const currentDecision = coerceTrendDateMeta(current.decisionDate);
+  return (candidateDecision?.timestamp ?? 0) > (currentDecision?.timestamp ?? 0);
+};
+
+export const buildDashboardMonthlyTrend = (
+  rows: DashboardMonthlyAssessmentRow[]
+): DashboardMonthlyTrendYear[] => {
+  const latestByHouseholdYear = new Map<string, DashboardMonthlyAssessmentRow>();
+
+  rows.forEach((row) => {
+    const decisionDate = coerceTrendDateMeta(row.decisionDate);
+    if (!decisionDate) return;
+    if (decisionDate.year !== row.assessmentYear) return;
+
+    const key = `${row.householdId}:${row.assessmentYear}`;
+    const current = latestByHouseholdYear.get(key);
+    if (!current || isDashboardAssessmentRowMoreRecent(row, current)) {
+      latestByHouseholdYear.set(key, row);
+    }
+  });
+
+  const countsByYear = new Map<number, Map<number, DashboardMonthlyTrendMonth>>();
+
+  latestByHouseholdYear.forEach((row) => {
+    const decisionDate = coerceTrendDateMeta(row.decisionDate);
+    if (!decisionDate) return;
+
+    const monthsByYear = countsByYear.get(row.assessmentYear) ?? new Map<number, DashboardMonthlyTrendMonth>();
+    const currentMonth = monthsByYear.get(decisionDate.month) ?? {
+      month: decisionDate.month,
+      poor: 0,
+      nearPoor: 0,
+      total: 0
+    };
+
+    currentMonth.total += 1;
+    if (row.povertyType === "POOR") currentMonth.poor += 1;
+    if (row.povertyType === "NEAR_POOR") currentMonth.nearPoor += 1;
+
+    monthsByYear.set(decisionDate.month, currentMonth);
+    countsByYear.set(row.assessmentYear, monthsByYear);
+  });
+
+  return [...countsByYear.entries()]
+    .sort(([leftYear], [rightYear]) => leftYear - rightYear)
+    .map(([year, monthsByYear]) => ({
+      year,
+      months: [...monthsByYear.values()].sort((left, right) => left.month - right.month)
+    }));
+};
+
+export const buildDashboardTrendAvailableYears = (
+  rows: DashboardMonthlyTrendYear[]
+): number[] => [...new Set(rows.map((row) => row.year))].sort((left, right) => left - right);
+
+export const buildDashboardMemberTotals = (
+  rows: DashboardMemberTotalsRow[]
+): { total: number; poor: number; nearPoor: number } =>
+  rows.reduce(
+    (summary, row) => {
+      const snapshotMemberCount = Number(row.memberCount ?? 0);
+      const actualMemberCount = Number(row.actualMemberCount ?? 0);
+      const memberCount = snapshotMemberCount > 0 ? snapshotMemberCount : actualMemberCount;
+
+      if (row.povertyType === "POOR") {
+        summary.poor += memberCount;
+        summary.total += memberCount;
+      }
+
+      if (row.povertyType === "NEAR_POOR") {
+        summary.nearPoor += memberCount;
+        summary.total += memberCount;
+      }
+
+      return summary;
+    },
+    { total: 0, poor: 0, nearPoor: 0 }
+  );
 
 export const shouldClearOtherHeadMembers = (payload: Partial<HouseholdMemberCreateInput>): boolean => payload.isHead === true;
 
@@ -2026,7 +2170,56 @@ export const getDashboard = async (filters: ReportFilters, scope?: PovertyAccess
     .groupBy(poorHouseholds.year)
     .orderBy(asc(poorHouseholds.year));
 
-  return { totals, byArea, yearlyTrend, overview: overview ?? null };
+  const memberCountsByHousehold = db
+    .select({
+      householdId: householdMembers.householdId,
+      actualMemberCount: count(householdMembers.id).as("actual_member_count")
+    })
+    .from(householdMembers)
+    .groupBy(householdMembers.householdId)
+    .as("member_counts");
+
+  let memberTotalsQuery = db
+    .select({
+      povertyType: effectivePovertyTypeSql,
+      memberCount: poorHouseholds.memberCount,
+      actualMemberCount: sql<number>`coalesce(${memberCountsByHousehold.actualMemberCount}, 0)`
+    })
+    .from(poorHouseholds)
+    .leftJoin(
+      memberCountsByHousehold,
+      eq(poorHouseholds.id, memberCountsByHousehold.householdId)
+    )
+    .$dynamic();
+  if (whereClause) memberTotalsQuery = memberTotalsQuery.where(whereClause);
+  const memberTotalRows = await memberTotalsQuery;
+  const memberTotals = buildDashboardMemberTotals(memberTotalRows);
+
+  let monthlyTrendQuery = db
+    .select({
+      householdId: householdAssessments.householdId,
+      assessmentYear: householdAssessments.assessmentYear,
+      povertyType: householdAssessments.povertyType,
+      decisionDate: householdAssessments.decisionDate,
+      createdAt: householdAssessments.createdAt
+    })
+    .from(householdAssessments)
+    .innerJoin(poorHouseholds, eq(householdAssessments.householdId, poorHouseholds.id))
+    .$dynamic();
+  if (whereClause) monthlyTrendQuery = monthlyTrendQuery.where(whereClause);
+  const monthlyTrendRows = await monthlyTrendQuery;
+  const monthlyTrendByYear = buildDashboardMonthlyTrend(monthlyTrendRows);
+  const trendAvailableYears = buildDashboardTrendAvailableYears(monthlyTrendByYear);
+
+  return {
+    totals,
+    memberTotals,
+    byArea,
+    yearlyTrend,
+    monthlyTrendByYear,
+    trendAvailableYears,
+    overview: overview ?? null
+  };
 };
 
 const getDashboardTotals = async (
@@ -2199,10 +2392,10 @@ export const getPublicHouseholdDetailBySlugAndHouseholdId = async (
     },
     latestContext: detail.latestContextHistory
       ? {
-          familySituation: detail.latestContextHistory.familySituation ?? null,
-          currentStatus: detail.latestContextHistory.currentStatus ?? null,
-          recordedAt: detail.latestContextHistory.recordedAt ?? null
-        }
+        familySituation: detail.latestContextHistory.familySituation ?? null,
+        currentStatus: detail.latestContextHistory.currentStatus ?? null,
+        recordedAt: detail.latestContextHistory.recordedAt ?? null
+      }
       : null,
     fieldPhotos: (detail.fieldPhotos ?? []).map((photo) => ({
       uuid: photo.uuid,

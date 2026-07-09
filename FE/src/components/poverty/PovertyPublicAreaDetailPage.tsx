@@ -150,33 +150,55 @@ export default function PovertyPublicAreaDetailPage({
                     </div>
 
                     <div className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                        <div className="public-summary-stat-card public-summary-stat-card--blue">
-                            <span className="public-summary-stat-card__icon bg-blue-50 text-blue-600">
-                                <House size={20} />
-                            </span>
-                            <div className="public-summary-stat-card__value text-blue-600">{Number(summary?.total ?? 0).toLocaleString("vi-VN")}</div>
-                            <p className="public-summary-stat-card__label">Hộ gia đình</p>
+                        <div className="public-summary-stat-card public-summary-stat-card--blue relative overflow-hidden">
+                            <div className="absolute top-0 right-0 opacity-10 text-blue-600"><House size={60} /></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <span className="public-summary-stat-card__icon bg-blue-50 text-blue-600">
+                                        <House size={20} />
+                                    </span>
+                                    <div className="public-summary-stat-card__value text-blue-600 text-lg font-bold">{Number(summary?.total ?? 0).toLocaleString("vi-VN")}</div>
+                                </div>
+                                <p className="public-summary-stat-card__label text-xs">Tổng số</p>
+                            </div>
                         </div>
-                        <div className="public-summary-stat-card public-summary-stat-card--emerald">
-                            <span className="public-summary-stat-card__icon bg-emerald-50 text-emerald-600">
-                                <Users size={20} />
-                            </span>
-                            <div className="public-summary-stat-card__value text-emerald-600">{Number(summary?.normal ?? 0).toLocaleString("vi-VN")}</div>
-                            <p className="public-summary-stat-card__label">Hộ thường</p>
+                        <div className="public-summary-stat-card public-summary-stat-card--rose relative overflow-hidden">
+                            <div className="absolute top-0 right-0 opacity-10 text-rose-600"><Users size={60} /></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <span className="public-summary-stat-card__icon bg-rose-50 text-rose-600">
+                                        <Users size={20} />
+                                    </span>
+                                    <div className="public-summary-stat-card__value text-rose-600 text-lg font-bold">{Number(summary?.poor ?? 0).toLocaleString("vi-VN")}</div>
+                                </div>
+                                <p className="public-summary-stat-card__label text-xs">Hộ nghèo</p>
+                            </div>
                         </div>
-                        <div className="public-summary-stat-card public-summary-stat-card--amber">
-                            <span className="public-summary-stat-card__icon bg-amber-50 text-amber-600">
-                                <CircleAlert size={20} />
-                            </span>
-                            <div className="public-summary-stat-card__value text-amber-600">{Number(summary?.nearPoor ?? 0).toLocaleString("vi-VN")}</div>
-                            <p className="public-summary-stat-card__label">Hộ cận nghèo</p>
+
+                        <div className="public-summary-stat-card public-summary-stat-card--amber relative overflow-hidden">
+                            <div className="absolute top-0 right-0 opacity-10 text-amber-600"><Users size={60} /></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <span className="public-summary-stat-card__icon bg-amber-50 text-amber-600">
+                                        <Users size={20} />
+                                    </span>
+                                    <div className="public-summary-stat-card__value text-amber-600 text-lg font-bold">{Number(summary?.nearPoor ?? 0).toLocaleString("vi-VN")}</div>
+                                </div>
+                                <p className="public-summary-stat-card__label text-xs">Hộ cận nghèo</p>
+                            </div>
                         </div>
-                        <div className="public-summary-stat-card public-summary-stat-card--rose">
-                            <span className="public-summary-stat-card__icon bg-rose-50 text-rose-600">
-                                <CircleAlert size={20} />
-                            </span>
-                            <div className="public-summary-stat-card__value text-rose-600">{Number(summary?.poor ?? 0).toLocaleString("vi-VN")}</div>
-                            <p className="public-summary-stat-card__label">Hộ nghèo</p>
+
+                        <div className="public-summary-stat-card public-summary-stat-card--emerald relative overflow-hidden">
+                            <div className="absolute top-0 right-0 opacity-10 text-emerald-600"><Users size={60} /></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <span className="public-summary-stat-card__icon bg-emerald-50 text-emerald-600">
+                                        <Users size={20} />
+                                    </span>
+                                    <div className="public-summary-stat-card__value text-emerald-600 text-lg font-bold">{Number(summary?.normal ?? 0).toLocaleString("vi-VN")}</div>
+                                </div>
+                                <p className="public-summary-stat-card__label text-xs">Hộ thường</p>
+                            </div>
                         </div>
                     </div>
                     <div className="rounded-[1.75rem] border border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(248,250,252,0.96))] p-5 shadow-sm mt-4">

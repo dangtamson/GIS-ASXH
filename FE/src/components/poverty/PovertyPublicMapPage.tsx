@@ -280,7 +280,7 @@ export default function PovertyPublicMapPage({ slug }: PovertyPublicMapPageProps
                                         </span>
                                         <div className="public-summary-stat-card__value text-blue-600 text-lg font-bold">{Number(summary?.total ?? 0).toLocaleString("vi-VN")}</div>
                                     </div>
-                                    <p className="public-summary-stat-card__label text-xs">Hộ gia đình</p>
+                                    <p className="public-summary-stat-card__label text-xs">Tổng số</p>
                                 </div>
                             </div>
                             <div className="public-summary-stat-card public-summary-stat-card--rose relative overflow-hidden">

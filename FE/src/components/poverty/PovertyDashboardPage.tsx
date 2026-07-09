@@ -9,12 +9,13 @@ import {
     buildPovertyDashboardQuery,
     shouldShowPovertyDashboardLocationSelect,
 } from "@/components/poverty/poverty-location-utils";
+import { type DashboardTrendMode, resolveDefaultDashboardTrendYear } from "@/components/poverty/command-dashboard/poverty-trend-utils";
 import { TitleSpace } from "@/components/controller";
 import { App, Select, Spin } from "antd";
 import type { ApexOptions } from "apexcharts";
 import { Activity, Home, ShieldCheck, UsersRound } from "lucide-react";
 import dynamic from "next/dynamic";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import YearlyTrendPanel from "@/components/poverty/command-dashboard/YearlyTrendPanel";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -84,8 +85,12 @@ export default function PovertyDashboardPage() {
     const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>();
     const [selectedWardCode, setSelectedWardCode] = useState<string>();
     const [loading, setLoading] = useState(false);
+    const [trendMode, setTrendMode] = useState<DashboardTrendMode>("yearly");
+    const [selectedTrendYear, setSelectedTrendYear] = useState<number>();
+    const latestDashboardRequestId = useRef(0);
 
     const loadData = useCallback(async () => {
+        const requestId = ++latestDashboardRequestId.current;
         setLoading(true);
         try {
             const query = buildPovertyDashboardQuery({
@@ -95,14 +100,22 @@ export default function PovertyDashboardPage() {
             const result = await api.get<PovertyDashboard>(
                 query ? `${endpoints.poverty.dashboard}?${query}` : endpoints.poverty.dashboard
             );
+            if (requestId !== latestDashboardRequestId.current) {
+                return;
+            }
             setData(result);
         } catch (error) {
+            if (requestId !== latestDashboardRequestId.current) {
+                return;
+            }
             notification.error({
                 message: "Không thể tải dashboard hộ nghèo",
                 description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
             });
         } finally {
-            setLoading(false);
+            if (requestId === latestDashboardRequestId.current) {
+                setLoading(false);
+            }
         }
     }, [notification, selectedProvinceCode, selectedWardCode]);
 
@@ -159,6 +172,23 @@ export default function PovertyDashboardPage() {
         void loadWards(selectedProvinceCode);
     }, [loadWards, selectedProvinceCode, showLocationSelect]);
 
+    useEffect(() => {
+        const defaultYear = resolveDefaultDashboardTrendYear(data.trendAvailableYears, data.monthlyTrendByYear);
+
+        setSelectedTrendYear((current) => {
+            if (!defaultYear) {
+                return undefined;
+            }
+
+            const availableYears = data.trendAvailableYears ?? [];
+            if (current && availableYears.includes(current)) {
+                return current;
+            }
+
+            return defaultYear;
+        });
+    }, [data.monthlyTrendByYear, data.trendAvailableYears]);
+
     const ratioOptions: ApexOptions = useMemo(() => ({
         labels: ["Hộ nghèo", "Hộ cận nghèo"],
         colors: ["#e63946", "#f77f00"],
@@ -199,16 +229,6 @@ export default function PovertyDashboardPage() {
             fillSeriesColor: false,
         },
     }), [data.totals?.nearPoor, data.totals?.poor]);
-
-    const trendOptions: ApexOptions = useMemo(() => ({
-        chart: { toolbar: { show: false }, fontFamily: "Outfit, sans-serif" },
-        colors: ["#dc2626", "#f59e0b"],
-        xaxis: { categories: (data.yearlyTrend ?? []).map((item) => String(item.year)) },
-        plotOptions: { bar: { borderRadius: 5, columnWidth: "42%" } },
-        dataLabels: { enabled: false },
-        grid: { borderColor: "#eef2f7" },
-        legend: { position: "top", horizontalAlign: "right" },
-    }), [data.yearlyTrend]);
 
     const areaOptions: ApexOptions = useMemo(() => ({
         chart: { toolbar: { show: false }, fontFamily: "Outfit, sans-serif" },
@@ -333,13 +353,62 @@ export default function PovertyDashboardPage() {
                         }}
                     />
                 </div>
-                <div className="mt-5 grid min-w-0 gap-4 xl:grid-cols-2">
-                    <ChartPanel title="Tỷ lệ loại hộ" description="So sánh cơ cấu hộ nghèo và hộ cận nghèo">
+                <div className="mt-5 grid min-w-0 gap-4 xl:grid-cols-5">
+                    <ChartPanel title="Tỷ lệ loại hộ" description="So sánh cơ cấu hộ nghèo và hộ cận nghèo" className="sm:col-span-2 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="min-h-[300px] min-w-0">
                             <Chart options={ratioOptions} series={[Number(data.totals?.poor ?? 0), Number(data.totals?.nearPoor ?? 0)]} type="donut" height={300} />
                         </div>
                     </ChartPanel>
-                    <YearlyTrendPanel data={data.yearlyTrend} />
+                    <div className="rounded-lg border border-violet-100 bg-violet-50/40 p-4 shadow-sm xl:grid-cols-4 sm:col-span-1">
+                        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                            <StatCard
+                                label="Tổng nhân khẩu nghèo/cận nghèo"
+                                value={Number(data.memberTotals?.total ?? 0)}
+                                helper="Tổng nhân khẩu của toàn bộ hộ nghèo và cận nghèo"
+                                icon={<UsersRound size={21} />}
+                                tone={{
+                                    card: "border-violet-100 bg-violet-50/80",
+                                    icon: "bg-violet-600 text-white",
+                                    value: "text-violet-700",
+                                    accent: "bg-violet-200/70",
+                                }}
+                            />
+                            <StatCard
+                                label="Nhân khẩu hộ nghèo"
+                                value={Number(data.memberTotals?.poor ?? 0)}
+                                helper=""
+                                icon={<Home size={21} />}
+                                tone={{
+                                    card: "border-fuchsia-100 bg-fuchsia-50/80",
+                                    icon: "bg-fuchsia-600 text-white",
+                                    value: "text-fuchsia-700",
+                                    accent: "bg-fuchsia-200/70",
+                                }}
+                            />
+                            <StatCard
+                                label="Nhân khẩu hộ cận nghèo"
+                                value={Number(data.memberTotals?.nearPoor ?? 0)}
+                                helper=""
+                                icon={<Activity size={21} />}
+                                tone={{
+                                    card: "border-orange-100 bg-orange-50/80",
+                                    icon: "bg-orange-500 text-white",
+                                    value: "text-orange-700",
+                                    accent: "bg-orange-200/70",
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <YearlyTrendPanel
+                        className="sm:col-span-2 xl:grid-cols-6"
+                        yearlyData={data.yearlyTrend}
+                        monthlyData={data.monthlyTrendByYear}
+                        availableYears={data.trendAvailableYears}
+                        mode={trendMode}
+                        selectedYear={selectedTrendYear}
+                        onModeChange={setTrendMode}
+                        onSelectedYearChange={setSelectedTrendYear}
+                    />
                 </div>
                 <div className="mt-5 grid min-w-0 gap-4">
                     <ChartPanel title="Top khu vực theo tổng số hộ" description="10 khu vực có số hộ nghèo/cận nghèo cao nhất" className="">

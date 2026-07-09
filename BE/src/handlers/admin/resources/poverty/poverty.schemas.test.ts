@@ -176,4 +176,21 @@ describe("householdCreateSchema standardized location keys", () => {
       expect(result.data.memberCount).toBe(4);
     }
   });
+
+  it("keeps blank member count empty instead of coercing it to zero", () => {
+    const result = householdCreateSchema.safeParse({
+      year: 2026,
+      povertyType: "POOR",
+      provinceCode: "92",
+      wardCode: "31117",
+      areaId: "9fb97875-4916-41b8-8151-b0d655e0352b",
+      address: "123 duong ABC",
+      memberCount: ""
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.memberCount).toBeUndefined();
+    }
+  });
 });

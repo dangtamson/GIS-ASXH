@@ -349,6 +349,11 @@ export type PovertyDashboard = {
         nearPoor?: number;
         active?: number;
     };
+    memberTotals?: {
+        total?: number;
+        poor?: number;
+        nearPoor?: number;
+    };
     overview?: PovertyDashboardOverview | null;
     byArea?: PovertyReportRow[];
     yearlyTrend?: {
@@ -357,6 +362,16 @@ export type PovertyDashboard = {
         nearPoor: number;
         total: number;
     }[];
+    monthlyTrendByYear?: {
+        year: number;
+        months: {
+            month: number;
+            poor: number;
+            nearPoor: number;
+            total: number;
+        }[];
+    }[];
+    trendAvailableYears?: number[];
 };
 
 export type PaginationMeta = {

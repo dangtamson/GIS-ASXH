@@ -31,9 +31,11 @@ function handleUnauthorized(): void {
 
         // Only redirect if not already on login page to avoid infinite loop
         if (!window.location.pathname.includes("/signin")) {
+            const nextPath = `${window.location.pathname}${window.location.search}`;
+            const redirectParam = encodeURIComponent(nextPath || "/");
             // Small delay to allow notification to be seen
             setTimeout(() => {
-                window.location.href = "/signin";
+                window.location.href = `/signin?reason=session-expired&redirect=${redirectParam}`;
             }, 2000);
         }
     }

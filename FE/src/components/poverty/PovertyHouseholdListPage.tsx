@@ -17,14 +17,16 @@ import { ActionButton, AppPagination, TitleSpace } from "@/components/controller
 import ActionIcon from "@/components/controller/ActionIcon";
 import SharedSpreadsheetImport from "@/components/imports/SharedSpreadsheetImport";
 import PovertyAssessmentTimelineModal from "@/components/poverty/PovertyAssessmentTimelineModal";
+import PovertyHouseholdGridView from "@/components/poverty/PovertyHouseholdGridView";
 import { getVisibleHouseholdExtraActions } from "@/components/poverty/poverty-household-action-utils";
+import { buildHouseholdAreaLabel } from "@/components/poverty/poverty-household-list-view-utils";
 import PovertySupportTimelineModal from "@/components/poverty/PovertySupportTimelineModal";
 import { DEFAULT_CANTHO_PROVINCE_CODE, getInitialProvinceCode, hasUnresolvedStandardizedLocation } from "@/components/poverty/poverty-location-utils";
 import { usePermission } from "@/hooks/usePermission";
 import { createInFlightRequestCache } from "@/lib/inflight-request-cache";
 import { Alert, App, Button, Col, Dropdown, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag } from "antd";
 import type { MenuProps, TableColumnsType } from "antd";
-import { ChevronDown, ChevronUp, LocateFixed, MapPinned, SlidersHorizontal, Smartphone } from "lucide-react";
+import { ChevronDown, ChevronUp, LayoutGrid, List, LocateFixed, MapPinned, SlidersHorizontal, Smartphone } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -84,6 +86,7 @@ export default function PovertyHouseholdListPage() {
     const [supportTimelineHousehold, setSupportTimelineHousehold] = useState<PoorHousehold | null>(null);
     const [filters, setFilters] = useState<Record<string, unknown>>({ year: currentYear, provinceCode: DEFAULT_CANTHO_PROVINCE_CODE });
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+    const [viewMode, setViewMode] = useState<"table" | "grid">("table");
     const [coordinatePickerOpen, setCoordinatePickerOpen] = useState(false);
     const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
     const [formWardOptions, setFormWardOptions] = useState<WardOption[]>([]);
@@ -340,6 +343,10 @@ export default function PovertyHouseholdListPage() {
         router.push("/ho-ngheo/thu-thap");
     }, [router]);
 
+    const openView = useCallback((record: PoorHousehold) => {
+        router.push(`/ho-ngheo/${record.id}`);
+    }, [router]);
+
     const exportExcel = async () => {
         try {
             const query = buildQuery(filters, 1, limit);
@@ -449,7 +456,7 @@ export default function PovertyHouseholdListPage() {
             title: "Địa bàn",
             width: 260,
             ellipsis: true,
-            render: (_, row) => [row.provinceName, row.wardName, row.areaName].filter(Boolean).join(" / ") || "-",
+            render: (_, row) => buildHouseholdAreaLabel(row),
         },
         { title: "Địa chỉ", dataIndex: "address", width: 280, ellipsis: true, render: (value) => value || "-" },
         {
@@ -475,7 +482,7 @@ export default function PovertyHouseholdListPage() {
 
                 return (
                     <Space size={4} wrap={false}>
-                        <Button type="text" icon={<ActionIcon action="view" />} onClick={() => router.push(`/ho-ngheo/${record.id}`)} />
+                        <Button type="text" icon={<ActionIcon action="view" />} onClick={() => openView(record)} />
                         {canUpdateHousehold ? <Button type="text" icon={<ActionIcon action="edit" />} onClick={() => openEdit(record)} /> : null}
                         {extraMenuItems.length > 0 ? (
                             <Dropdown menu={{ items: extraMenuItems }} trigger={["click"]} placement="bottomRight">
@@ -486,7 +493,7 @@ export default function PovertyHouseholdListPage() {
                 );
             },
         },
-    ], [buildExtraActionMenuItems, canUpdateHousehold, limit, openEdit, page, router]);
+    ], [buildExtraActionMenuItems, canUpdateHousehold, limit, openEdit, openView, page]);
 
     return (
         <div className="min-w-0 space-y-4 overflow-hidden">
@@ -501,15 +508,16 @@ export default function PovertyHouseholdListPage() {
                             <SharedSpreadsheetImport moduleKey="poverty-households" onCommitted={loadData} />
                         </div> : null}
                         {canExportHousehold ? <ActionButton type="export-excel" onClick={exportExcel} /> : null}
-                        {/* {(canCreateHousehold || canUpdateHousehold) ? (
+                        {(canCreateHousehold || canUpdateHousehold) ? (
                             <Button
-                                className="col-span-2 sm:col-span-1"
+                                className="col-span-2 sm:col-span-1 bg-blue-500 hover:bg-blue-600 text-white"
+                                style={{ padding: "19px", borderRadius: "10px", backgroundColor: "#0095fb", color: "#fff" }}
                                 icon={<Smartphone size={16} />}
                                 onClick={() => openCollectionApp()}
                             >
-                                Thu thập mobile
+                                Thu thập
                             </Button>
-                        ) : null} */}
+                        ) : null}
                         {canCreateHousehold ? <ActionButton className="col-span-2 sm:col-span-1" type="create" onClick={openCreate} /> : null}
                     </div>
                 }
@@ -595,7 +603,34 @@ export default function PovertyHouseholdListPage() {
             </div>
 
             <div className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <Table rowKey="id" loading={loading} columns={columns} dataSource={items} pagination={false} scroll={{ x: 1820 }} size="middle" />
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                    <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-800">Danh sách hộ</h3>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                            {total.toLocaleString("vi-VN")} hộ phù hợp với bộ lọc hiện tại
+                        </p>
+                    </div>
+                    <Space.Compact>
+                        <Button type={viewMode === "table" ? "primary" : "default"} icon={<List size={16} />} onClick={() => setViewMode("table")}>
+                            Bảng
+                        </Button>
+                        <Button type={viewMode === "grid" ? "primary" : "default"} icon={<LayoutGrid size={16} />} onClick={() => setViewMode("grid")}>
+                            Lưới
+                        </Button>
+                    </Space.Compact>
+                </div>
+                {viewMode === "table" ? (
+                    <Table rowKey="id" loading={loading} columns={columns} dataSource={items} pagination={false} scroll={{ x: 1820 }} size="middle" />
+                ) : (
+                    <PovertyHouseholdGridView
+                        items={items}
+                        loading={loading}
+                        canUpdateHousehold={canUpdateHousehold}
+                        onViewHousehold={openView}
+                        onEditHousehold={openEdit}
+                        buildExtraActionMenuItems={buildExtraActionMenuItems}
+                    />
+                )}
                 <AppPagination
                     currentPage={page}
                     totalPages={Math.max(1, Math.ceil(total / limit))}

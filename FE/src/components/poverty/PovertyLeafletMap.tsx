@@ -5,12 +5,13 @@ import { getHouseholdContextCardTheme, getHouseholdSummaryCardTheme, resolveLate
 import { api, ApiError } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
 import type { HouseholdDetailResponse, HouseholdFieldPhoto, PovertyArea, PovertyMarker, ProvinceOption, WardOption } from "@/types/poverty";
-import { getValidGeoPosition, householdStatusLabel, householdStatusOptions, normalizePovertyType, povertyTypeColor, povertyTypeLabel, povertyTypeOptions } from "@/components/poverty/poverty-utils";
+import { formatNumber, getValidGeoPosition, householdStatusLabel, householdStatusOptions, normalizePovertyType, povertyTypeColor, povertyTypeLabel, povertyTypeOptions } from "@/components/poverty/poverty-utils";
 import { buildPovertyMapAreaSummaries, DEFAULT_CANTHO_PROVINCE_CODE, filterPovertyMarkersBySelectedArea, hasUnresolvedStandardizedLocation } from "@/components/poverty/poverty-location-utils";
 import PovertyAssessmentTimelinePanel from "@/components/poverty/PovertyAssessmentTimelinePanel";
 import PovertyAssessmentTimelineModal from "@/components/poverty/PovertyAssessmentTimelineModal";
 import PovertySupportTimelinePanel from "@/components/poverty/PovertySupportTimelinePanel";
 import PovertySupportTimelineModal from "@/components/poverty/PovertySupportTimelineModal";
+import { buildPovertyMemberTotalsFromMarkers } from "@/components/poverty/poverty-member-totals-utils";
 import ActionIcon from "@/components/controller/ActionIcon";
 import { Alert, App, Button, Checkbox, Col, Empty, Form, Input, InputNumber, Modal, Row, Select, Skeleton, Space, Tabs, Tag, Tooltip } from "antd";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
@@ -1200,7 +1201,7 @@ function MapLayerControls({
                                 options={[
                                     { label: "Hộ nghèo", value: "POOR" },
                                     { label: "Hộ cận nghèo", value: "NEAR_POOR" },
-                                    { label: "Không còn nghèo/cận nghèo", value: "NONE" },
+                                    { label: "Thoát nghèo", value: "NONE" },
                                 ]}
                                 onChange={(values: CheckboxValue[]) => {
                                     const nextValues = values as PovertyVisibilityKey[];
@@ -1852,6 +1853,10 @@ export default function PovertyLeafletMap({
     const visibleNoneCount = useMemo(
         () => visibleMarkers.filter((item) => normalizePovertyType(item.povertyType) === "NONE").length,
         [visibleMarkers]
+    );
+    const memberTotals = useMemo(
+        () => buildPovertyMemberTotalsFromMarkers(markers),
+        [markers]
     );
     const supportedCount = useMemo(
         () => markersBySelectedArea.filter((item) => Number(item.supportCount ?? 0) > 0 || Number(item.supportTotalAmount ?? 0) > 0).length,
@@ -2544,6 +2549,38 @@ export default function PovertyLeafletMap({
                                     <div className="flex items-center justify-between gap-3 text-xs">
                                         <span className="font-medium text-slate-600">Thoát nghèo</span>
                                         <span className="font-semibold text-slate-800">{noneCount.toLocaleString("vi-VN")} (đang hiển thị {visibleNoneCount.toLocaleString("vi-VN")})</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="overflow-hidden rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-rose-50 p-4 shadow-sm">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">Nhân khẩu nhóm hộ mục tiêu</p>
+                                    <h4 className="mt-1 text-sm font-semibold text-slate-900">
+                                        Tổng nhân khẩu: {formatNumber(memberTotals.total)}
+                                    </h4>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 grid gap-2">
+                                <div className="rounded-lg border border-rose-100 bg-white/90 px-3 py-2">
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                        <span className="font-medium text-rose-600">Nhân khẩu hộ nghèo</span>
+                                        <span className="font-semibold text-slate-800">{formatNumber(memberTotals.poor)}</span>
+                                    </div>
+                                </div>
+                                <div className="rounded-lg border border-orange-100 bg-white/90 px-3 py-2">
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                        <span className="font-medium text-orange-600">Nhân khẩu cận nghèo</span>
+                                        <span className="font-semibold text-slate-800">{formatNumber(memberTotals.nearPoor)}</span>
+                                    </div>
+                                </div>
+                                <div className="rounded-lg border border-violet-100 bg-white/90 px-3 py-2">
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                        <span className="font-medium text-violet-600">Tổng nhân khẩu mục tiêu</span>
+                                        <span className="font-semibold text-slate-800">{formatNumber(memberTotals.total)}</span>
                                     </div>
                                 </div>
                             </div>

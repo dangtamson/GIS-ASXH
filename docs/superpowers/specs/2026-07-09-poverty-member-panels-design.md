@@ -27,7 +27,7 @@ Ngoài phạm vi:
 
 ## Data Definition
 
-Nguồn dữ liệu được chốt là cộng trường `memberCount` của từng hộ.
+Nguồn dữ liệu được chốt là cộng trường `memberCount` của từng hộ, với quy tắc fallback rõ ràng khi snapshot chưa có dữ liệu.
 
 ### Dashboard API
 
@@ -46,6 +46,12 @@ memberTotals?: {
 - `total`: tổng `memberCount` của toàn bộ hộ đang thuộc `POOR` hoặc `NEAR_POOR`
 - `poor`: tổng `memberCount` của các hộ `POOR`
 - `nearPoor`: tổng `memberCount` của các hộ `NEAR_POOR`
+
+Quy tắc lấy số nhân khẩu cho từng hộ:
+
+- ưu tiên `poorHouseholds.memberCount`
+- nếu `poorHouseholds.memberCount` là `null`, fallback sang đếm thực từ `householdMembers`
+- nếu cả hai đều không có dữ liệu, tính là `0`
 
 Các số này dùng cùng bộ lọc hiện có của dashboard:
 
@@ -104,6 +110,7 @@ Yêu cầu:
 - Giữ cùng pattern card hiện tại
 - Dùng tone màu tách biệt nhưng cùng hệ visual hiện có
 - Không đổi luồng fetch dữ liệu
+- Bố cục cần tách 3 card nhân khẩu thành một cụm riêng bên dưới nhóm chỉ số lõi để tránh 9 card dàn phẳng trên cùng một hàng
 
 ### `ho-ngheo/dashboard-dieu-hanh`
 
