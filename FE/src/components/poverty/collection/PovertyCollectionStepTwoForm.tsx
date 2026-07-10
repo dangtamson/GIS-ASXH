@@ -153,14 +153,22 @@ export default function PovertyCollectionStepTwoForm({
                     <DatePicker className="h-11 w-full" format="DD/MM/YYYY" />
                 </Form.Item>
 
-                <Form.Item name="familySituation" label="Hoàn cảnh gia đình">
+                <Form.Item
+                    name="familySituation"
+                    label={<span>Hoàn cảnh gia đình <span className="text-red-500">*</span></span>}
+                    rules={[{ required: true, message: "Vui lòng nhập hoàn cảnh gia đình" }]}
+                >
                     <Input.TextArea
                         rows={4}
                         placeholder="Ví dụ: lao động tự do, nhà thuê, có người bệnh lâu năm..."
                     />
                 </Form.Item>
 
-                <Form.Item name="currentStatus" label="Hiện trạng">
+                <Form.Item
+                    name="currentStatus"
+                    label={<span>Hiện trạng <span className="text-red-500">*</span></span>}
+                    rules={[{ required: true, message: "Vui lòng nhập hiện trạng" }]}
+                >
                     <Input.TextArea
                         rows={4}
                         placeholder="Ví dụ: nhà ở xuống cấp, vừa mất việc, cần hỗ trợ y tế..."
