@@ -250,8 +250,8 @@ function MarkerPopupContent({
                 <UserRound size={15} strokeWidth={2} />
             </span>
             <div className="min-w-0">
-                <div className="font-semibold text-gray-900">{marker.code || `Hộ #${marker.id}`}</div>
-                <div className="truncate text-gray-600">{marker.headFullName || "Chưa có thông tin chủ hộ"}</div>
+                {/* <div className="font-semibold text-gray-900">{marker.code || `Hộ #${marker.id}`}</div> */}
+                <div className="font-semibold text-sm text-gray-900">{marker.headFullName || "Chưa có thông tin chủ hộ"}</div>
             </div>
         </div>
     );
@@ -271,7 +271,7 @@ function FitBoundsControl({ markers, disabled }: { markers: PovertyMarker[]; dis
             return;
         }
 
-        map.fitBounds(positions, { padding: [48, 48], maxZoom: 17 });
+        map.fitBounds(positions, { padding: [48, 48], maxZoom: 15 });
     }, [map, markers]);
 
     useEffect(() => {
@@ -307,7 +307,7 @@ function FocusMarkerControl({
         const leafletMarker = markerRefs.current[focusedMarkerId];
         if (leafletMarker && clusterGroupRef.current) {
             clusterGroupRef.current.zoomToShowLayer(leafletMarker, () => {
-                map.flyTo([position.latitude, position.longitude], Math.max(map.getZoom(), 17), {
+                map.flyTo([position.latitude, position.longitude], Math.max(map.getZoom(), 15), {
                     animate: true,
                     duration: 0.8,
                 });
@@ -319,7 +319,7 @@ function FocusMarkerControl({
             return;
         }
 
-        map.flyTo([position.latitude, position.longitude], Math.max(map.getZoom(), 17), {
+        map.flyTo([position.latitude, position.longitude], Math.max(map.getZoom(), 15), {
             animate: true,
             duration: 1.1,
         });
@@ -732,7 +732,7 @@ function MapActions({
             return;
         }
 
-        map.fitBounds(positions, { padding: [48, 48], maxZoom: 17 });
+        map.fitBounds(positions, { padding: [48, 48], maxZoom: 15 });
     }, [map, markers]);
 
     const toggleFullscreen = useCallback(() => {
@@ -759,7 +759,7 @@ function MapActions({
                     Number(position.coords.longitude.toFixed(7)),
                 ];
                 setCurrentPosition(nextPosition);
-                map.flyTo(nextPosition, Math.max(map.getZoom(), 17), { duration: 0.9 });
+                map.flyTo(nextPosition, Math.max(map.getZoom(), 15), { duration: 0.9 });
                 setLocating(false);
             },
             (error) => {
@@ -1316,7 +1316,19 @@ function MarkerDetailPanel({
     if (!marker) return null;
     const isPublicMode = mode === "public";
 
-    const household = detail?.household ?? marker;
+    const household = {
+        ...marker,
+        ...(detail?.household ?? {}),
+    };
+    const members = detail?.members ?? [];
+    const headMember = members.find((member) => {
+        const isHead = member.isHead as unknown;
+        return isHead === true || isHead === 1 || isHead === "1" || isHead === "true";
+    }) ?? members[0];
+    const resolvedHeadFullName = household.headFullName || headMember?.fullName || "-";
+    const resolvedHeadCitizenId = household.headCitizenId || headMember?.citizenId || "-";
+    const householdMemberCount = Number(household.memberCount ?? 0);
+    const resolvedMemberCount = householdMemberCount > 0 ? householdMemberCount : members.length;
     const assessments = detail?.assessments ?? [];
     const supports = detail?.supports ?? [];
     const latestContextHistory = resolveLatestHouseholdContextHistory(detail?.latestContextHistory ?? null, detail?.contextHistories ?? []);
@@ -1420,7 +1432,7 @@ function MarkerDetailPanel({
                                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-3 text-white">
                                             <div className="flex items-end justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <div className="truncate text-base font-semibold">{household.headFullName || "Chưa có thông tin chủ hộ"}</div>
+                                                    <div className="truncate text-base font-semibold">{resolvedHeadFullName !== "-" ? resolvedHeadFullName : "Chưa có thông tin chủ hộ"}</div>
                                                     <div className="truncate text-xs text-white/80">{area}</div>
                                                 </div>
                                                 <div className="rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium">
@@ -1445,9 +1457,9 @@ function MarkerDetailPanel({
                                             </span>
                                             <div className="min-w-0 flex-1">
                                                 <p className={`text-xs font-semibold uppercase ${ownerTheme.labelClassName}`}>Chủ hộ</p>
-                                                <p className={`mt-2 truncate text-sm font-semibold ${ownerTheme.textClassName}`}>{household.headFullName || "-"}</p>
+                                                <p className={`mt-2 truncate text-sm font-semibold ${ownerTheme.textClassName}`}>{resolvedHeadFullName}</p>
                                                 {!isPublicMode ? (
-                                                    <p className="mt-2 text-xs text-slate-500">CCCD: {household.headCitizenId || "-"}</p>
+                                                    <p className="mt-2 text-xs text-slate-500">CCCD: {resolvedHeadCitizenId}</p>
                                                 ) : null}
                                             </div>
                                         </div>
@@ -1459,7 +1471,7 @@ function MarkerDetailPanel({
                                             </span>
                                             <div className="min-w-0 flex-1">
                                                 <p className={`text-xs font-semibold uppercase ${membersTheme.labelClassName}`}>Nhân khẩu</p>
-                                                <p className={`mt-2 text-sm font-semibold ${membersTheme.textClassName}`}>{Number(household.memberCount ?? 0).toLocaleString("vi-VN")} người</p>
+                                                <p className={`mt-2 text-sm font-semibold ${membersTheme.textClassName}`}>{resolvedMemberCount.toLocaleString("vi-VN")} người</p>
                                                 <p className="mt-2 text-xs text-slate-500">Năm quản lý: {household.year || "-"}</p>
                                             </div>
                                         </div>
@@ -2225,10 +2237,10 @@ export default function PovertyLeafletMap({
                                                             >
                                                                 <div className="flex min-w-0 items-start justify-between gap-1">
                                                                     <div className="min-w-0">
-                                                                        <div className="truncate text-sm font-semibold text-gray-900">{marker.code || `Hộ #${marker.id}`}</div>
-                                                                        <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-gray-600">
+                                                                        {/* <div className="truncate text-sm font-semibold text-gray-900">{marker.code || `Hộ #${marker.id}`}</div> */}
+                                                                        <div className="mt-2 flex min-w-0 items-center gap-2 text-sm font-semibold text-gray-900">
                                                                             <UserRound size={15} strokeWidth={1.9} className="shrink-0" />
-                                                                            <div className="truncate text-sm font-semibold text-gray-500">{marker.headFullName || "Chưa có thông tin chủ hộ"}</div>
+                                                                            <div className="truncate text-sm font-semibold text-gray-900">{marker.headFullName || "Chưa có thông tin chủ hộ"}</div>
                                                                         </div>
 
                                                                         <div className="mt-2 flex flex-wrap gap-1.5">

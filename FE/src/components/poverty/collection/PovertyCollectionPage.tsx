@@ -65,6 +65,26 @@ const createDefaultStepTwoValues = (): StepTwoFormValues => ({
 const toSafeStorageFileName = (fileName: string): string =>
     fileName.trim().replace(/[^\w.\-]+/g, "_").replace(/^_+|_+$/g, "") || "field-photo";
 
+function getStorageItemSafe(storageType: "session" | "local", key: string): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const storage = storageType === "session" ? window.sessionStorage : window.localStorage;
+        return storage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function setStorageItemSafe(storageType: "session" | "local", key: string, value: string): void {
+    if (typeof window === "undefined") return;
+    try {
+        const storage = storageType === "session" ? window.sessionStorage : window.localStorage;
+        storage.setItem(key, value);
+    } catch {
+        // Ignore storage errors in restricted browser modes (iOS private WebView, etc).
+    }
+}
+
 async function uploadFieldPhotos(householdId: string, photos: AttachmentType[]): Promise<void> {
     await Promise.all(
         photos.map((photo, index) =>
@@ -118,16 +138,12 @@ export default function PovertyCollectionPage() {
 
     const dismissInstallBanner = useCallback(() => {
         setShowInstallBanner(false);
-        if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("poverty-collection-pwa-banner-dismissed", "1");
-        }
+        setStorageItemSafe("session", "poverty-collection-pwa-banner-dismissed", "1");
     }, []);
 
     const dismissStandaloneBanner = useCallback(() => {
         setShowStandaloneBanner(false);
-        if (typeof window !== "undefined") {
-            window.localStorage.setItem("poverty-collection-pwa-standalone-banner-seen", "1");
-        }
+        setStorageItemSafe("local", "poverty-collection-pwa-standalone-banner-seen", "1");
     }, []);
 
     const handleInstallApp = useCallback(async () => {
@@ -420,9 +436,12 @@ export default function PovertyCollectionPage() {
     useEffect(() => {
         if (typeof window === "undefined") return;
 
-        const dismissed = window.sessionStorage.getItem("poverty-collection-pwa-banner-dismissed") === "1";
-        const standaloneBannerSeen = window.localStorage.getItem("poverty-collection-pwa-standalone-banner-seen") === "1";
-        const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+        const dismissed = getStorageItemSafe("session", "poverty-collection-pwa-banner-dismissed") === "1";
+        const standaloneBannerSeen = getStorageItemSafe("local", "poverty-collection-pwa-standalone-banner-seen") === "1";
+        const standalone = (
+            (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches)
+            || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+        );
         const userAgent = window.navigator.userAgent.toLowerCase();
         const isIos = /iphone|ipad|ipod/.test(userAgent);
         const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios/.test(userAgent);
@@ -433,7 +452,7 @@ export default function PovertyCollectionPage() {
             const shouldShowStandaloneBanner = isPwaLaunch && !standaloneBannerSeen;
             setShowStandaloneBanner(shouldShowStandaloneBanner);
             if (shouldShowStandaloneBanner) {
-                window.localStorage.setItem("poverty-collection-pwa-standalone-banner-seen", "1");
+                setStorageItemSafe("local", "poverty-collection-pwa-standalone-banner-seen", "1");
             }
         } else {
             setShowStandaloneBanner(false);
