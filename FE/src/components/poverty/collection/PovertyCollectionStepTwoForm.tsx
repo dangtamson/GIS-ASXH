@@ -155,7 +155,7 @@ export default function PovertyCollectionStepTwoForm({
 
                 <Form.Item
                     name="familySituation"
-                    label={<span>Hoàn cảnh gia đình <span className="text-red-500">*</span></span>}
+                    label={<span>Hoàn cảnh gia đình</span>}
                     rules={[{ required: true, message: "Vui lòng nhập hoàn cảnh gia đình" }]}
                 >
                     <Input.TextArea
@@ -166,7 +166,7 @@ export default function PovertyCollectionStepTwoForm({
 
                 <Form.Item
                     name="currentStatus"
-                    label={<span>Hiện trạng <span className="text-red-500">*</span></span>}
+                    label={<span>Hiện trạng</span>}
                     rules={[{ required: true, message: "Vui lòng nhập hiện trạng" }]}
                 >
                     <Input.TextArea
