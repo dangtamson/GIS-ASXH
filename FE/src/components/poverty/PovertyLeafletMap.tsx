@@ -1338,7 +1338,7 @@ function MarkerDetailPanel({
     const familySituationTheme = getHouseholdContextCardTheme("familySituation");
     const currentStatusTheme = getHouseholdContextCardTheme("currentStatus");
     const photos = detail?.fieldPhotos ?? marker.fieldPhotos ?? [];
-    const area = [household.provinceName, household.wardName, household.areaName].filter(Boolean).join(" / ") || "-";
+    const area = [household.wardName, household.areaName].filter(Boolean).join(" / ") || "-";
     const coverPhoto = photos[0] ?? null;
     const coverUrl = coverPhoto ? previewUrls[coverPhoto.uuid] : "";
     const galleryMarker = {
@@ -1429,13 +1429,13 @@ function MarkerDetailPanel({
                                                 <span className="text-sm font-medium">{photos.length > 0 ? "Đang tải ảnh xem trước" : "Chưa có ảnh thực tế"}</span>
                                             </div>
                                         )}
-                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-3 text-white">
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/50 to-transparent px-4 py-3 text-white">
                                             <div className="flex items-end justify-between gap-3">
                                                 <div className="min-w-0">
                                                     <div className="truncate text-base font-semibold">{resolvedHeadFullName !== "-" ? resolvedHeadFullName : "Chưa có thông tin chủ hộ"}</div>
                                                     <div className="truncate text-xs text-white/80">{area}</div>
                                                 </div>
-                                                <div className="rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium">
+                                                <div className="rounded-full bg-black/40 px-2 py-1 text-xs font-medium">
                                                     {photos.length.toLocaleString("vi-VN")} ảnh
                                                 </div>
                                             </div>
@@ -1457,12 +1457,12 @@ function MarkerDetailPanel({
                                             </span>
                                             <div className="min-w-0 flex-1">
                                                 <p className={`text-xs font-semibold uppercase ${ownerTheme.labelClassName}`}>Chủ hộ</p>
-                                                <p className={`mt-2 truncate text-sm font-semibold ${ownerTheme.textClassName}`}>{resolvedHeadFullName}</p>
-                                                {!isPublicMode ? (
-                                                    <p className="mt-2 text-xs text-slate-500">CCCD: {resolvedHeadCitizenId}</p>
-                                                ) : null}
+                                                <p className={`mt-1 truncate text-sm font-semibold ${ownerTheme.textClassName}`}>{resolvedHeadFullName}</p>
                                             </div>
                                         </div>
+                                        {!isPublicMode ? (
+                                            <p className="mt-1 text-xs text-slate-500">CCCD: {resolvedHeadCitizenId}</p>
+                                        ) : null}
                                     </div>
                                     <div className={`rounded-xl p-3 ${membersTheme.cardClassName}`}>
                                         <div className="flex items-start gap-3">
@@ -1471,10 +1471,10 @@ function MarkerDetailPanel({
                                             </span>
                                             <div className="min-w-0 flex-1">
                                                 <p className={`text-xs font-semibold uppercase ${membersTheme.labelClassName}`}>Nhân khẩu</p>
-                                                <p className={`mt-2 text-sm font-semibold ${membersTheme.textClassName}`}>{resolvedMemberCount.toLocaleString("vi-VN")} người</p>
-                                                <p className="mt-2 text-xs text-slate-500">Năm quản lý: {household.year || "-"}</p>
+                                                <p className={`mt-1 text-sm font-semibold ${membersTheme.textClassName}`}>{resolvedMemberCount.toLocaleString("vi-VN")} người</p>
                                             </div>
                                         </div>
+                                        <p className="mt-1 text-xs text-slate-500">Năm quản lý: {household.year || "-"}</p>
                                     </div>
                                     <div className={`rounded-xl p-3 sm:col-span-2 ${locationTheme.cardClassName}`}>
                                         <div className="flex items-start gap-3">
