@@ -444,7 +444,6 @@ export default function PovertyCollectionPage() {
         );
         const userAgent = window.navigator.userAgent.toLowerCase();
         const isIos = /iphone|ipad|ipod/.test(userAgent);
-        const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios/.test(userAgent);
 
         setIsStandalone(standalone);
         if (standalone) {
@@ -458,7 +457,7 @@ export default function PovertyCollectionPage() {
             setShowStandaloneBanner(false);
         }
 
-        setIsIosInstallHint(isIos && isSafari);
+        setIsIosInstallHint(isIos);
 
         const handleBeforeInstallPrompt = (event: Event) => {
             event.preventDefault();
@@ -474,7 +473,7 @@ export default function PovertyCollectionPage() {
         window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
         window.addEventListener("appinstalled", handleAppInstalled);
 
-        if (!standalone && !dismissed && isIos && isSafari) {
+        if (!standalone && !dismissed && isIos) {
             setShowInstallBanner(true);
         }
 
@@ -527,7 +526,7 @@ export default function PovertyCollectionPage() {
                     className="rounded-[24px] border border-brand-200/70 bg-[linear-gradient(135deg,rgba(255,247,246,0.96)_0%,rgba(255,239,237,0.92)_100%)] shadow-sm"
                     message={<span className="font-semibold text-gray-900">Cài ứng dụng thu thập lên điện thoại</span>}
                     description={isIosInstallHint
-                        ? "Trên iPhone/iPad, mở menu Chia sẻ của Safari rồi chọn Thêm vào Màn hình chính để vào thẳng mini-app này ở lần sau."
+                        ? "Trên iPhone/iPad, mở menu Chia sẻ của trình duyệt (Safari/Chrome) rồi chọn Thêm vào Màn hình chính để vào thẳng mini-app này ở lần sau."
                         : "Cài mini-app để mở thẳng trang thu thập, thao tác nhanh hơn và tự quay lại đúng màn hình này sau khi đăng nhập lại."}
                     action={isIosInstallHint ? (
                         <Button className="rounded-xl" onClick={dismissInstallBanner}>
