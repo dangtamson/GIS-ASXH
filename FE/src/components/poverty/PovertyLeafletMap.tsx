@@ -100,7 +100,7 @@ type WardBoundaryProperties = {
     mergedFrom?: string;
     province?: string;
 };
-const MARKER_LABEL_MIN_ZOOM = 13;
+const MARKER_LABEL_MIN_ZOOM = 17;
 const MARKER_LABEL_MAX_COUNT = 60;
 const WARD_BOUNDARY_DATA = canThoBoundaryGeoJson as FeatureCollection<Geometry, WardBoundaryProperties>;
 const NEARBY_RADIUS_OPTIONS_KM = [1, 2, 5, 10] as const;
@@ -245,7 +245,7 @@ function MarkerPopupContent({
             : "bg-slate-100 text-slate-600";
 
     return (
-        <div className="flex min-w-[190px] max-w-[240px] items-start gap-2.5 text-[13px] leading-5 text-gray-700">
+        <div className="flex min-w-[120px] max-w-[150px] items-start gap-2.5 text-[13px] leading-5 text-gray-700">
             <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}>
                 <UserRound size={15} strokeWidth={2} />
             </span>

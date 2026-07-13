@@ -34,7 +34,7 @@ import type {
 import { Alert, App, Button, Spin } from "antd";
 import { ArrowLeft, Download, Search, Smartphone, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type BeforeInstallPromptEvent = Event & {
     prompt: () => Promise<void>;
@@ -85,6 +85,59 @@ function setStorageItemSafe(storageType: "session" | "local", key: string, value
     }
 }
 
+function normalizeSearchKeyword(value?: string | null): string {
+    return String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
+
+function scoreHouseholdMatch(item: PoorHousehold, normalizedKeyword: string): number {
+    if (!normalizedKeyword) return 0;
+
+    const code = normalizeSearchKeyword(item.code);
+    const headFullName = normalizeSearchKeyword(item.headFullName);
+    const headCitizenId = normalizeSearchKeyword(item.headCitizenId);
+    const address = normalizeSearchKeyword(item.address);
+    const area = normalizeSearchKeyword([item.provinceName, item.wardName, item.areaName].filter(Boolean).join(" "));
+    const combined = [code, headFullName, headCitizenId, address, area].filter(Boolean).join(" ");
+
+    if (code === normalizedKeyword || headCitizenId === normalizedKeyword) return 100;
+    if (code.startsWith(normalizedKeyword) || headCitizenId.startsWith(normalizedKeyword)) return 92;
+    if (headFullName === normalizedKeyword) return 90;
+    if (headFullName.startsWith(normalizedKeyword)) return 84;
+    if (headFullName.includes(normalizedKeyword)) return 76;
+    if (code.includes(normalizedKeyword) || headCitizenId.includes(normalizedKeyword)) return 72;
+    if (address.includes(normalizedKeyword) || area.includes(normalizedKeyword)) return 58;
+
+    const keywordTokens = normalizedKeyword.split(" ").filter(Boolean);
+    if (keywordTokens.length > 0 && keywordTokens.every((token) => combined.includes(token))) {
+        return 50;
+    }
+
+    return 0;
+}
+
+function rankHouseholdSearchResults(items: PoorHousehold[], keyword: string): PoorHousehold[] {
+    const normalizedKeyword = normalizeSearchKeyword(keyword);
+    if (!normalizedKeyword) return items;
+
+    return items
+        .map((item) => ({ item, score: scoreHouseholdMatch(item, normalizedKeyword) }))
+        .filter((entry) => entry.score > 0)
+        .sort((left, right) => {
+            if (right.score !== left.score) return right.score - left.score;
+            const leftName = String(left.item.headFullName ?? left.item.code ?? "").toLowerCase();
+            const rightName = String(right.item.headFullName ?? right.item.code ?? "").toLowerCase();
+            return leftName.localeCompare(rightName, "vi");
+        })
+        .map((entry) => entry.item);
+}
+
 async function uploadFieldPhotos(householdId: string, photos: AttachmentType[]): Promise<void> {
     await Promise.all(
         photos.map((photo, index) =>
@@ -125,6 +178,7 @@ export default function PovertyCollectionPage() {
     const [isStandalone, setIsStandalone] = useState(false);
     const [isIosInstallHint, setIsIosInstallHint] = useState(false);
     const [installing, setInstalling] = useState(false);
+    const activeSearchRequestIdRef = useRef(0);
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canUpdateHousehold } = usePermission("poverty.household.update");
 
@@ -235,13 +289,30 @@ export default function PovertyCollectionPage() {
                 notification.warning({ message: "Không tìm thấy hồ sơ hộ" });
                 return null;
             }
-            hydrateFromHousehold(data.household);
+
+            const members = data.members ?? [];
+            const headMember = members.find((member) => {
+                const isHead = member.isHead as unknown;
+                return isHead === true || isHead === 1 || isHead === "1" || isHead === "true";
+            }) ?? members[0];
+
+            const currentMemberCount = Number(data.household.memberCount ?? 0);
+            const resolvedHousehold: PoorHousehold = {
+                ...data.household,
+                headFullName: data.household.headFullName ?? headMember?.fullName ?? data.household.headFullName,
+                headCitizenId: data.household.headCitizenId ?? headMember?.citizenId ?? data.household.headCitizenId,
+                memberCount: currentMemberCount > 0
+                    ? currentMemberCount
+                    : (members.length > 0 ? members.length : data.household.memberCount),
+            };
+
+            hydrateFromHousehold(resolvedHousehold);
             setCollectionState({
                 mode: "update-step-1",
                 step: 1,
-                selectedHouseholdId: data.household.id,
+                selectedHouseholdId: resolvedHousehold.id,
             });
-            return data.household;
+            return resolvedHousehold;
         } catch (error) {
             notification.error({
                 message: "Không thể tải hồ sơ hộ",
@@ -260,25 +331,55 @@ export default function PovertyCollectionPage() {
             return;
         }
 
+        const searchRequestId = activeSearchRequestIdRef.current + 1;
+        activeSearchRequestIdRef.current = searchRequestId;
+
         setSearching(true);
         try {
-            const params = new URLSearchParams({
-                search: keyword,
-                page: "1",
-                limit: "12",
-                sortBy: "updatedAt",
-                sortOrder: "desc",
-                status: "ACTIVE",
+            const fetchByKeyword = async (searchTerm: string) => {
+                const params = new URLSearchParams({
+                    search: searchTerm,
+                    page: "1",
+                    limit: "50",
+                    sortBy: "updatedAt",
+                    sortOrder: "desc",
+                    status: "ACTIVE",
+                });
+                const data = await api.get<PaginatedResponse<PoorHousehold>>(`${endpoints.poverty.households}?${params.toString()}`);
+                return data.items ?? [];
+            };
+
+            const normalizedKeyword = normalizeSearchKeyword(keyword);
+            const shouldSearchNormalized = normalizedKeyword.length > 0 && normalizedKeyword !== keyword.toLowerCase().trim();
+
+            const [primaryItems, normalizedItems] = await Promise.all([
+                fetchByKeyword(keyword),
+                shouldSearchNormalized ? fetchByKeyword(normalizedKeyword) : Promise.resolve([] as PoorHousehold[]),
+            ]);
+
+            if (activeSearchRequestIdRef.current !== searchRequestId) {
+                return;
+            }
+
+            const mergedMap = new Map<string, PoorHousehold>();
+            [...primaryItems, ...normalizedItems].forEach((item) => {
+                mergedMap.set(item.id, item);
             });
-            const data = await api.get<PaginatedResponse<PoorHousehold>>(`${endpoints.poverty.households}?${params.toString()}`);
-            setSearchResults(data.items ?? []);
+
+            const ranked = rankHouseholdSearchResults(Array.from(mergedMap.values()), keyword);
+            setSearchResults(ranked.slice(0, 50));
         } catch (error) {
+            if (activeSearchRequestIdRef.current !== searchRequestId) {
+                return;
+            }
             notification.error({
                 message: "Không thể tìm hộ",
                 description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
             });
         } finally {
-            setSearching(false);
+            if (activeSearchRequestIdRef.current === searchRequestId) {
+                setSearching(false);
+            }
         }
     }, [notification, searchValue]);
 
