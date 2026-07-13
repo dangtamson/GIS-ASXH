@@ -3,19 +3,28 @@
 import { buildCoordinateStatusLabel } from "@/components/poverty/collection/poverty-collection-utils";
 import { householdStatusColor, householdStatusLabel, povertyTypeColor, povertyTypeLabel } from "@/components/poverty/poverty-utils";
 import type { PoorHousehold } from "@/types/poverty";
-import { Alert, Button, Empty, Input, Spin, Tag } from "antd";
-import { HousePlus, LocateFixed, Search, Smartphone, Users } from "lucide-react";
+import { Alert, Button, Empty, Input, Select, Spin, Tag } from "antd";
+import { ArrowUpDown, HousePlus, LocateFixed, Search, Smartphone, Users } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 type Props = {
     canCreateHousehold: boolean;
     canUpdateHousehold: boolean;
     items: PoorHousehold[];
     loading: boolean;
+    loadingMoreResults: boolean;
     searching: boolean;
     searchValue: string;
+    hasMoreResults: boolean;
+    totalResults?: number | null;
+    showSortControls: boolean;
+    sortMode: "RELEVANCE" | "UPDATED_DESC" | "NAME_ASC";
     onCreateNew: () => void;
+    onLoadMore: () => void;
     onSearch: () => void;
+    onSortModeChange: (mode: "RELEVANCE" | "UPDATED_DESC" | "NAME_ASC") => void;
     onSearchValueChange: (value: string) => void;
+    onToggleSortControls: () => void;
     onSelectHousehold: (item: PoorHousehold) => void;
 };
 
@@ -24,16 +33,51 @@ export default function PovertyCollectionSearchView({
     canUpdateHousehold,
     items,
     loading,
+    loadingMoreResults,
     searching,
     searchValue,
+    hasMoreResults,
+    totalResults,
+    showSortControls,
+    sortMode,
     onCreateNew,
+    onLoadMore,
     onSearch,
+    onSortModeChange,
     onSearchValueChange,
+    onToggleSortControls,
     onSelectHousehold,
 }: Props) {
     const canStartCreate = canCreateHousehold;
     const canSelectExisting = canUpdateHousehold;
     const hasSearch = searchValue.trim().length > 0;
+    const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const sentinel = loadMoreSentinelRef.current;
+        if (!sentinel || !hasSearch || !hasMoreResults || loading || searching || loadingMoreResults) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (entry?.isIntersecting) {
+                    onLoadMore();
+                }
+            },
+            {
+                root: null,
+                rootMargin: "220px 0px",
+                threshold: 0.01,
+            }
+        );
+
+        observer.observe(sentinel);
+        return () => {
+            observer.disconnect();
+        };
+    }, [hasMoreResults, hasSearch, loading, loadingMoreResults, onLoadMore, searching]);
 
     return (
         <div className="mx-auto flex w-full max-w-xl flex-col gap-3">
@@ -100,11 +144,41 @@ export default function PovertyCollectionSearchView({
                         <div className="min-w-0">
                             <h2 className="text-sm font-semibold text-gray-900">Kết quả tìm kiếm</h2>
                             <p className="text-xs text-gray-500">
-                                {hasSearch ? `${items.length} hộ phù hợp` : "Nhập từ khóa để bắt đầu"}
+                                {hasSearch
+                                    ? (totalResults != null && totalResults >= 0
+                                        ? `${items.length}/${totalResults} hộ phù hợp`
+                                        : `${items.length} hộ phù hợp`)
+                                    : "Nhập từ khóa để bắt đầu"}
                             </p>
                         </div>
                     </div>
+
+                    <Button
+                        aria-label={showSortControls ? "Ẩn bộ lọc sắp xếp" : "Hiện bộ lọc sắp xếp"}
+                        title={showSortControls ? "Ẩn bộ lọc sắp xếp" : "Hiện bộ lọc sắp xếp"}
+                        size="small"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl p-0"
+                        onClick={onToggleSortControls}
+                    >
+                        <ArrowUpDown size={14} />
+                    </Button>
                 </div>
+
+                {showSortControls ? (
+                    <div className="mt-3">
+                        <Select
+                            size="middle"
+                            value={sortMode}
+                            className="w-full"
+                            options={[
+                                { label: "Liên quan", value: "RELEVANCE" },
+                                { label: "Mới cập nhật", value: "UPDATED_DESC" },
+                                { label: "Tên A-Z", value: "NAME_ASC" },
+                            ]}
+                            onChange={(value) => onSortModeChange(value as "RELEVANCE" | "UPDATED_DESC" | "NAME_ASC")}
+                        />
+                    </div>
+                ) : null}
 
                 <div className="mt-4">
                     {loading ? (
@@ -162,6 +236,17 @@ export default function PovertyCollectionSearchView({
                                     </div>
                                 </button>
                             ))}
+
+                            {hasSearch ? (
+                                <div ref={loadMoreSentinelRef} className="flex min-h-10 items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 px-3 py-2 text-xs text-gray-500">
+                                    {loadingMoreResults ? (
+                                        <span className="inline-flex items-center gap-2 text-gray-600">
+                                            <Spin size="small" />
+                                            Đang tải thêm kết quả...
+                                        </span>
+                                    ) : hasMoreResults ? "Kéo xuống để tải thêm" : "Đã hiển thị hết kết quả"}
+                                </div>
+                            ) : null}
                         </div>
                     )}
                 </div>

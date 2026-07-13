@@ -47,6 +47,19 @@ type BeforeInstallPromptEvent = Event & {
 const currentYear = new Date().getFullYear();
 const fieldPhotoEntityType = "poor_household";
 const fieldPhotoStorageBucket = "poor_household";
+const householdSearchPageLimit = 80;
+
+type SearchPaginationCursor = {
+    keyword: string;
+    normalizedKeyword: string;
+    shouldSearchNormalized: boolean;
+    primaryPage: number;
+    normalizedPage: number;
+    hasMorePrimary: boolean;
+    hasMoreNormalized: boolean;
+};
+
+type SearchSortMode = "RELEVANCE" | "UPDATED_DESC" | "NAME_ASC";
 
 const createDefaultStepOneValues = (): StepOneFormValues => ({
     year: currentYear,
@@ -96,8 +109,29 @@ function normalizeSearchKeyword(value?: string | null): string {
         .trim();
 }
 
-function scoreHouseholdMatch(item: PoorHousehold, normalizedKeyword: string): number {
+function hasUnicodeDiacritics(value?: string | null): boolean {
+    return /[^\u0000-\u007f]/.test(String(value ?? ""));
+}
+
+function normalizeRawLowercase(value?: string | null): string {
+    return String(value ?? "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .trim();
+}
+
+function tokenizeRawLowercase(value?: string | null): string[] {
+    const normalized = normalizeRawLowercase(value);
+    return normalized ? normalized.split(" ").filter(Boolean) : [];
+}
+
+function scoreHouseholdMatch(item: PoorHousehold, rawKeyword: string): number {
+    const normalizedKeyword = normalizeSearchKeyword(rawKeyword);
     if (!normalizedKeyword) return 0;
+
+    const rawNormalizedKeyword = normalizeRawLowercase(rawKeyword);
+    const rawKeywordTokens = rawNormalizedKeyword ? rawNormalizedKeyword.split(" ").filter(Boolean) : [];
+    const hasRawKeywordTokens = rawKeywordTokens.length > 0;
 
     const code = normalizeSearchKeyword(item.code);
     const headFullName = normalizeSearchKeyword(item.headFullName);
@@ -105,6 +139,25 @@ function scoreHouseholdMatch(item: PoorHousehold, normalizedKeyword: string): nu
     const address = normalizeSearchKeyword(item.address);
     const area = normalizeSearchKeyword([item.provinceName, item.wardName, item.areaName].filter(Boolean).join(" "));
     const combined = [code, headFullName, headCitizenId, address, area].filter(Boolean).join(" ");
+
+    const rawHeadTokens = tokenizeRawLowercase(item.headFullName);
+    const rawAddressTokens = tokenizeRawLowercase(item.address);
+    const rawAreaTokens = tokenizeRawLowercase([item.provinceName, item.wardName, item.areaName].filter(Boolean).join(" "));
+    const rawCombinedTokens = [...rawHeadTokens, ...rawAddressTokens, ...rawAreaTokens];
+
+    // Prioritize exact word match with original Vietnamese spelling before accent-insensitive contains matching.
+    if (hasRawKeywordTokens && rawKeywordTokens.length === 1 && rawCombinedTokens.includes(rawKeywordTokens[0])) {
+        if (rawHeadTokens.includes(rawKeywordTokens[0])) return 98;
+        if (rawAddressTokens.includes(rawKeywordTokens[0]) || rawAreaTokens.includes(rawKeywordTokens[0])) return 88;
+    }
+
+    if (
+        hasRawKeywordTokens
+        && rawKeywordTokens.every((keywordToken) => rawCombinedTokens.includes(keywordToken))
+    ) {
+        if (rawKeywordTokens.every((keywordToken) => rawHeadTokens.includes(keywordToken))) return 96;
+        return 86;
+    }
 
     if (code === normalizedKeyword || headCitizenId === normalizedKeyword) return 100;
     if (code.startsWith(normalizedKeyword) || headCitizenId.startsWith(normalizedKeyword)) return 92;
@@ -127,7 +180,7 @@ function rankHouseholdSearchResults(items: PoorHousehold[], keyword: string): Po
     if (!normalizedKeyword) return items;
 
     return items
-        .map((item) => ({ item, score: scoreHouseholdMatch(item, normalizedKeyword) }))
+        .map((item) => ({ item, score: scoreHouseholdMatch(item, keyword) }))
         .filter((entry) => entry.score > 0)
         .sort((left, right) => {
             if (right.score !== left.score) return right.score - left.score;
@@ -136,6 +189,49 @@ function rankHouseholdSearchResults(items: PoorHousehold[], keyword: string): Po
             return leftName.localeCompare(rightName, "vi");
         })
         .map((entry) => entry.item);
+}
+
+function parseDateToMs(value?: string | null): number {
+    const ts = Date.parse(String(value ?? ""));
+    return Number.isFinite(ts) ? ts : 0;
+}
+
+function sortHouseholdResults(items: PoorHousehold[], keyword: string, sortMode: SearchSortMode): PoorHousehold[] {
+    if (sortMode === "RELEVANCE") {
+        return rankHouseholdSearchResults(items, keyword);
+    }
+
+    if (sortMode === "UPDATED_DESC") {
+        return [...items].sort((left, right) => {
+            const rightUpdated = parseDateToMs(right.updatedAt);
+            const leftUpdated = parseDateToMs(left.updatedAt);
+            if (rightUpdated !== leftUpdated) return rightUpdated - leftUpdated;
+
+            const rightCreated = parseDateToMs(right.createdAt);
+            const leftCreated = parseDateToMs(left.createdAt);
+            if (rightCreated !== leftCreated) return rightCreated - leftCreated;
+
+            const leftName = String(left.headFullName ?? left.code ?? "").toLowerCase();
+            const rightName = String(right.headFullName ?? right.code ?? "").toLowerCase();
+            const byName = leftName.localeCompare(rightName, "vi");
+            if (byName !== 0) return byName;
+
+            return left.id.localeCompare(right.id);
+        });
+    }
+
+    return [...items].sort((left, right) => {
+        const leftName = String(left.headFullName ?? left.code ?? "").toLowerCase();
+        const rightName = String(right.headFullName ?? right.code ?? "").toLowerCase();
+        const byName = leftName.localeCompare(rightName, "vi");
+        if (byName !== 0) return byName;
+
+        const rightCreated = parseDateToMs(right.createdAt);
+        const leftCreated = parseDateToMs(left.createdAt);
+        if (rightCreated !== leftCreated) return rightCreated - leftCreated;
+
+        return left.id.localeCompare(right.id);
+    });
 }
 
 async function uploadFieldPhotos(householdId: string, photos: AttachmentType[]): Promise<void> {
@@ -171,6 +267,11 @@ export default function PovertyCollectionPage() {
     const [areaOptions, setAreaOptions] = useState<PovertyArea[]>([]);
     const [loading, setLoading] = useState(false);
     const [searching, setSearching] = useState(false);
+    const [loadingMoreResults, setLoadingMoreResults] = useState(false);
+    const [hasMoreResults, setHasMoreResults] = useState(false);
+    const [searchResultTotal, setSearchResultTotal] = useState<number | null>(null);
+    const [sortMode, setSortMode] = useState<SearchSortMode>("RELEVANCE");
+    const [showSortControls, setShowSortControls] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
     const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -179,6 +280,7 @@ export default function PovertyCollectionPage() {
     const [isIosInstallHint, setIsIosInstallHint] = useState(false);
     const [installing, setInstalling] = useState(false);
     const activeSearchRequestIdRef = useRef(0);
+    const searchCursorRef = useRef<SearchPaginationCursor | null>(null);
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canUpdateHousehold } = usePermission("poverty.household.update");
 
@@ -253,7 +355,13 @@ export default function PovertyCollectionPage() {
         setCollectionState(createInitialCollectionState());
         setSelectedHousehold(null);
         setSearchResults([]);
+        setLoadingMoreResults(false);
+        setHasMoreResults(false);
+        setSearchResultTotal(null);
+        searchCursorRef.current = null;
         setSearchValue("");
+        setSortMode("RELEVANCE");
+        setShowSortControls(false);
         setStepOneValues(createDefaultStepOneValues());
         setStepTwoValues(createDefaultStepTwoValues());
         setStepTwoPhotos([]);
@@ -324,10 +432,35 @@ export default function PovertyCollectionPage() {
         }
     }, [hydrateFromHousehold, notification]);
 
+    const fetchHouseholdSearchPage = useCallback(async (searchTerm: string, page: number) => {
+        const params = new URLSearchParams({
+            search: searchTerm,
+            page: String(page),
+            limit: String(householdSearchPageLimit),
+            sortBy: "createdAt",
+            sortOrder: "desc",
+            status: "ACTIVE",
+        });
+        const data = await api.get<PaginatedResponse<PoorHousehold>>(`${endpoints.poverty.households}?${params.toString()}`);
+        const currentPage = Number(data.pagination?.page ?? page);
+        const totalPages = Number(data.pagination?.pages ?? currentPage);
+        const totalItems = Number(data.pagination?.total ?? 0);
+        return {
+            items: data.items ?? [],
+            page: currentPage,
+            total: Number.isFinite(totalItems) ? totalItems : 0,
+            hasMore: currentPage < totalPages,
+        };
+    }, []);
+
     const searchHouseholds = useCallback(async () => {
         const keyword = searchValue.trim();
         if (!keyword) {
             setSearchResults([]);
+            setHasMoreResults(false);
+            setLoadingMoreResults(false);
+            setSearchResultTotal(null);
+            searchCursorRef.current = null;
             return;
         }
 
@@ -335,26 +468,16 @@ export default function PovertyCollectionPage() {
         activeSearchRequestIdRef.current = searchRequestId;
 
         setSearching(true);
+        setLoadingMoreResults(false);
         try {
-            const fetchByKeyword = async (searchTerm: string) => {
-                const params = new URLSearchParams({
-                    search: searchTerm,
-                    page: "1",
-                    limit: "50",
-                    sortBy: "updatedAt",
-                    sortOrder: "desc",
-                    status: "ACTIVE",
-                });
-                const data = await api.get<PaginatedResponse<PoorHousehold>>(`${endpoints.poverty.households}?${params.toString()}`);
-                return data.items ?? [];
-            };
-
             const normalizedKeyword = normalizeSearchKeyword(keyword);
             const shouldSearchNormalized = normalizedKeyword.length > 0 && normalizedKeyword !== keyword.toLowerCase().trim();
 
-            const [primaryItems, normalizedItems] = await Promise.all([
-                fetchByKeyword(keyword),
-                shouldSearchNormalized ? fetchByKeyword(normalizedKeyword) : Promise.resolve([] as PoorHousehold[]),
+            const [primaryPageResult, normalizedPageResult] = await Promise.all([
+                fetchHouseholdSearchPage(keyword, 1),
+                shouldSearchNormalized
+                    ? fetchHouseholdSearchPage(normalizedKeyword, 1)
+                    : Promise.resolve({ items: [] as PoorHousehold[], page: 0, total: 0, hasMore: false }),
             ]);
 
             if (activeSearchRequestIdRef.current !== searchRequestId) {
@@ -362,16 +485,37 @@ export default function PovertyCollectionPage() {
             }
 
             const mergedMap = new Map<string, PoorHousehold>();
-            [...primaryItems, ...normalizedItems].forEach((item) => {
+            [...primaryPageResult.items, ...normalizedPageResult.items].forEach((item) => {
                 mergedMap.set(item.id, item);
             });
 
-            const ranked = rankHouseholdSearchResults(Array.from(mergedMap.values()), keyword);
-            setSearchResults(ranked.slice(0, 50));
+            const ranked = sortHouseholdResults(Array.from(mergedMap.values()), keyword, sortMode);
+            setSearchResults(ranked);
+
+            const totalMatches = shouldSearchNormalized
+                ? Math.max(primaryPageResult.total, normalizedPageResult.total)
+                : primaryPageResult.total;
+            setSearchResultTotal(totalMatches);
+
+            const hasMorePrimary = primaryPageResult.hasMore;
+            const hasMoreNormalized = shouldSearchNormalized ? normalizedPageResult.hasMore : false;
+            searchCursorRef.current = {
+                keyword,
+                normalizedKeyword,
+                shouldSearchNormalized,
+                primaryPage: primaryPageResult.page,
+                normalizedPage: shouldSearchNormalized ? normalizedPageResult.page : 0,
+                hasMorePrimary,
+                hasMoreNormalized,
+            };
+            setHasMoreResults(hasMorePrimary || hasMoreNormalized);
         } catch (error) {
             if (activeSearchRequestIdRef.current !== searchRequestId) {
                 return;
             }
+            setHasMoreResults(false);
+            setSearchResultTotal(null);
+            searchCursorRef.current = null;
             notification.error({
                 message: "Không thể tìm hộ",
                 description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
@@ -381,7 +525,93 @@ export default function PovertyCollectionPage() {
                 setSearching(false);
             }
         }
-    }, [notification, searchValue]);
+    }, [fetchHouseholdSearchPage, notification, searchValue, sortMode]);
+
+    const loadMoreSearchResults = useCallback(async () => {
+        const cursor = searchCursorRef.current;
+        if (!cursor || searching || loadingMoreResults || !hasMoreResults) {
+            return;
+        }
+
+        const requestId = activeSearchRequestIdRef.current;
+        setLoadingMoreResults(true);
+        try {
+            const tasks: Array<Promise<{ source: "primary" | "normalized"; items: PoorHousehold[]; page: number; hasMore: boolean }>> = [];
+
+            if (cursor.hasMorePrimary) {
+                tasks.push(
+                    fetchHouseholdSearchPage(cursor.keyword, cursor.primaryPage + 1).then((result) => ({
+                        source: "primary" as const,
+                        ...result,
+                    }))
+                );
+            }
+
+            if (cursor.shouldSearchNormalized && cursor.hasMoreNormalized) {
+                tasks.push(
+                    fetchHouseholdSearchPage(cursor.normalizedKeyword, cursor.normalizedPage + 1).then((result) => ({
+                        source: "normalized" as const,
+                        ...result,
+                    }))
+                );
+            }
+
+            if (tasks.length === 0) {
+                setHasMoreResults(false);
+                return;
+            }
+
+            const pageResults = await Promise.all(tasks);
+
+            if (activeSearchRequestIdRef.current !== requestId) {
+                return;
+            }
+
+            const nextCursor: SearchPaginationCursor = { ...cursor };
+            const incomingItems: PoorHousehold[] = [];
+
+            pageResults.forEach((result) => {
+                incomingItems.push(...result.items);
+                if (result.source === "primary") {
+                    nextCursor.primaryPage = result.page;
+                    nextCursor.hasMorePrimary = result.hasMore;
+                } else {
+                    nextCursor.normalizedPage = result.page;
+                    nextCursor.hasMoreNormalized = result.hasMore;
+                }
+            });
+
+            searchCursorRef.current = nextCursor;
+            setHasMoreResults(nextCursor.hasMorePrimary || (nextCursor.shouldSearchNormalized && nextCursor.hasMoreNormalized));
+
+            setSearchResults((previous) => {
+                const existingIds = new Set(previous.map((item) => item.id));
+                const dedupedIncoming = incomingItems.filter((item) => !existingIds.has(item.id));
+                if (dedupedIncoming.length === 0) return previous;
+
+                const orderedIncoming = sortHouseholdResults(dedupedIncoming, nextCursor.keyword, sortMode);
+                return [...previous, ...orderedIncoming];
+            });
+        } catch (error) {
+            if (activeSearchRequestIdRef.current !== requestId) {
+                return;
+            }
+            notification.error({
+                message: "Không thể tải thêm kết quả",
+                description: error instanceof ApiError ? error.message : "Vui lòng thử lại",
+            });
+        } finally {
+            if (activeSearchRequestIdRef.current === requestId) {
+                setLoadingMoreResults(false);
+            }
+        }
+    }, [fetchHouseholdSearchPage, hasMoreResults, loadingMoreResults, notification, searching, sortMode]);
+
+    useEffect(() => {
+        if (searchResults.length === 0) return;
+        const keyword = searchCursorRef.current?.keyword ?? searchValue.trim();
+        setSearchResults((previous) => sortHouseholdResults(previous, keyword, sortMode));
+    }, [searchValue, sortMode]);
 
     const openCreateFlow = useCallback(() => {
         if (!canCreateHousehold) {
@@ -679,13 +909,21 @@ export default function PovertyCollectionPage() {
                         <PovertyCollectionSearchView
                             canCreateHousehold={canCreateHousehold}
                             canUpdateHousehold={canUpdateHousehold}
+                            hasMoreResults={hasMoreResults}
                             items={searchResults}
                             loading={buildCollectionSearchLoadingState({ searching, loading })}
+                            loadingMoreResults={loadingMoreResults}
                             searching={searching}
                             searchValue={searchValue}
+                            showSortControls={showSortControls}
+                            sortMode={sortMode}
+                            totalResults={searchResultTotal}
                             onCreateNew={openCreateFlow}
+                            onLoadMore={loadMoreSearchResults}
                             onSearch={searchHouseholds}
+                            onSortModeChange={setSortMode}
                             onSearchValueChange={setSearchValue}
+                            onToggleSortControls={() => setShowSortControls((prev) => !prev)}
                             onSelectHousehold={(item) => { void openExistingFlow(item); }}
                         />
                     ) : null}

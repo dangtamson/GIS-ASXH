@@ -86,6 +86,17 @@ export default function PovertyCollectionStepOneForm({
     const lastLoadedProvinceCodeRef = useRef<string>("");
     const lastLoadedWardCodeRef = useRef<string>("");
 
+    const selectedProvinceName =
+        provinceOptions.find((item) => item.code === selectedProvinceCode)?.fullName
+        || provinceOptions.find((item) => item.code === selectedProvinceCode)?.name
+        || household?.provinceName
+        || "Đang xác định";
+    const selectedWardName =
+        wardOptions.find((item) => item.code === selectedWardCode)?.fullName
+        || wardOptions.find((item) => item.code === selectedWardCode)?.name
+        || household?.wardName
+        || "Đang xác định";
+
     useEffect(() => {
         form.setFieldsValue({
             year: currentYear,
@@ -107,6 +118,24 @@ export default function PovertyCollectionStepOneForm({
     }, [onProvinceChange, selectedProvinceCode]);
 
     useEffect(() => {
+        const provinceCode = String(selectedProvinceCode ?? "").trim();
+        if (provinceCode || provinceOptions.length === 0) return;
+
+        const canThoProvinceCode = String(
+            provinceOptions.find((item) => item.code === DEFAULT_CANTHO_PROVINCE_CODE)?.code
+            ?? DEFAULT_CANTHO_PROVINCE_CODE,
+        ).trim();
+        const defaultProvinceCode = canThoProvinceCode || String(provinceOptions[0]?.code ?? "").trim();
+        if (!defaultProvinceCode) return;
+
+        form.setFieldsValue({
+            provinceCode: defaultProvinceCode,
+            wardCode: undefined,
+            areaId: undefined,
+        });
+    }, [form, provinceOptions, selectedProvinceCode]);
+
+    useEffect(() => {
         const wardCode = String(selectedWardCode ?? "").trim();
         if (!wardCode) {
             lastLoadedWardCodeRef.current = "";
@@ -120,6 +149,20 @@ export default function PovertyCollectionStepOneForm({
         lastLoadedWardCodeRef.current = wardCode;
         onWardChange(wardCode);
     }, [onWardChange, selectedWardCode]);
+
+    useEffect(() => {
+        const provinceCode = String(selectedProvinceCode ?? "").trim();
+        const wardCode = String(selectedWardCode ?? "").trim();
+        if (!provinceCode || wardCode || wardOptions.length === 0) return;
+
+        const defaultWardCode = String(wardOptions[0]?.code ?? "").trim();
+        if (!defaultWardCode) return;
+
+        form.setFieldsValue({
+            wardCode: defaultWardCode,
+            areaId: undefined,
+        });
+    }, [form, selectedProvinceCode, selectedWardCode, wardOptions]);
 
     return (
         <Form
@@ -150,10 +193,10 @@ export default function PovertyCollectionStepOneForm({
             {!isCreate ? (
                 <section className="rounded-[22px] border border-gray-200 bg-white p-3 shadow-sm sm:rounded-[24px] sm:p-4">
                     <div className="mb-3 text-sm font-semibold text-gray-900">Thông tin hộ đang cập nhật</div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 xs:grid-cols-2 sm:gap-3">
                         <SummaryChip icon={<UserRound size={14} />} label="Chủ hộ" value={household?.headFullName || household?.code} />
                         <SummaryChip icon={<Users size={14} />} label="Nhân khẩu" value={household?.memberCount ?? 0} />
-                        <SummaryChip icon={<MapPinned size={14} />} label="Địa bàn" value={[household?.provinceName, household?.wardName, household?.areaName].filter(Boolean).join(" / ")} />
+                        <SummaryChip icon={<MapPinned size={14} />} label="Địa bàn" value={[household?.wardName, household?.areaName].filter(Boolean).join(" / ")} />
                         <SummaryChip icon={<Compass size={14} />} label="Tọa độ hiện tại" value={household?.latitude != null && household?.longitude != null ? `${household.latitude}, ${household.longitude}` : "Chưa có"} />
                     </div>
                 </section>
@@ -215,28 +258,19 @@ export default function PovertyCollectionStepOneForm({
                 </div>
 
                 <Row gutter={[12, 12]}>
-                    <Col span={24}>
-                        <Form.Item name="provinceCode" label="Tỉnh/Thành phố" rules={[{ required: true, message: "Vui lòng chọn tỉnh/thành phố" }]}>
-                            <Select
-                                size="large"
-                                showSearch
-                                optionFilterProp="label"
-                                options={provinceOptions.map((item) => ({ value: item.code, label: item.fullName || item.name }))}
-                                onChange={() => form.setFieldsValue({ wardCode: undefined, areaId: undefined })}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                        <Form.Item name="wardCode" label="Xã/Phường" rules={[{ required: true, message: "Vui lòng chọn xã/phường" }]}>
-                            <Select
-                                size="large"
-                                showSearch
-                                optionFilterProp="label"
-                                options={wardOptions.map((item) => ({ value: item.code, label: item.fullName || item.name }))}
-                                onChange={() => form.setFieldsValue({ areaId: undefined })}
-                            />
-                        </Form.Item>
-                    </Col>
+                    {/* <Col span={24}>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <SummaryChip icon={<MapPinned size={14} />} label="Tỉnh/Thành phố" value={selectedProvinceName} />
+                            <SummaryChip icon={<MapPinned size={14} />} label="Xã/Phường" value={selectedWardName} />
+                        </div>
+                    </Col> */}
+
+                    <Form.Item name="provinceCode" hidden rules={[{ required: true, message: "Vui lòng chọn tỉnh/thành phố" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="wardCode" hidden rules={[{ required: true, message: "Vui lòng chọn xã/phường" }]}>
+                        <Input />
+                    </Form.Item>
                     <Col span={24}>
                         <Form.Item name="areaId" label="Khu vực" rules={[{ required: true, message: "Vui lòng chọn khu vực" }]}>
                             <Select
