@@ -22,6 +22,87 @@ type Props = {
 };
 
 const MAX_PHOTOS = 3;
+const UPLOAD_MAX_IMAGE_DIMENSION = 1600;
+const UPLOAD_TARGET_SIZE_BYTES = 450 * 1024;
+
+function replaceFileExtension(fileName: string, extension: string): string {
+    const trimmed = fileName.trim();
+    const dotIndex = trimmed.lastIndexOf(".");
+    if (dotIndex <= 0) return `${trimmed || "photo"}.${extension}`;
+    return `${trimmed.slice(0, dotIndex)}.${extension}`;
+}
+
+function loadImageElement(file: File): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const image = new window.Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        image.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(image);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("Không thể đọc dữ liệu ảnh."));
+        };
+
+        image.src = objectUrl;
+    });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                reject(new Error("Không thể nén ảnh."));
+                return;
+            }
+            resolve(blob);
+        }, type, quality);
+    });
+}
+
+async function compressImageForUpload(file: File): Promise<File> {
+    if (!file.type.startsWith("image/")) return file;
+
+    const image = await loadImageElement(file);
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+
+    if (width <= 0 || height <= 0) return file;
+
+    const scale = Math.min(1, UPLOAD_MAX_IMAGE_DIMENSION / Math.max(width, height));
+    const outputWidth = Math.max(1, Math.round(width * scale));
+    const outputHeight = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return file;
+
+    context.drawImage(image, 0, 0, outputWidth, outputHeight);
+
+    // Use JPEG for better compression on mobile photos and reduce storage footprint.
+    const outputType = "image/jpeg";
+    let quality = 0.82;
+    let compressedBlob = await canvasToBlob(canvas, outputType, quality);
+
+    while (compressedBlob.size > UPLOAD_TARGET_SIZE_BYTES && quality > 0.56) {
+        quality = Number((quality - 0.08).toFixed(2));
+        compressedBlob = await canvasToBlob(canvas, outputType, quality);
+    }
+
+    if (compressedBlob.size >= file.size && scale === 1) {
+        return file;
+    }
+
+    const outputName = replaceFileExtension(file.name, "jpg");
+    return new File([compressedBlob], outputName, {
+        type: outputType,
+        lastModified: Date.now(),
+    });
+}
 
 function InfoBanner({
     colorClassName,
@@ -76,13 +157,16 @@ export default function PovertyCollectionStepTwoForm({
         if (files.length === 0) return;
 
         try {
-            const uploaded = await Promise.all(files.map(async (file, index) => ({
-                id: `${Date.now()}-${index}-${file.name}`,
-                fileName: file.name,
-                fileSize: file.size,
-                mimeType: file.type || "image/jpeg",
-                fileContentBase64: await fileToBase64(file),
-            } satisfies AttachmentType)));
+            const uploaded = await Promise.all(files.map(async (file, index) => {
+                const optimizedFile = await compressImageForUpload(file).catch(() => file);
+                return {
+                    id: `${Date.now()}-${index}-${optimizedFile.name}`,
+                    fileName: optimizedFile.name,
+                    fileSize: optimizedFile.size,
+                    mimeType: optimizedFile.type || "image/jpeg",
+                    fileContentBase64: await fileToBase64(optimizedFile),
+                } satisfies AttachmentType;
+            }));
 
             const nextPhotos = [...photos, ...uploaded].slice(0, MAX_PHOTOS);
             if (nextPhotos.length < photos.length + uploaded.length) {
