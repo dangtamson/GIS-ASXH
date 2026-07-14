@@ -764,6 +764,11 @@ export default function PovertyHouseholdDetailPage({ id }: Props) {
                                     scroll={{ x: 760 }}
                                     columns={[
                                         { title: "Thời gian", dataIndex: "changedAt", width: 160, render: formatDate },
+                                        {
+                                            title: "Người thay đổi",
+                                            width: 220,
+                                            render: (_, record) => record.changedByAccount?.fullName || record.changedByAccount?.email || record.changedBy || "-"
+                                        },
                                         { title: "Hành động", dataIndex: "actionType", width: 140 },
                                         { title: "Đối tượng", dataIndex: "objectType", width: 140 },
                                         { title: "Ghi chú", dataIndex: "changeNote", width: 300, ellipsis: true, render: (value) => value || "-" },

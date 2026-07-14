@@ -110,6 +110,7 @@ const NO_SCOPE_MESSAGE = "Tài khoản chưa được gán địa bàn quản l�
 const LOCATION_SCOPE_MESSAGE = "Bạn không có quyền truy cập địa bàn này";
 const WARD_SCOPE_MESSAGE = "Bạn không có quyền truy cập xã/phường này";
 const AREA_SCOPE_MESSAGE = "Bạn không có quyền truy cập khu vực này";
+const getChangedByAccountId = (req: Request): string | null => req.accountId?.trim() ?? null;
 
 const hasLocationAccess = (
   scope: PovertyAccessScope,
@@ -219,7 +220,7 @@ export const createHouseholdAdmin = asyncHandler(async (req: Request, res: Respo
   if (!body) return;
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !ensureLocationInScope(scope, body, res)) return;
-  const item = await createHousehold(body);
+  const item = await createHousehold(body, getChangedByAccountId(req));
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household created successfully");
   res.status(response.code).send(response);
 });
@@ -256,7 +257,7 @@ export const updateHouseholdAdminById = asyncHandler(async (req: Request, res: R
   };
   if (!ensureLocationInScope(scope, nextLocation, res)) return;
 
-  const item = await updateHousehold(params.id, body);
+  const item = await updateHousehold(params.id, body, getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household"));
     res.status(response.code).send(response);
@@ -271,7 +272,7 @@ export const deleteHouseholdAdminById = asyncHandler(async (req: Request, res: R
   if (!params) return;
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const item = await deactivateHousehold(params.id, "Ngưng hoạt động hộ");
+  const item = await deactivateHousehold(params.id, "Ngưng hoạt động hộ", getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household"));
     res.status(response.code).send(response);
@@ -298,7 +299,7 @@ export const createHouseholdMemberAdmin = asyncHandler(async (req: Request, res:
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdMemberCreateSchema, req.body, res);
   if (!body) return;
-  const item = await createMember(params.id, body);
+  const item = await createMember(params.id, body, getChangedByAccountId(req));
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household member created successfully");
   res.status(response.code).send(response);
 });
@@ -310,7 +311,7 @@ export const updateHouseholdMemberAdminById = asyncHandler(async (req: Request, 
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdMemberUpdateSchema, req.body, res);
   if (!body) return;
-  const item = await updateMember(params.id, params.memberId, body);
+  const item = await updateMember(params.id, params.memberId, body, getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household member"));
     res.status(response.code).send(response);
@@ -325,7 +326,7 @@ export const deleteHouseholdMemberAdminById = asyncHandler(async (req: Request, 
   if (!params) return;
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const item = await deleteMember(params.id, params.memberId, "Xóa thành viên hộ");
+  const item = await deleteMember(params.id, params.memberId, "Xóa thành viên hộ", getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household member"));
     res.status(response.code).send(response);
@@ -352,7 +353,7 @@ export const createHouseholdAssessmentAdmin = asyncHandler(async (req: Request, 
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdAssessmentCreateSchema, req.body, res);
   if (!body) return;
-  const item = await createAssessment(params.id, body);
+  const item = await createAssessment(params.id, body, getChangedByAccountId(req));
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household assessment created successfully");
   res.status(response.code).send(response);
 });
@@ -364,7 +365,7 @@ export const updateHouseholdAssessmentAdminById = asyncHandler(async (req: Reque
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdAssessmentUpdateSchema, req.body, res);
   if (!body) return;
-  const item = await updateAssessment(params.id, params.assessmentId, body);
+  const item = await updateAssessment(params.id, params.assessmentId, body, getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household assessment"));
     res.status(response.code).send(response);
@@ -379,7 +380,7 @@ export const deleteHouseholdAssessmentAdminById = asyncHandler(async (req: Reque
   if (!params) return;
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const item = await deleteAssessment(params.id, params.assessmentId, "Xóa đánh giá hộ");
+  const item = await deleteAssessment(params.id, params.assessmentId, "Xóa đánh giá hộ", getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household assessment"));
     res.status(response.code).send(response);
@@ -406,7 +407,7 @@ export const createHouseholdContextHistoryAdmin = asyncHandler(async (req: Reque
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdContextHistoryCreateSchema, req.body, res);
   if (!body) return;
-  const item = await createContextHistory(params.id, body);
+  const item = await createContextHistory(params.id, body, getChangedByAccountId(req));
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household context history created successfully");
   res.status(response.code).send(response);
 });
@@ -418,7 +419,7 @@ export const updateHouseholdContextHistoryAdminById = asyncHandler(async (req: R
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdContextHistoryUpdateSchema, req.body, res);
   if (!body) return;
-  const item = await updateContextHistory(params.id, params.contextHistoryId, body);
+  const item = await updateContextHistory(params.id, params.contextHistoryId, body, getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household context history"));
     res.status(response.code).send(response);
@@ -433,7 +434,12 @@ export const deleteHouseholdContextHistoryAdminById = asyncHandler(async (req: R
   if (!params) return;
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const item = await deleteContextHistory(params.id, params.contextHistoryId, "Xoa hoan canh va hien trang ho");
+  const item = await deleteContextHistory(
+    params.id,
+    params.contextHistoryId,
+    "Xoa hoan canh va hien trang ho",
+    getChangedByAccountId(req)
+  );
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household context history"));
     res.status(response.code).send(response);
@@ -460,7 +466,7 @@ export const createHouseholdSupportAdmin = asyncHandler(async (req: Request, res
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdSupportCreateSchema, req.body, res);
   if (!body) return;
-  const item = await createSupport(params.id, body);
+  const item = await createSupport(params.id, body, getChangedByAccountId(req));
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household support created successfully");
   res.status(response.code).send(response);
 });
@@ -472,7 +478,7 @@ export const updateHouseholdSupportAdminById = asyncHandler(async (req: Request,
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const body = parseOrSendError(householdSupportUpdateSchema, req.body, res);
   if (!body) return;
-  const item = await updateSupport(params.id, params.supportId, body);
+  const item = await updateSupport(params.id, params.supportId, body, getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household support"));
     res.status(response.code).send(response);
@@ -487,7 +493,7 @@ export const deleteHouseholdSupportAdminById = asyncHandler(async (req: Request,
   if (!params) return;
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const item = await deleteSupport(params.id, params.supportId, "Xóa hỗ trợ hộ");
+  const item = await deleteSupport(params.id, params.supportId, "Xóa hỗ trợ hộ", getChangedByAccountId(req));
   if (!item) {
     const response = apiResponse.error(HttpErrors.NotFound("Household support"));
     res.status(response.code).send(response);
@@ -527,7 +533,7 @@ export const importHouseholdsAdmin = asyncHandler(async (req: Request, res: Resp
     }
 
     try {
-      const result = await importHouseholdRow(row.data);
+      const result = await importHouseholdRow(row.data, getChangedByAccountId(req));
       if (result.item?.id && result.action === "created") created.push(result.item.id);
       if (result.item?.id && result.action === "updated") updated.push(result.item.id);
     } catch (error) {

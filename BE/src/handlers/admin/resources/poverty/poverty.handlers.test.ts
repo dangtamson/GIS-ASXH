@@ -159,7 +159,8 @@ describe("poverty handlers superadmin scope bypass", () => {
         provinceCode: "92",
         wardCode: "31117",
         areaId: VALID_AREA_ID
-      })
+      }),
+      VALID_ACCOUNT_ID
     );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(next).not.toHaveBeenCalled();

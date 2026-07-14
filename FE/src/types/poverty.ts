@@ -114,6 +114,12 @@ export type HouseholdChangeLog = {
     newData?: Record<string, unknown> | null;
     changeNote?: string | null;
     changedAt?: string | null;
+    changedBy?: string | null;
+    changedByAccount?: {
+        uuid: string;
+        fullName?: string | null;
+        email?: string | null;
+    } | null;
 };
 
 export type HouseholdFieldPhoto = {

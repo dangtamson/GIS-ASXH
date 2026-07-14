@@ -72,6 +72,57 @@ export const filterCommandMapMarkersBySelection = <T extends { wardName?: string
     return matchedMarkers.length > 0 ? matchedMarkers : markers;
 };
 
+export type CommandMapHeatmapPoint = {
+    id: string;
+    x: number;
+    y: number;
+    value: number;
+    povertyType: string | null | undefined;
+};
+
+export const buildCommandMapHeatmapPoints = <
+    T extends {
+        id?: string | number | null;
+        latitude?: number | string | null;
+        longitude?: number | string | null;
+        povertyType?: string | null;
+        heatValue?: number | null;
+    },
+>(
+    markers: T[],
+    projection: (coordinates: [number, number]) => [number, number] | null | undefined
+): CommandMapHeatmapPoint[] =>
+    markers.flatMap((marker) => {
+        const latitude = Number(marker.latitude);
+        const longitude = Number(marker.longitude);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+            return [];
+        }
+
+        const projected = projection([longitude, latitude]);
+        if (!projected) {
+            return [];
+        }
+
+        const [x, y] = projected;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return [];
+        }
+
+        return [{
+            id: String(marker.id ?? `${longitude}:${latitude}`),
+            x,
+            y: -y,
+            value: Math.max(1, Number(marker.heatValue ?? 1)),
+            povertyType: marker.povertyType,
+        }];
+    });
+
+export const shouldFocusCommandMapSelection = (input: {
+    selectedRegionName?: string | null;
+    visibleRegionCount: number;
+}): boolean => Boolean(String(input.selectedRegionName ?? "").trim()) && input.visibleRegionCount === 1;
+
 export const getCommandMapFocusConfig = (input: {
     selectedRegionSize: number;
     fullMapSize: number;

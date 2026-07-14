@@ -51,7 +51,7 @@ type ImportModule<TData> = {
   name: string;
   fields: ImportField[];
   preview: (rows: Record<string, unknown>[]) => ImportPreviewResult<TData>;
-  commit: (rows: TData[]) => Promise<ImportCommitResult>;
+  commit: (rows: TData[], changedBy?: string | null) => Promise<ImportCommitResult>;
 };
 
 const toOptionalText = (value: unknown): string | undefined => {
@@ -156,14 +156,14 @@ const povertyHouseholdModule: ImportModule<ImportedHouseholdInput> = {
     { key: "longitude", label: "Kinh độ", alternateMatches: ["kinh do", "longitude", "lng", "kinh độ"], example: "105.84" }
   ],
   preview: createPovertyHouseholdPreview,
-  commit: async (rows) => {
+  commit: async (rows, changedBy) => {
     const created: string[] = [];
     const updated: string[] = [];
     const errors: ImportRowError[] = [];
 
     for (const [index, row] of rows.entries()) {
       try {
-        const result = await importHouseholdRow(row);
+        const result = await importHouseholdRow(row, changedBy);
         if (result.item?.id && result.action === "created") created.push(result.item.id);
         if (result.item?.id && result.action === "updated") updated.push(result.item.id);
       } catch (error) {

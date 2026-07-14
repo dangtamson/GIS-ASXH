@@ -81,7 +81,7 @@ export const commitImportAdmin = asyncHandler(async (req: Request, res: Response
     res.status(response.code).send({ ...response, data: preview });
     return;
   }
-  const result = await module.commit(preview.validRows.map((row) => row.data));
+  const result = await module.commit(preview.validRows.map((row) => row.data), req.accountId?.trim() ?? null);
   const response = apiResponse.success(HttpStatusCode.OK, result, "Import committed successfully");
   res.status(response.code).send(response);
 });

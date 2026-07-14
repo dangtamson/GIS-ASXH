@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import {
+  accounts,
   administrativeUnits,
   areas,
   householdAssessments,
@@ -238,6 +239,26 @@ export type PovertyHouseholdBackfillException = {
   reason: string;
 };
 
+type ChangeLogActor = {
+  uuid: string;
+  fullName: string | null;
+  email: string | null;
+};
+
+export type HouseholdChangeLogItem = {
+  id: string;
+  householdId: string | null;
+  actionType: string;
+  objectType: string;
+  objectId: string | null;
+  changedBy: string | null;
+  oldData: Record<string, unknown> | null;
+  newData: Record<string, unknown> | null;
+  changeNote: string | null;
+  changedAt: Date | null;
+  changedByAccount: ChangeLogActor | null;
+};
+
 type ChangeLogPayload = {
   householdId?: string;
   actionType: "CREATE" | "UPDATE" | "DELETE" | "IMPORT";
@@ -246,6 +267,7 @@ type ChangeLogPayload = {
   oldData?: Record<string, unknown>;
   newData?: Record<string, unknown>;
   changeNote?: string;
+  changedBy?: string | null;
 };
 
 type HouseholdWithId = {
@@ -1257,7 +1279,7 @@ export const getHouseholdDetail = async (id: string, scope?: PovertyAccessScope)
     db.select().from(householdMembers).where(eq(householdMembers.householdId, id)).orderBy(desc(householdMembers.isHead), asc(householdMembers.fullName)),
     db.select().from(householdAssessments).where(eq(householdAssessments.householdId, id)).orderBy(desc(householdAssessments.assessmentYear)),
     db.select().from(householdSupports).where(eq(householdSupports.householdId, id)).orderBy(desc(householdSupports.supportDate), desc(householdSupports.createdAt)),
-    db.select().from(householdChangeLogs).where(eq(householdChangeLogs.householdId, id)).orderBy(desc(householdChangeLogs.changedAt)).limit(50),
+    listChangeLogs(id, 50),
     db.select().from(files).where(and(eq(files.entityType, "poor_household"), eq(files.entityId, id), isNull(files.deletedAt))).orderBy(desc(files.createdAt)),
     listContextHistories(id)
   ]);
@@ -1277,6 +1299,42 @@ export const getHouseholdDetail = async (id: string, scope?: PovertyAccessScope)
   };
 };
 
+type HouseholdChangeLogQueryRow = {
+  id: string;
+  householdId: string | null;
+  actionType: string;
+  objectType: string;
+  objectId: string | null;
+  changedBy: string | null;
+  oldData: Record<string, unknown> | null;
+  newData: Record<string, unknown> | null;
+  changeNote: string | null;
+  changedAt: Date | null;
+  changedByUuid: string | null;
+  changedByFullName: string | null;
+  changedByEmail: string | null;
+};
+
+export const mapHouseholdChangeLogRow = (row: HouseholdChangeLogQueryRow): HouseholdChangeLogItem => ({
+  id: row.id,
+  householdId: row.householdId,
+  actionType: row.actionType,
+  objectType: row.objectType,
+  objectId: row.objectId,
+  changedBy: row.changedBy,
+  oldData: row.oldData,
+  newData: row.newData,
+  changeNote: row.changeNote,
+  changedAt: row.changedAt,
+  changedByAccount: row.changedByUuid
+    ? {
+        uuid: row.changedByUuid,
+        fullName: row.changedByFullName,
+        email: row.changedByEmail
+      }
+    : null
+});
+
 export const insertChangeLog = async (payload: ChangeLogPayload) => {
   const [created] = await db
     .insert(householdChangeLogs)
@@ -1285,6 +1343,7 @@ export const insertChangeLog = async (payload: ChangeLogPayload) => {
       actionType: payload.actionType,
       objectType: payload.objectType,
       objectId: payload.objectId,
+      changedBy: payload.changedBy ?? null,
       oldData: payload.oldData,
       newData: payload.newData,
       changeNote: payload.changeNote
@@ -1293,7 +1352,7 @@ export const insertChangeLog = async (payload: ChangeLogPayload) => {
   return created;
 };
 
-export const createHousehold = async (payload: HouseholdCreateInput) => {
+export const createHousehold = async (payload: HouseholdCreateInput, changedBy?: string | null) => {
   const labels = await getStandardizedLocationLabels(payload);
   const data = {
     ...withoutChangeNote(payload),
@@ -1311,13 +1370,14 @@ export const createHousehold = async (payload: HouseholdCreateInput) => {
       objectType: "HOUSEHOLD",
       objectId: created.id,
       newData: created,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return created;
 };
 
-export const updateHousehold = async (id: string, payload: HouseholdUpdateInput) => {
+export const updateHousehold = async (id: string, payload: HouseholdUpdateInput, changedBy?: string | null) => {
   const existing = await getHouseholdById(id);
   if (!existing) return null;
 
@@ -1349,20 +1409,21 @@ export const updateHousehold = async (id: string, payload: HouseholdUpdateInput)
     objectId: id,
     oldData: existing,
     newData: updated,
-    changeNote: payload.changeNote
+    changeNote: payload.changeNote,
+    changedBy
   });
 
   return updated;
 };
 
-export const deactivateHousehold = async (id: string, changeNote?: string) => {
-  return updateHousehold(id, { status: "INACTIVE", changeNote });
+export const deactivateHousehold = async (id: string, changeNote?: string, changedBy?: string | null) => {
+  return updateHousehold(id, { status: "INACTIVE", changeNote }, changedBy);
 };
 
 export const listMembers = async (householdId: string) =>
   db.select().from(householdMembers).where(eq(householdMembers.householdId, householdId)).orderBy(desc(householdMembers.isHead), asc(householdMembers.fullName));
 
-export const createMember = async (householdId: string, payload: HouseholdMemberCreateInput) => {
+export const createMember = async (householdId: string, payload: HouseholdMemberCreateInput, changedBy?: string | null) => {
   if (shouldClearOtherHeadMembers(payload)) {
     await clearOtherHeadMembers(householdId);
   }
@@ -1378,13 +1439,19 @@ export const createMember = async (householdId: string, payload: HouseholdMember
       objectType: "MEMBER",
       objectId: created.id,
       newData: created,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return created;
 };
 
-export const updateMember = async (householdId: string, memberId: string, payload: Partial<HouseholdMemberCreateInput>) => {
+export const updateMember = async (
+  householdId: string,
+  memberId: string,
+  payload: Partial<HouseholdMemberCreateInput>,
+  changedBy?: string | null
+) => {
   const [existing] = await db
     .select()
     .from(householdMembers)
@@ -1409,13 +1476,19 @@ export const updateMember = async (householdId: string, memberId: string, payloa
       objectId: memberId,
       oldData: existing,
       newData: updated,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return updated;
 };
 
-export const deleteMember = async (householdId: string, memberId: string, changeNote?: string) => {
+export const deleteMember = async (
+  householdId: string,
+  memberId: string,
+  changeNote?: string,
+  changedBy?: string | null
+) => {
   const [existing] = await db
     .select()
     .from(householdMembers)
@@ -1432,7 +1505,8 @@ export const deleteMember = async (householdId: string, memberId: string, change
     objectType: "MEMBER",
     objectId: memberId,
     oldData: existing,
-    changeNote
+    changeNote,
+    changedBy
   });
   return deleted;
 };
@@ -1440,7 +1514,11 @@ export const deleteMember = async (householdId: string, memberId: string, change
 export const listAssessments = async (householdId: string) =>
   db.select().from(householdAssessments).where(eq(householdAssessments.householdId, householdId)).orderBy(desc(householdAssessments.assessmentYear));
 
-export const createAssessment = async (householdId: string, payload: HouseholdAssessmentCreateInput) => {
+export const createAssessment = async (
+  householdId: string,
+  payload: HouseholdAssessmentCreateInput,
+  changedBy?: string | null
+) => {
   const [created] = await db
     .insert(householdAssessments)
     .values({ ...withoutChangeNote(payload), householdId })
@@ -1452,7 +1530,8 @@ export const createAssessment = async (householdId: string, payload: HouseholdAs
       objectType: "ASSESSMENT",
       objectId: created.id,
       newData: created,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return created;
@@ -1461,7 +1540,8 @@ export const createAssessment = async (householdId: string, payload: HouseholdAs
 export const updateAssessment = async (
   householdId: string,
   assessmentId: string,
-  payload: Partial<HouseholdAssessmentCreateInput>
+  payload: Partial<HouseholdAssessmentCreateInput>,
+  changedBy?: string | null
 ) => {
   const [existing] = await db
     .select()
@@ -1482,13 +1562,19 @@ export const updateAssessment = async (
       objectId: assessmentId,
       oldData: existing,
       newData: updated,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return updated;
 };
 
-export const deleteAssessment = async (householdId: string, assessmentId: string, changeNote?: string) => {
+export const deleteAssessment = async (
+  householdId: string,
+  assessmentId: string,
+  changeNote?: string,
+  changedBy?: string | null
+) => {
   const [existing] = await db
     .select()
     .from(householdAssessments)
@@ -1505,7 +1591,8 @@ export const deleteAssessment = async (householdId: string, assessmentId: string
     objectType: "ASSESSMENT",
     objectId: assessmentId,
     oldData: existing,
-    changeNote
+    changeNote,
+    changedBy
   });
   return deleted;
 };
@@ -1517,7 +1604,11 @@ export const listSupports = async (householdId: string) =>
     .where(eq(householdSupports.householdId, householdId))
     .orderBy(desc(householdSupports.supportDate), desc(householdSupports.createdAt));
 
-export const createSupport = async (householdId: string, payload: HouseholdSupportCreateInput) => {
+export const createSupport = async (
+  householdId: string,
+  payload: HouseholdSupportCreateInput,
+  changedBy?: string | null
+) => {
   const [created] = await db
     .insert(householdSupports)
     .values({ ...withoutChangeNote(payload), householdId, supportDate: payload.supportDate as string })
@@ -1529,7 +1620,8 @@ export const createSupport = async (householdId: string, payload: HouseholdSuppo
       objectType: "SUPPORT",
       objectId: created.id,
       newData: created,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return created;
@@ -1545,7 +1637,11 @@ export const listContextHistories = async (householdId: string) => {
   return sortContextHistoriesLatestFirst(items);
 };
 
-export const createContextHistory = async (householdId: string, payload: HouseholdContextHistoryCreateInput) => {
+export const createContextHistory = async (
+  householdId: string,
+  payload: HouseholdContextHistoryCreateInput,
+  changedBy?: string | null
+) => {
   const [created] = await db
     .insert(householdContextHistories)
     .values({
@@ -1561,7 +1657,8 @@ export const createContextHistory = async (householdId: string, payload: Househo
       objectType: "CONTEXT_HISTORY",
       objectId: created.id,
       newData: created,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return created;
@@ -1570,7 +1667,8 @@ export const createContextHistory = async (householdId: string, payload: Househo
 export const updateContextHistory = async (
   householdId: string,
   contextHistoryId: string,
-  payload: Partial<HouseholdContextHistoryCreateInput>
+  payload: Partial<HouseholdContextHistoryCreateInput>,
+  changedBy?: string | null
 ) => {
   const [existing] = await db
     .select()
@@ -1593,13 +1691,19 @@ export const updateContextHistory = async (
       objectId: contextHistoryId,
       oldData: existing,
       newData: updated,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return updated;
 };
 
-export const deleteContextHistory = async (householdId: string, contextHistoryId: string, changeNote?: string) => {
+export const deleteContextHistory = async (
+  householdId: string,
+  contextHistoryId: string,
+  changeNote?: string,
+  changedBy?: string | null
+) => {
   const [existing] = await db
     .select()
     .from(householdContextHistories)
@@ -1616,7 +1720,8 @@ export const deleteContextHistory = async (householdId: string, contextHistoryId
     objectType: "CONTEXT_HISTORY",
     objectId: contextHistoryId,
     oldData: existing,
-    changeNote
+    changeNote,
+    changedBy
   });
   return deleted;
 };
@@ -1624,7 +1729,8 @@ export const deleteContextHistory = async (householdId: string, contextHistoryId
 export const updateSupport = async (
   householdId: string,
   supportId: string,
-  payload: Partial<HouseholdSupportCreateInput>
+  payload: Partial<HouseholdSupportCreateInput>,
+  changedBy?: string | null
 ) => {
   const [existing] = await db
     .select()
@@ -1647,13 +1753,19 @@ export const updateSupport = async (
       objectId: supportId,
       oldData: existing,
       newData: updated,
-      changeNote: payload.changeNote
+      changeNote: payload.changeNote,
+      changedBy
     });
   }
   return updated;
 };
 
-export const deleteSupport = async (householdId: string, supportId: string, changeNote?: string) => {
+export const deleteSupport = async (
+  householdId: string,
+  supportId: string,
+  changeNote?: string,
+  changedBy?: string | null
+) => {
   const [existing] = await db
     .select()
     .from(householdSupports)
@@ -1670,15 +1782,38 @@ export const deleteSupport = async (householdId: string, supportId: string, chan
     objectType: "SUPPORT",
     objectId: supportId,
     oldData: existing,
-    changeNote
+    changeNote,
+    changedBy
   });
   return deleted;
 };
 
-export const listChangeLogs = async (householdId: string) =>
-  db.select().from(householdChangeLogs).where(eq(householdChangeLogs.householdId, householdId)).orderBy(desc(householdChangeLogs.changedAt));
+export const listChangeLogs = async (householdId: string, limit?: number) => {
+  const query = db
+    .select({
+      id: householdChangeLogs.id,
+      householdId: householdChangeLogs.householdId,
+      actionType: householdChangeLogs.actionType,
+      objectType: householdChangeLogs.objectType,
+      objectId: householdChangeLogs.objectId,
+      changedBy: householdChangeLogs.changedBy,
+      oldData: householdChangeLogs.oldData,
+      newData: householdChangeLogs.newData,
+      changeNote: householdChangeLogs.changeNote,
+      changedAt: householdChangeLogs.changedAt,
+      changedByUuid: accounts.uuid,
+      changedByFullName: accounts.fullName,
+      changedByEmail: accounts.email
+    })
+    .from(householdChangeLogs)
+    .leftJoin(accounts, eq(householdChangeLogs.changedBy, accounts.uuid))
+    .where(eq(householdChangeLogs.householdId, householdId))
+    .orderBy(desc(householdChangeLogs.changedAt));
+  const rows = typeof limit === "number" ? await query.limit(limit) : await query;
+  return rows.map(mapHouseholdChangeLogRow);
+};
 
-export const importHouseholdRow = async (row: ImportedHouseholdInput) => {
+export const importHouseholdRow = async (row: ImportedHouseholdInput, changedBy?: string | null) => {
   const [existing] = await db.select().from(poorHouseholds).where(eq(poorHouseholds.code, row.code)).limit(1);
   if (existing) {
     const [updated] = await db
@@ -1694,7 +1829,8 @@ export const importHouseholdRow = async (row: ImportedHouseholdInput) => {
         objectId: updated.id,
         oldData: existing,
         newData: updated,
-        changeNote: "Import Excel cập nhật hộ"
+        changeNote: "Import Excel cập nhật hộ",
+        changedBy
       });
     }
     return { action: "updated" as const, item: updated };
@@ -1708,7 +1844,8 @@ export const importHouseholdRow = async (row: ImportedHouseholdInput) => {
       objectType: "HOUSEHOLD",
       objectId: created.id,
       newData: created,
-      changeNote: "Import Excel thêm mới hộ"
+      changeNote: "Import Excel thêm mới hộ",
+      changedBy
     });
   }
   return { action: "created" as const, item: created };

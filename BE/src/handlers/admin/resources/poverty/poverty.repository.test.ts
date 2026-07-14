@@ -13,6 +13,7 @@ import {
   deriveHouseholdLocationNames,
   findLatestWardOverviewYear,
   gisMarkerFilters,
+  mapHouseholdChangeLogRow,
   normalizeLocationText,
   shouldClearOtherHeadMembers,
   sortContextHistoriesLatestFirst,
@@ -197,6 +198,44 @@ describe("buildDashboardMonthlyTrend", () => {
         ]
       }
     ]);
+  });
+});
+
+describe("mapHouseholdChangeLogRow", () => {
+  it("attaches the linked account to each household change log", () => {
+    expect(
+      mapHouseholdChangeLogRow({
+        id: "log-1",
+        householdId: "household-1",
+        actionType: "UPDATE",
+        objectType: "HOUSEHOLD",
+        objectId: "household-1",
+        changedBy: "account-1",
+        oldData: { status: "ACTIVE" },
+        newData: { status: "INACTIVE" },
+        changeNote: "Ngưng hoạt động hộ",
+        changedAt: new Date("2026-07-14T08:00:00.000Z"),
+        changedByUuid: "account-1",
+        changedByFullName: "Nguyen Van A",
+        changedByEmail: "a@example.com"
+      })
+    ).toEqual({
+      id: "log-1",
+      householdId: "household-1",
+      actionType: "UPDATE",
+      objectType: "HOUSEHOLD",
+      objectId: "household-1",
+      changedBy: "account-1",
+      oldData: { status: "ACTIVE" },
+      newData: { status: "INACTIVE" },
+      changeNote: "Ngưng hoạt động hộ",
+      changedAt: new Date("2026-07-14T08:00:00.000Z"),
+      changedByAccount: {
+        uuid: "account-1",
+        fullName: "Nguyen Van A",
+        email: "a@example.com"
+      }
+    });
   });
 });
 
