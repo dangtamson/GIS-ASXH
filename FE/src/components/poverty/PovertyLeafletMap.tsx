@@ -100,8 +100,6 @@ type WardBoundaryProperties = {
     mergedFrom?: string;
     province?: string;
 };
-const MARKER_LABEL_MIN_ZOOM = 17;
-const MARKER_LABEL_MAX_COUNT = 60;
 const WARD_BOUNDARY_DATA = canThoBoundaryGeoJson as FeatureCollection<Geometry, WardBoundaryProperties>;
 const NEARBY_RADIUS_OPTIONS_KM = [1, 2, 5, 10] as const;
 
@@ -245,7 +243,7 @@ function MarkerPopupContent({
             : "bg-slate-100 text-slate-600";
 
     return (
-        <div className="flex min-w-[120px] max-w-[150px] items-start gap-2.5 text-[13px] leading-5 text-gray-700">
+        <div className="flex min-w-[120px] max-w-[200px] items-start gap-2.5 text-[13px] leading-5 text-gray-700">
             <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}>
                 <UserRound size={15} strokeWidth={2} />
             </span>
@@ -596,7 +594,7 @@ function ClusteredMarkers({
         const popupRoots: Root[] = [];
         markerRefsRef.current = {};
         const updateTooltipVisibility = () => {
-            const shouldShowLabels = map.getZoom() >= MARKER_LABEL_MIN_ZOOM && markers.length <= MARKER_LABEL_MAX_COUNT;
+            const shouldShowLabels = map.getZoom() >= map.getMaxZoom();
             Object.values(markerRefsRef.current).forEach((leafletMarker) => {
                 if (!leafletMarker) return;
                 if (shouldShowLabels) {
@@ -622,7 +620,7 @@ function ClusteredMarkers({
             );
             popupRoots.push(popupRoot);
             leafletMarker.bindTooltip(popupContainer, {
-                permanent: true,
+                permanent: false,
                 direction: "top",
                 offset: [0, -30],
                 opacity: 1,
@@ -2427,7 +2425,7 @@ export default function PovertyLeafletMap({
                             center={DEFAULT_CENTER}
                             zoom={DEFAULT_ZOOM}
                             minZoom={3}
-                            maxZoom={21}
+                            maxZoom={22}
                             zoomControl={false}
                             scrollWheelZoom
                             className="h-full w-full"
@@ -2438,7 +2436,7 @@ export default function PovertyLeafletMap({
                                 key={baseLayer}
                                 url={`https://{s}.google.com/vt/lyrs=${selectedGoogleLayer.layer}&hl=vi&x={x}&y={y}&z={z}`}
                                 subdomains={GOOGLE_SUBDOMAINS}
-                                maxZoom={21}
+                                maxZoom={22}
                                 attribution="Map data &copy; Google"
                             />
                             <WardBoundaryLayer
