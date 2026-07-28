@@ -8,7 +8,7 @@ import {
   workspaceMembershipSelectSchema,
   workspaceSelectSchema
 } from "@/schema.ts";
-import { accountEmailInputSchema } from "@/helpers/accountEmail.ts";
+import { accountEmailInputSchema, accountEmailLoginInputSchema } from "@/helpers/accountEmail.ts";
 import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
@@ -159,7 +159,7 @@ export const UuidParamsWithMemberSchema = z
 // Authentication request schemas
 export const LoginRequestSchema = z
   .object({
-    email: accountEmailInputSchema.describe("User email address or account alias"),
+    email: accountEmailLoginInputSchema.describe("User email address or account alias"),
     password: z.string().min(6).describe("User password")
   })
   .openapi("LoginRequest");

@@ -44,6 +44,35 @@ export function normalizeAccountEmail(
   return `${trimmed}${normalizedDomain}`;
 }
 
+export function getAccountEmailCandidates(value: string): string[] {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return [];
+  }
+
+  if (trimmed.includes("@")) {
+    return [trimmed];
+  }
+
+  return DEFAULT_ACCOUNT_EMAIL_DOMAIN.map((domain) => normalizeAccountEmail(trimmed, domain));
+}
+
+export function resolveAccountEmail(
+  candidates: readonly string[],
+  existingEmails: readonly string[]
+): string | undefined {
+  return candidates.find((candidate) => existingEmails.includes(candidate));
+}
+
+export const accountEmailLoginInputSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(isValidAccountEmailInput, {
+    message: "Email must be a full email address or a valid account alias"
+  })
+  .transform((value) => value.toLowerCase());
+
 export const accountEmailInputSchema = z
   .string()
   .trim()

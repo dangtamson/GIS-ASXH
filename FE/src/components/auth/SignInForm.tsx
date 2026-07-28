@@ -2,7 +2,7 @@
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
-import { getAccountEmailValidationMessage, isValidAccountEmailInput, normalizeAccountEmail } from "@/lib/accountEmail";
+import { getAccountEmailValidationMessage, getLoginAccountEmailInput, isValidAccountEmailInput } from "@/lib/accountEmail";
 import Button from "@/components/ui/button/Button";
 import { api, ApiError } from "@/lib/api";
 import { hydrateSessionFromProfile, resolveOrganizationIdFromAuthPayload, resolveWorkspaceIdFromMePayload, setSession } from "@/lib/auth";
@@ -118,7 +118,7 @@ export default function SignInForm() {
 
     try {
       const data = await api.post<AuthResponse>(endpoints.auth.login, {
-        email: normalizeAccountEmail(trimmedEmail),
+        email: getLoginAccountEmailInput(trimmedEmail),
         password,
       });
       const accessToken = data.token || data.session?.access_token;

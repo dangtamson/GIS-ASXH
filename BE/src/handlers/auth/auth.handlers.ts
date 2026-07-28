@@ -1,5 +1,6 @@
 import { LoginRequestSchema, SignupRequestSchema } from "@/docs/openapi-schemas.ts";
 import { createDbAccount } from "@/handlers/accounts/accounts.methods.ts";
+import { getAccountEmailCandidates, resolveAccountEmail } from "@/helpers/accountEmail.ts";
 import { HttpErrors, HttpStatusCode } from "@/helpers/Http.ts";
 import { logger } from "@/helpers/logger.ts";
 import { asyncHandler } from "@/helpers/request.ts";
@@ -18,7 +19,7 @@ import {
 import { getSupabaseAdmin, supabase } from "@/services/supabase.ts";
 import type { User } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 
@@ -290,26 +291,32 @@ export const signInWithPassword = asyncHandler(
       }
 
       const { email, password } = validation.data;
+      const emailCandidates = getAccountEmailCandidates(email);
       const ipAddress = req.ip || undefined;
       const userAgent = req.get("User-Agent") || undefined;
 
-      // Find account by email
-      const [dbAccount] = await db
+      // Find the first account matching the input email or alias candidates.
+      const matchingAccounts = await db
         .select({
           uuid: accounts.uuid,
+          email: accounts.email,
           isLocked: accounts.isLocked,
           lockedUntil: accounts.lockedUntil,
           passwordChangeRequired: accounts.passwordChangeRequired
         })
         .from(accounts)
-        .where(eq(accounts.email, email))
-        .limit(1);
+        .where(inArray(accounts.email, emailCandidates));
+      const resolvedEmail = resolveAccountEmail(
+        emailCandidates,
+        matchingAccounts.map((account) => account.email)
+      ) ?? email;
+      const dbAccount = matchingAccounts.find((account) => account.email === resolvedEmail);
 
       // Check account lock status BEFORE attempting login
       if (dbAccount) {
         const lockStatus = await checkAccountLockStatus(dbAccount.uuid);
         if (lockStatus.isLocked) {
-          logger.warn({ email, lockReason: lockStatus.reason }, "Login attempt on locked account");
+          logger.warn({ email: resolvedEmail, lockReason: lockStatus.reason }, "Login attempt on locked account");
           const response = apiResponse.error(
             HttpErrors.Unauthorized("Account is locked. Please try again later or contact support.")
           );
@@ -320,13 +327,13 @@ export const signInWithPassword = asyncHandler(
 
       // Attempt Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: resolvedEmail,
         password
       });
 
       if (error || !data.user?.id) {
         // Invalid credentials
-        logger.error({ error, email }, "Failed Supabase authentication");
+        logger.error({ error, email: resolvedEmail }, "Failed Supabase authentication");
 
         // Record failed attempt if account exists
         if (dbAccount) {
@@ -341,7 +348,7 @@ export const signInWithPassword = asyncHandler(
           const workspaceId = userFirstWorkspace?.uuid || "default-workspace";
           const failedLoginResult = await recordFailedLogin(
             dbAccount.uuid,
-            email,
+            resolvedEmail,
             workspaceId,
             ipAddress,
             userAgent
@@ -398,7 +405,7 @@ export const signInWithPassword = asyncHandler(
       }
 
       // Record successful login
-      await recordSuccessfulLogin(accountId, email, ipAddress, userAgent);
+      await recordSuccessfulLogin(accountId, resolvedEmail, ipAddress, userAgent);
 
       // Get user workspaces and security policy
       const userWorkspaces = await db

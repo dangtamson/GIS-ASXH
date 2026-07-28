@@ -37,6 +37,10 @@ export function normalizeAccountEmail(
     return `${trimmed}${normalizedDomain}`;
 }
 
+export function getLoginAccountEmailInput(value: string): string {
+    return value.trim().toLowerCase();
+}
+
 export function getAccountEmailValidationMessage(): string {
     return "Vui lòng nhập tài khoản hoặc email hợp lệ.";
 }
