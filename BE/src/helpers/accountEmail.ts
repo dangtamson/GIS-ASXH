@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const DEFAULT_ACCOUNT_EMAIL_DOMAIN = "@cantho.gov.vn";
+export const DEFAULT_ACCOUNT_EMAIL_DOMAIN = ["@cantho.gov.vn", "@vnpt.vn"] as const;
 const FULL_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACCOUNT_ALIAS_REGEX = /^[a-zA-Z0-9._-]+$/;
 
@@ -19,7 +19,7 @@ export function isValidAccountEmailInput(value: string): boolean {
 
 export function normalizeAccountEmail(
   value: string,
-  defaultDomain: string = DEFAULT_ACCOUNT_EMAIL_DOMAIN
+  defaultDomain: string | readonly string[] = DEFAULT_ACCOUNT_EMAIL_DOMAIN
 ): string {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) {
@@ -30,9 +30,16 @@ export function normalizeAccountEmail(
     return trimmed;
   }
 
-  const normalizedDomain = defaultDomain.startsWith("@")
-    ? defaultDomain.toLowerCase()
-    : `@${defaultDomain.toLowerCase()}`;
+  const domain = Array.isArray(defaultDomain)
+    ? defaultDomain[0] ?? ""
+    : defaultDomain;
+  if (!domain) {
+    return trimmed;
+  }
+
+  const normalizedDomain = domain.startsWith("@")
+    ? domain.toLowerCase()
+    : `@${domain.toLowerCase()}`;
 
   return `${trimmed}${normalizedDomain}`;
 }

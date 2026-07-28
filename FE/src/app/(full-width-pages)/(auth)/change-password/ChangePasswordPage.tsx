@@ -151,7 +151,7 @@ async function reAuthenticateWithNewPassword(password: string): Promise<void> {
         password,
     });
 
-    const accessToken = data.session?.access_token || data.token;
+    const accessToken = data.token || data.session?.access_token;
     if (!accessToken) {
         throw new Error("Không nhận được access token sau khi đăng nhập lại.");
     }

@@ -286,6 +286,7 @@ export const LoginResponseDataSchema = z
   .object({
     user: LoginAuthUserSchema.nullable(),
     session: LoginAuthSessionSchema.nullable(),
+    token: z.string().describe("Application JWT access token"),
     account: AccountSchema,
     workspaces: z.array(LoginWorkspaceInfoSchema),
     workspaceCount: z.number().int().min(0)
@@ -1285,4 +1286,3 @@ export const TaskAssignmentsListResponseDataSchema = z
     filters: z.record(z.string(), z.unknown())
   })
   .openapi("TaskAssignmentsListResponseData");
-

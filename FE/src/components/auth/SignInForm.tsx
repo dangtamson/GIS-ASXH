@@ -121,7 +121,7 @@ export default function SignInForm() {
         email: normalizeAccountEmail(trimmedEmail),
         password,
       });
-      const accessToken = data.session?.access_token || data.token;
+      const accessToken = data.token || data.session?.access_token;
       if (!accessToken) {
         throw new Error("Không nhận được access token từ phản hồi đăng nhập.");
       }

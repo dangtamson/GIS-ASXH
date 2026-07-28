@@ -444,7 +444,11 @@ export const signInWithPassword = asyncHandler(
       }
 
       const responseData = {
+        // Do not expose/use the Supabase session token for application API calls.
+        // Supabase is only used above to verify the password.
         ...data,
+        session: null,
+        token: issueAppToken(accountId),
         account,
         workspaces: userWorkspaces,
         workspaceCount: userWorkspaces.length,

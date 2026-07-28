@@ -1,8 +1,10 @@
 import { logger } from "@/helpers/index.ts";
+import { createInFlightRequestCache } from "@/lib/inflight-request-cache.ts";
 import { supabase } from "@/services/supabase.ts";
 import { createHmac, timingSafeEqual } from "crypto";
 
 const APP_TOKEN_SECRET = process.env.APP_JWT_SECRET || "local-dev-app-jwt-secret";
+const claimsVerificationCache = createInFlightRequestCache();
 
 function base64UrlDecode(input: string): string {
   const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -67,7 +69,7 @@ export const verifyToken = async (
   }
 
   try {
-    const { data, error } = await supabase.auth.getClaims(token);
+    const { data, error } = await claimsVerificationCache.run(token, () => supabase.auth.getClaims(token));
 
     if (error || !data) {
       logger.warn({ error }, "Token verification failed via getClaims()");
