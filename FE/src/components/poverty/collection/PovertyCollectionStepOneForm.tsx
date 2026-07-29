@@ -10,10 +10,10 @@ import {
 } from "@/components/poverty/collection/poverty-collection-utils";
 import { ActionButton } from "@/components/controller";
 import type { PoorHousehold, PovertyArea, ProvinceOption, WardOption } from "@/types/poverty";
-import { Alert, Button, Col, Form, Input, InputNumber, Row, Select, Tag } from "antd";
-import { ArrowLeft, Compass, HousePlus, MapPinned, UserRound, Users } from "lucide-react";
+import { Alert, Button, Col, Form, Input, InputNumber, Row, Select, Tag, Spin } from "antd";
+import { ArrowLeft, Compass, HousePlus, MapPinned, UserRound, Users, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
     areaOptions: PovertyArea[];
@@ -78,6 +78,7 @@ export default function PovertyCollectionStepOneForm({
     wardOptions,
 }: Props) {
     const [form] = Form.useForm<StepOneFormValues>();
+    const [isGettingLocation, setIsGettingLocation] = useState(false);
     const selectedProvinceCode = Form.useWatch("provinceCode", form);
     const selectedWardCode = Form.useWatch("wardCode", form);
     const latitude = Form.useWatch("latitude", form);
@@ -163,6 +164,49 @@ export default function PovertyCollectionStepOneForm({
             areaId: undefined,
         });
     }, [form, selectedProvinceCode, selectedWardCode, wardOptions]);
+
+    const handleGetCurrentLocation = async () => {
+        if (!navigator.geolocation) {
+            alert("Trình duyệt của bạn không hỗ trợ lấy vị trí hiện tại");
+            return;
+        }
+
+        setIsGettingLocation(true);
+        try {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude: lat, longitude: lon } = position.coords;
+                    form.setFieldsValue({
+                        latitude: Math.round(lat * 1000000) / 1000000,
+                        longitude: Math.round(lon * 1000000) / 1000000,
+                    });
+                    setIsGettingLocation(false);
+                },
+                (error) => {
+                    console.error("Lỗi lấy vị trí:", error);
+                    let errorMessage = "Không thể lấy vị trí hiện tại";
+                    if (error.code === 1) {
+                        errorMessage = "Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt.";
+                    } else if (error.code === 2) {
+                        errorMessage = "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra kết nối GPS.";
+                    } else if (error.code === 3) {
+                        errorMessage = "Hết thời gian chờ lấy vị trí. Vui lòng thử lại.";
+                    }
+                    alert(errorMessage);
+                    setIsGettingLocation(false);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0,
+                }
+            );
+        } catch (err) {
+            console.error("Lỗi khi lấy vị trí:", err);
+            alert("Có lỗi xảy ra khi lấy vị trí");
+            setIsGettingLocation(false);
+        }
+    };
 
     return (
         <Form
@@ -286,8 +330,8 @@ export default function PovertyCollectionStepOneForm({
                             <Input.TextArea rows={3} placeholder="Số nhà, tên đường, mô tả vị trí thực tế..." />
                         </Form.Item>
                     </Col>
-                    <Col xs={12} span={12}>
-                        <Form.Item name="latitude" label="Vĩ độ">
+                    <Col xs={10} span={10}>
+                        <Form.Item name="latitude" label="Vĩ độ" rules={[{ required: true, message: "Vui lòng nhập vĩ độ" }]}>
                             <InputNumber
                                 className="w-full"
                                 size="large"
@@ -299,8 +343,8 @@ export default function PovertyCollectionStepOneForm({
                             />
                         </Form.Item>
                     </Col>
-                    <Col xs={12} span={12}>
-                        <Form.Item name="longitude" label="Kinh độ">
+                    <Col xs={10} span={10}>
+                        <Form.Item name="longitude" label="Kinh độ" rules={[{ required: true, message: "Vui lòng nhập kinh độ" }]}>
                             <InputNumber
                                 className="w-full"
                                 size="large"
@@ -311,6 +355,20 @@ export default function PovertyCollectionStepOneForm({
                                 style={{ width: "100%" }}
                             />
                         </Form.Item>
+                    </Col>
+                    <Col xs={4} span={4}>
+                        <div className="flex items-end h-full">
+                            <Button
+                                size="large"
+                                type="default"
+                                icon={isGettingLocation ? <Spin size="small" /> : <LocateFixed size={16} />}
+                                onClick={handleGetCurrentLocation}
+                                loading={isGettingLocation}
+                                disabled={isGettingLocation}
+                                title="Lấy vị trí hiện tại"
+                                className="rounded-lg w-full"
+                            />
+                        </div>
                     </Col>
                 </Row>
 
@@ -344,11 +402,12 @@ export default function PovertyCollectionStepOneForm({
                         Quay lại
                     </Button>
                     <ActionButton
-                        className="h-12 flex-1 rounded-2xl"
+                        className={`h-12 flex-1 rounded-2xl ${isGettingLocation || latitude == null || longitude == null ? 'opacity-50 cursor-not-allowed' : ''}`}
                         type="save"
                         label="Tiếp theo"
                         htmlType="submit"
                         loading={submitting}
+                        disabled={isGettingLocation || latitude == null || longitude == null}
                     />
                 </div>
             </div>
