@@ -202,7 +202,7 @@ export default function PovertyCollectionStepOneForm({
         try {
             navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
                 enableHighAccuracy: false,
-                timeout: 5000,
+                timeout: 10000,
                 maximumAge: 0,
             });
         } catch (err) {
