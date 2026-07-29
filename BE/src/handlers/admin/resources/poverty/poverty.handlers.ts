@@ -1,4 +1,5 @@
 import { HttpErrors, HttpStatusCode } from "@/helpers/Http.ts";
+import { logger } from "@/helpers/logger.ts";
 import { asyncHandler } from "@/helpers/request.ts";
 import { apiResponse } from "@/helpers/response.ts";
 import type { Request, Response } from "express";
