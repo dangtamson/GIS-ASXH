@@ -15,6 +15,7 @@ type PovertyCoordinatePickerProps = {
     longitude?: number | null;
     onChange: (latitude: number, longitude: number) => void;
     onLocatingChange?: (isLocating: boolean) => void;
+    hideLocateButton?: boolean;
 };
 
 const DEFAULT_CENTER: [number, number] = [10.0452, 105.7469];
@@ -138,6 +139,7 @@ export default function PovertyCoordinatePicker({
     longitude,
     onChange,
     onLocatingChange,
+    hideLocateButton = false,
 }: PovertyCoordinatePickerProps) {
     const position = getValidGeoPosition(latitude, longitude);
     const markerPosition: [number, number] | null = position ? [position.latitude, position.longitude] : null;
@@ -168,7 +170,7 @@ export default function PovertyCoordinatePicker({
                     />
                     <MapClickHandler onChange={onChange} />
                     <SyncMapView position={markerPosition} />
-                    <CurrentLocationControl onLocateComplete={onChange} onLocatingChange={onLocatingChange} />
+                    {!hideLocateButton && <CurrentLocationControl onLocateComplete={onChange} onLocatingChange={onLocatingChange} />}
                     {markerPosition ? (
                         <Marker
                             position={markerPosition}

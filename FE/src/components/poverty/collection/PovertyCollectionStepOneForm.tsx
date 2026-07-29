@@ -398,6 +398,7 @@ export default function PovertyCollectionStepOneForm({
                 <PovertyCoordinatePicker
                     latitude={latitude}
                     longitude={longitude}
+                    hideLocateButton
                     onChange={(nextLatitude, nextLongitude) => {
                         // Nếu đang locate từ nút bản đồ, không cập nhật form (buffer lại)
                         if (isMapLocatingRef.current) {
