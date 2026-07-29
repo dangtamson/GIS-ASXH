@@ -62,6 +62,7 @@ import {
   getReportDetailForExport,
   getHouseholdById,
   getHouseholdDetail,
+  getLatestChangeLog,
   getPovertyWardOverviewById,
   getPublicWardMapBySlug,
   getReportSummary,
@@ -89,6 +90,7 @@ import {
   updateMember,
   updateSupport
 } from "./poverty.repository.ts";
+import { AUDIT_ACTIONS, createPovertyAuditLog, ENTITY_TYPES } from "@/services/auditLog.ts";
 import {
   buildSuperAdminPovertyAccessScope,
   isLocationWithinScope,
@@ -111,6 +113,41 @@ const LOCATION_SCOPE_MESSAGE = "Bạn không có quyền truy cập địa bàn 
 const WARD_SCOPE_MESSAGE = "Bạn không có quyền truy cập xã/phường này";
 const AREA_SCOPE_MESSAGE = "Bạn không có quyền truy cập khu vực này";
 const getChangedByAccountId = (req: Request): string | null => req.accountId?.trim() ?? null;
+
+const auditPovertyMutation = async (
+  req: Request,
+  householdId: string,
+  action: string,
+  entityType: string,
+  objectType: string,
+  objectId: string
+): Promise<void> => {
+  const actorId = getChangedByAccountId(req);
+  if (!actorId) return;
+
+  try {
+    const changeLog = await getLatestChangeLog(householdId);
+    if (!changeLog) return;
+
+    await createPovertyAuditLog(
+      action,
+      entityType,
+      actorId,
+      objectId,
+      {
+        householdId,
+        objectType,
+        objectId,
+        changeNote: changeLog.changeNote,
+        oldData: changeLog.oldData,
+        newData: changeLog.newData
+      },
+      req
+    );
+  } catch {
+    // Audit failures must not change the result of a successful poverty mutation.
+  }
+};
 
 const hasLocationAccess = (
   scope: PovertyAccessScope,
@@ -221,6 +258,16 @@ export const createHouseholdAdmin = asyncHandler(async (req: Request, res: Respo
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !ensureLocationInScope(scope, body, res)) return;
   const item = await createHousehold(body, getChangedByAccountId(req));
+  if (item) {
+    await auditPovertyMutation(
+      req,
+      item.id,
+      AUDIT_ACTIONS.POVERTY_HOUSEHOLD_CREATED,
+      ENTITY_TYPES.POVERTY_HOUSEHOLD,
+      "HOUSEHOLD",
+      item.id
+    );
+  }
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household created successfully");
   res.status(response.code).send(response);
 });
@@ -263,6 +310,14 @@ export const updateHouseholdAdminById = asyncHandler(async (req: Request, res: R
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_HOUSEHOLD_UPDATED,
+    ENTITY_TYPES.POVERTY_HOUSEHOLD,
+    "HOUSEHOLD",
+    params.id
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household updated successfully");
   res.status(response.code).send(response);
 });
@@ -278,6 +333,14 @@ export const deleteHouseholdAdminById = asyncHandler(async (req: Request, res: R
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_HOUSEHOLD_DELETED,
+    ENTITY_TYPES.POVERTY_HOUSEHOLD,
+    "HOUSEHOLD",
+    params.id
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household deactivated successfully");
   res.status(response.code).send(response);
 });
@@ -300,6 +363,16 @@ export const createHouseholdMemberAdmin = asyncHandler(async (req: Request, res:
   const body = parseOrSendError(householdMemberCreateSchema, req.body, res);
   if (!body) return;
   const item = await createMember(params.id, body, getChangedByAccountId(req));
+  if (item) {
+    await auditPovertyMutation(
+      req,
+      params.id,
+      AUDIT_ACTIONS.POVERTY_MEMBER_CREATED,
+      ENTITY_TYPES.POVERTY_MEMBER,
+      "MEMBER",
+      item.id
+    );
+  }
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household member created successfully");
   res.status(response.code).send(response);
 });
@@ -317,6 +390,14 @@ export const updateHouseholdMemberAdminById = asyncHandler(async (req: Request, 
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_MEMBER_UPDATED,
+    ENTITY_TYPES.POVERTY_MEMBER,
+    "MEMBER",
+    params.memberId
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household member updated successfully");
   res.status(response.code).send(response);
 });
@@ -332,6 +413,14 @@ export const deleteHouseholdMemberAdminById = asyncHandler(async (req: Request, 
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_MEMBER_DELETED,
+    ENTITY_TYPES.POVERTY_MEMBER,
+    "MEMBER",
+    params.memberId
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household member deleted successfully");
   res.status(response.code).send(response);
 });
@@ -371,6 +460,14 @@ export const updateHouseholdAssessmentAdminById = asyncHandler(async (req: Reque
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_ASSESSMENT_UPDATED,
+    ENTITY_TYPES.POVERTY_ASSESSMENT,
+    "ASSESSMENT",
+    params.assessmentId
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household assessment updated successfully");
   res.status(response.code).send(response);
 });
@@ -396,7 +493,11 @@ export const listHouseholdContextHistoriesAdmin = asyncHandler(async (req: Reque
   const scope = await resolveRequiredPovertyScope(req, res);
   if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
   const items = await listContextHistories(params.id);
-  const response = apiResponse.success(HttpStatusCode.OK, { items }, "Household context histories retrieved successfully");
+  const response = apiResponse.success(
+    HttpStatusCode.OK,
+    { items },
+    "Household context histories retrieved successfully"
+  );
   res.status(response.code).send(response);
 });
 
@@ -408,46 +509,62 @@ export const createHouseholdContextHistoryAdmin = asyncHandler(async (req: Reque
   const body = parseOrSendError(householdContextHistoryCreateSchema, req.body, res);
   if (!body) return;
   const item = await createContextHistory(params.id, body, getChangedByAccountId(req));
-  const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household context history created successfully");
-  res.status(response.code).send(response);
-});
-
-export const updateHouseholdContextHistoryAdminById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const params = parseOrSendError(contextHistoryIdParamSchema, req.params, res);
-  if (!params) return;
-  const scope = await resolveRequiredPovertyScope(req, res);
-  if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const body = parseOrSendError(householdContextHistoryUpdateSchema, req.body, res);
-  if (!body) return;
-  const item = await updateContextHistory(params.id, params.contextHistoryId, body, getChangedByAccountId(req));
-  if (!item) {
-    const response = apiResponse.error(HttpErrors.NotFound("Household context history"));
-    res.status(response.code).send(response);
-    return;
-  }
-  const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household context history updated successfully");
-  res.status(response.code).send(response);
-});
-
-export const deleteHouseholdContextHistoryAdminById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const params = parseOrSendError(contextHistoryIdParamSchema, req.params, res);
-  if (!params) return;
-  const scope = await resolveRequiredPovertyScope(req, res);
-  if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
-  const item = await deleteContextHistory(
-    params.id,
-    params.contextHistoryId,
-    "Xoa hoan canh va hien trang ho",
-    getChangedByAccountId(req)
+  const response = apiResponse.success(
+    HttpStatusCode.CREATED,
+    { item },
+    "Household context history created successfully"
   );
-  if (!item) {
-    const response = apiResponse.error(HttpErrors.NotFound("Household context history"));
-    res.status(response.code).send(response);
-    return;
-  }
-  const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household context history deleted successfully");
   res.status(response.code).send(response);
 });
+
+export const updateHouseholdContextHistoryAdminById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const params = parseOrSendError(contextHistoryIdParamSchema, req.params, res);
+    if (!params) return;
+    const scope = await resolveRequiredPovertyScope(req, res);
+    if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
+    const body = parseOrSendError(householdContextHistoryUpdateSchema, req.body, res);
+    if (!body) return;
+    const item = await updateContextHistory(params.id, params.contextHistoryId, body, getChangedByAccountId(req));
+    if (!item) {
+      const response = apiResponse.error(HttpErrors.NotFound("Household context history"));
+      res.status(response.code).send(response);
+      return;
+    }
+    await auditPovertyMutation(
+      req,
+      params.id,
+      AUDIT_ACTIONS.POVERTY_CONTEXT_HISTORY_UPDATED,
+      ENTITY_TYPES.POVERTY_CONTEXT_HISTORY,
+      "CONTEXT_HISTORY",
+      params.contextHistoryId
+    );
+    const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household context history updated successfully");
+    res.status(response.code).send(response);
+  }
+);
+
+export const deleteHouseholdContextHistoryAdminById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const params = parseOrSendError(contextHistoryIdParamSchema, req.params, res);
+    if (!params) return;
+    const scope = await resolveRequiredPovertyScope(req, res);
+    if (!scope || !(await getScopedHouseholdOrSendNotFound(params.id, res, scope))) return;
+    const item = await deleteContextHistory(
+      params.id,
+      params.contextHistoryId,
+      "Xoa hoan canh va hien trang ho",
+      getChangedByAccountId(req)
+    );
+    if (!item) {
+      const response = apiResponse.error(HttpErrors.NotFound("Household context history"));
+      res.status(response.code).send(response);
+      return;
+    }
+    const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household context history deleted successfully");
+    res.status(response.code).send(response);
+  }
+);
 
 export const listHouseholdSupportsAdmin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const params = parseOrSendError(householdIdParamSchema, req.params, res);
@@ -467,6 +584,16 @@ export const createHouseholdSupportAdmin = asyncHandler(async (req: Request, res
   const body = parseOrSendError(householdSupportCreateSchema, req.body, res);
   if (!body) return;
   const item = await createSupport(params.id, body, getChangedByAccountId(req));
+  if (item) {
+    await auditPovertyMutation(
+      req,
+      params.id,
+      AUDIT_ACTIONS.POVERTY_SUPPORT_CREATED,
+      ENTITY_TYPES.POVERTY_SUPPORT,
+      "SUPPORT",
+      item.id
+    );
+  }
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Household support created successfully");
   res.status(response.code).send(response);
 });
@@ -484,6 +611,14 @@ export const updateHouseholdSupportAdminById = asyncHandler(async (req: Request,
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_SUPPORT_UPDATED,
+    ENTITY_TYPES.POVERTY_SUPPORT,
+    "SUPPORT",
+    params.supportId
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household support updated successfully");
   res.status(response.code).send(response);
 });
@@ -499,6 +634,14 @@ export const deleteHouseholdSupportAdminById = asyncHandler(async (req: Request,
     res.status(response.code).send(response);
     return;
   }
+  await auditPovertyMutation(
+    req,
+    params.id,
+    AUDIT_ACTIONS.POVERTY_SUPPORT_DELETED,
+    ENTITY_TYPES.POVERTY_SUPPORT,
+    "SUPPORT",
+    params.supportId
+  );
   const response = apiResponse.success(HttpStatusCode.OK, { item }, "Household support deleted successfully");
   res.status(response.code).send(response);
 });
@@ -693,47 +836,51 @@ export const getPublicPovertyWardBySlug = asyncHandler(async (req: Request, res:
   res.status(response.code).send(response);
 });
 
-export const getPublicPovertyAreaBySlugAndAreaSlug = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const slug = String(req.params.slug ?? "").trim();
-  const areaSlug = String(req.params.areaSlug ?? "").trim();
+export const getPublicPovertyAreaBySlugAndAreaSlug = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const slug = String(req.params.slug ?? "").trim();
+    const areaSlug = String(req.params.areaSlug ?? "").trim();
 
-  if (!slug || !areaSlug) {
-    const response = apiResponse.error(HttpErrors.NotFound("Area"));
+    if (!slug || !areaSlug) {
+      const response = apiResponse.error(HttpErrors.NotFound("Area"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    const data = await getPublicAreaDetailBySlugAndAreaSlug(slug, areaSlug);
+    if (!data) {
+      const response = apiResponse.error(HttpErrors.NotFound("Area"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    const response = apiResponse.success(HttpStatusCode.OK, data, "Public poverty area detail retrieved successfully");
     res.status(response.code).send(response);
-    return;
   }
+);
 
-  const data = await getPublicAreaDetailBySlugAndAreaSlug(slug, areaSlug);
-  if (!data) {
-    const response = apiResponse.error(HttpErrors.NotFound("Area"));
+export const getPublicPovertyHouseholdBySlugAndHouseholdId = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const slug = String(req.params.slug ?? "").trim();
+    const householdId = String(req.params.householdId ?? "").trim();
+
+    if (!slug || !householdId) {
+      const response = apiResponse.error(HttpErrors.NotFound("Household"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    const data = await getPublicHouseholdDetailBySlugAndHouseholdId(slug, householdId);
+    if (!data) {
+      const response = apiResponse.error(HttpErrors.NotFound("Household"));
+      res.status(response.code).send(response);
+      return;
+    }
+
+    const response = apiResponse.success(HttpStatusCode.OK, data, "Public household retrieved successfully");
     res.status(response.code).send(response);
-    return;
   }
-
-  const response = apiResponse.success(HttpStatusCode.OK, data, "Public poverty area detail retrieved successfully");
-  res.status(response.code).send(response);
-});
-
-export const getPublicPovertyHouseholdBySlugAndHouseholdId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const slug = String(req.params.slug ?? "").trim();
-  const householdId = String(req.params.householdId ?? "").trim();
-
-  if (!slug || !householdId) {
-    const response = apiResponse.error(HttpErrors.NotFound("Household"));
-    res.status(response.code).send(response);
-    return;
-  }
-
-  const data = await getPublicHouseholdDetailBySlugAndHouseholdId(slug, householdId);
-  if (!data) {
-    const response = apiResponse.error(HttpErrors.NotFound("Household"));
-    res.status(response.code).send(response);
-    return;
-  }
-
-  const response = apiResponse.success(HttpStatusCode.OK, data, "Public household retrieved successfully");
-  res.status(response.code).send(response);
-});
+);
 
 export const listPovertyWardOverviewsAdmin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const query = parseOrSendError(povertyWardOverviewQuerySchema, req.query, res);
@@ -793,7 +940,16 @@ export const createPovertyAreaAdmin = asyncHandler(async (req: Request, res: Res
   const body = parseOrSendError(areaCreateSchema, req.body, res);
   if (!body) return;
   const scope = await resolveRequiredPovertyScope(req, res);
-  if (!scope || !ensureLocationInScope(scope, { provinceCode: body.provinceCode, wardCode: params.wardCode }, res, AREA_SCOPE_MESSAGE)) return;
+  if (
+    !scope ||
+    !ensureLocationInScope(
+      scope,
+      { provinceCode: body.provinceCode, wardCode: params.wardCode },
+      res,
+      AREA_SCOPE_MESSAGE
+    )
+  )
+    return;
   const item = await createArea(params.wardCode, body);
   const response = apiResponse.success(HttpStatusCode.CREATED, { item }, "Ward area created successfully");
   res.status(response.code).send(response);
