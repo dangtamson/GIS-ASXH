@@ -172,57 +172,54 @@ export default function PovertyCollectionStepOneForm({
         }
 
         setIsGettingLocation(true);
-        let watchId: number | null = null;
-        let firstAccuratePositionFound = false;
+        let retryCount = 0;
+        const maxRetries = 2;
 
-        const handleSuccess = (position: GeolocationPosition) => {
-            const { accuracy, latitude: lat, longitude: lon } = position.coords;
+        const attemptGetLocation = () => {
+            const handleSuccess = (position: GeolocationPosition) => {
+                const { accuracy, latitude: lat, longitude: lon } = position.coords;
+                const latitude = Math.round(lat * 1000000) / 1000000;
+                const longitude = Math.round(lon * 1000000) / 1000000;
 
-            // Chỉ lấy vị trí khi accuracy <= 50m (đủ chính xác)
-            if (accuracy <= 50) {
-                if (!firstAccuratePositionFound) {
-                    firstAccuratePositionFound = true;
-                    form.setFieldsValue({
-                        latitude: Math.round(lat * 1000000) / 1000000,
-                        longitude: Math.round(lon * 1000000) / 1000000,
-                    });
-                    // Dừng watching sau khi lấy vị trí chính xác
-                    if (watchId !== null) {
-                        navigator.geolocation.clearWatch(watchId);
-                    }
-                    setIsGettingLocation(false);
+                // Nếu accuracy quá kém (>100m) và còn retry, thử lại
+                if (accuracy > 100 && retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(attemptGetLocation, 500);
+                    return;
                 }
+
+                form.setFieldsValue({ latitude, longitude });
+                setIsGettingLocation(false);
+            };
+
+            const handleError = (error: GeolocationPositionError) => {
+                console.error("Lỗi lấy vị trí:", error);
+                let errorMessage = "Không thể lấy vị trí hiện tại";
+                if (error.code === 1) {
+                    errorMessage = "Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt.";
+                } else if (error.code === 2) {
+                    errorMessage = "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra kết nối GPS.";
+                } else if (error.code === 3) {
+                    errorMessage = "Hết thời gian chờ lấy vị trí. Vui lòng thử lại.";
+                }
+                alert(errorMessage);
+                setIsGettingLocation(false);
+            };
+
+            try {
+                navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0,
+                });
+            } catch (err) {
+                console.error("Lỗi khi lấy vị trí:", err);
+                alert("Có lỗi xảy ra khi lấy vị trí");
+                setIsGettingLocation(false);
             }
         };
 
-        const handleError = (error: GeolocationPositionError) => {
-            console.error("Lỗi lấy vị trí:", error);
-            let errorMessage = "Không thể lấy vị trí hiện tại";
-            if (error.code === 1) {
-                errorMessage = "Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt.";
-            } else if (error.code === 2) {
-                errorMessage = "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra kết nối GPS.";
-            } else if (error.code === 3) {
-                errorMessage = "Hết thời gian chờ lấy vị trí. Vui lòng thử lại.";
-            }
-            alert(errorMessage);
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-            }
-            setIsGettingLocation(false);
-        };
-
-        try {
-            watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0,
-            });
-        } catch (err) {
-            console.error("Lỗi khi lấy vị trí:", err);
-            alert("Có lỗi xảy ra khi lấy vị trí");
-            setIsGettingLocation(false);
-        }
+        attemptGetLocation();
     };
 
     return (
