@@ -165,42 +165,59 @@ export default function PovertyCollectionStepOneForm({
         });
     }, [form, selectedProvinceCode, selectedWardCode, wardOptions]);
 
-    const handleGetCurrentLocation = async () => {
+    const handleGetCurrentLocation = () => {
         if (!navigator.geolocation) {
             alert("Trình duyệt của bạn không hỗ trợ lấy vị trí hiện tại");
             return;
         }
 
         setIsGettingLocation(true);
-        try {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude: lat, longitude: lon } = position.coords;
+        let watchId: number | null = null;
+        let firstAccuratePositionFound = false;
+
+        const handleSuccess = (position: GeolocationPosition) => {
+            const { accuracy, latitude: lat, longitude: lon } = position.coords;
+
+            // Chỉ lấy vị trí khi accuracy <= 50m (đủ chính xác)
+            if (accuracy <= 50) {
+                if (!firstAccuratePositionFound) {
+                    firstAccuratePositionFound = true;
                     form.setFieldsValue({
                         latitude: Math.round(lat * 1000000) / 1000000,
                         longitude: Math.round(lon * 1000000) / 1000000,
                     });
-                    setIsGettingLocation(false);
-                },
-                (error) => {
-                    console.error("Lỗi lấy vị trí:", error);
-                    let errorMessage = "Không thể lấy vị trí hiện tại";
-                    if (error.code === 1) {
-                        errorMessage = "Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt.";
-                    } else if (error.code === 2) {
-                        errorMessage = "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra kết nối GPS.";
-                    } else if (error.code === 3) {
-                        errorMessage = "Hết thời gian chờ lấy vị trí. Vui lòng thử lại.";
+                    // Dừng watching sau khi lấy vị trí chính xác
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
                     }
-                    alert(errorMessage);
                     setIsGettingLocation(false);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
                 }
-            );
+            }
+        };
+
+        const handleError = (error: GeolocationPositionError) => {
+            console.error("Lỗi lấy vị trí:", error);
+            let errorMessage = "Không thể lấy vị trí hiện tại";
+            if (error.code === 1) {
+                errorMessage = "Bạn đã từ chối cấp quyền truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt.";
+            } else if (error.code === 2) {
+                errorMessage = "Không thể xác định vị trí hiện tại. Vui lòng kiểm tra kết nối GPS.";
+            } else if (error.code === 3) {
+                errorMessage = "Hết thời gian chờ lấy vị trí. Vui lòng thử lại.";
+            }
+            alert(errorMessage);
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            setIsGettingLocation(false);
+        };
+
+        try {
+            watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+            });
         } catch (err) {
             console.error("Lỗi khi lấy vị trí:", err);
             alert("Có lỗi xảy ra khi lấy vị trí");

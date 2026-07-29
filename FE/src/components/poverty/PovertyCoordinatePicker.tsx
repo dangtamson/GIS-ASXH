@@ -63,27 +63,53 @@ function CurrentLocationControl({ onChange }: { onChange: (latitude: number, lon
         }
 
         setLocating(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const latitude = Number(position.coords.latitude.toFixed(7));
-                const longitude = Number(position.coords.longitude.toFixed(7));
-                onChange(latitude, longitude);
-                map.flyTo([latitude, longitude], Math.max(map.getZoom(), 17), { duration: 0.8 });
-                setLocating(false);
-            },
-            (error) => {
-                notification.warning({
-                    message: "Không thể lấy vị trí hiện tại",
-                    description: error.message || "Vui lòng kiểm tra quyền truy cập vị trí của trình duyệt.",
-                });
-                setLocating(false);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0,
+        let watchId: number | null = null;
+        let firstAccuratePositionFound = false;
+
+        const handleSuccess = (position: GeolocationPosition) => {
+            const { accuracy, latitude: lat, longitude: lon } = position.coords;
+
+            // Chỉ lấy vị trí khi accuracy <= 50m (đủ chính xác)
+            if (accuracy <= 50) {
+                if (!firstAccuratePositionFound) {
+                    firstAccuratePositionFound = true;
+                    const latitude = Number(lat.toFixed(7));
+                    const longitude = Number(lon.toFixed(7));
+                    onChange(latitude, longitude);
+                    map.flyTo([latitude, longitude], Math.max(map.getZoom(), 17), { duration: 0.8 });
+                    // Dừng watching sau khi lấy vị trí chính xác
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                    }
+                    setLocating(false);
+                }
             }
-        );
+        };
+
+        const handleError = (error: GeolocationPositionError) => {
+            notification.warning({
+                message: "Không thể lấy vị trí hiện tại",
+                description: error.message || "Vui lòng kiểm tra quyền truy cập vị trí của trình duyệt.",
+            });
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            setLocating(false);
+        };
+
+        try {
+            watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+            });
+        } catch (err) {
+            notification.warning({
+                message: "Lỗi khi lấy vị trí",
+                description: "Vui lòng thử lại.",
+            });
+            setLocating(false);
+        }
     }, [map, notification, onChange]);
 
     return (
