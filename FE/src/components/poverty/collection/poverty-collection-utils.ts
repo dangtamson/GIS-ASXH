@@ -95,6 +95,7 @@ export function buildStepOneUpdatePayload(values: StepOneFormValues) {
         address: values.address,
         latitude: values.latitude,
         longitude: values.longitude,
+        changeSource: "COLLECTION" as const,
     };
 }
 

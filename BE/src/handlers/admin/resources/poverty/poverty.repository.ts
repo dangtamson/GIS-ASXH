@@ -482,8 +482,10 @@ const getLatestAssessmentSummaries = async (householdIds: string[]): Promise<Lat
     .orderBy(desc(householdAssessments.assessmentYear), desc(householdAssessments.createdAt));
 };
 
-const withoutChangeNote = <T extends { changeNote?: string }>(payload: T): Omit<T, "changeNote"> => {
-  const { changeNote: _changeNote, ...data } = payload;
+const withoutChangeMetadata = <T extends { changeNote?: string; changeSource?: string }>(
+  payload: T
+): Omit<T, "changeNote" | "changeSource"> => {
+  const { changeNote: _changeNote, changeSource: _changeSource, ...data } = payload;
   return data;
 };
 
@@ -1301,6 +1303,15 @@ export const getHouseholdById = async (id: string, scope?: PovertyAccessScope) =
   return item;
 };
 
+export const getAccountDisplayName = async (accountId: string): Promise<string | null> => {
+  const [account] = await db
+    .select({ fullName: accounts.fullName })
+    .from(accounts)
+    .where(eq(accounts.uuid, accountId))
+    .limit(1);
+  return account?.fullName?.trim() || null;
+};
+
 export const getHouseholdDetail = async (id: string, scope?: PovertyAccessScope) => {
   const household = await getHouseholdById(id, scope);
   if (!household) return null;
@@ -1401,7 +1412,7 @@ export const insertChangeLog = async (payload: ChangeLogPayload) => {
 export const createHousehold = async (payload: HouseholdCreateInput, changedBy?: string | null) => {
   const labels = await getStandardizedLocationLabels(payload);
   const data = {
-    ...withoutChangeNote(payload),
+    ...withoutChangeMetadata(payload),
     ...labels
   };
   const [created] = await db.insert(poorHouseholds).values(data).returning();
@@ -1436,7 +1447,7 @@ export const updateHousehold = async (id: string, payload: HouseholdUpdateInput,
         })
       : {};
 
-  const data = compact({ ...withoutChangeNote(payload), ...labels, updatedAt: new Date() });
+  const data = compact({ ...withoutChangeMetadata(payload), ...labels, updatedAt: new Date() });
   const [updated] = await db.update(poorHouseholds).set(data).where(eq(poorHouseholds.id, id)).returning();
   if (!updated) {
     throw new Error("Không tìm thấy bản ghi để cập nhật");
@@ -1485,7 +1496,7 @@ export const createMember = async (
 
   const [created] = await db
     .insert(householdMembers)
-    .values({ ...withoutChangeNote(payload), householdId })
+    .values({ ...withoutChangeMetadata(payload), householdId })
     .returning();
   if (created) {
     await insertChangeLog({
@@ -1520,7 +1531,7 @@ export const updateMember = async (
 
   const [updated] = await db
     .update(householdMembers)
-    .set(compact({ ...withoutChangeNote(payload), updatedAt: new Date() }))
+    .set(compact({ ...withoutChangeMetadata(payload), updatedAt: new Date() }))
     .where(and(eq(householdMembers.id, memberId), eq(householdMembers.householdId, householdId)))
     .returning();
   if (updated) {
@@ -1580,7 +1591,7 @@ export const createAssessment = async (
 ) => {
   const [created] = await db
     .insert(householdAssessments)
-    .values({ ...withoutChangeNote(payload), householdId })
+    .values({ ...withoutChangeMetadata(payload), householdId })
     .returning();
   if (created) {
     await insertChangeLog({
@@ -1610,7 +1621,7 @@ export const updateAssessment = async (
   if (!existing) return null;
   const [updated] = await db
     .update(householdAssessments)
-    .set(compact(withoutChangeNote(payload)))
+    .set(compact(withoutChangeMetadata(payload)))
     .where(and(eq(householdAssessments.id, assessmentId), eq(householdAssessments.householdId, householdId)))
     .returning();
   if (updated) {
@@ -1670,7 +1681,7 @@ export const createSupport = async (
 ) => {
   const [created] = await db
     .insert(householdSupports)
-    .values({ ...withoutChangeNote(payload), householdId, supportDate: payload.supportDate as string })
+    .values({ ...withoutChangeMetadata(payload), householdId, supportDate: payload.supportDate as string })
     .returning();
   if (created) {
     await insertChangeLog({
@@ -1704,7 +1715,7 @@ export const createContextHistory = async (
   const [created] = await db
     .insert(householdContextHistories)
     .values({
-      ...withoutChangeNote(payload),
+      ...withoutChangeMetadata(payload),
       householdId,
       recordedAt: payload.recordedAt as string
     })
@@ -1738,7 +1749,7 @@ export const updateContextHistory = async (
     .limit(1);
   if (!existing) return null;
 
-  const data = compact({ ...withoutChangeNote(payload), updatedAt: new Date() });
+  const data = compact({ ...withoutChangeMetadata(payload), updatedAt: new Date() });
   const [updated] = await db
     .update(householdContextHistories)
     .set(data)
@@ -1806,7 +1817,7 @@ export const updateSupport = async (
     .limit(1);
   if (!existing) return null;
 
-  const data = compact({ ...withoutChangeNote(payload), updatedAt: new Date() });
+  const data = compact({ ...withoutChangeMetadata(payload), updatedAt: new Date() });
   const [updated] = await db
     .update(householdSupports)
     .set(data)

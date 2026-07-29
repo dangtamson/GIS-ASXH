@@ -4,6 +4,7 @@ import {
   contextHistoryIdParamSchema,
   householdContextHistoryCreateSchema,
   householdCreateSchema,
+  householdUpdateSchema,
   householdIdParamSchema,
   memberIdParamSchema,
   povertyWardOverviewUpsertSchema
@@ -62,6 +63,21 @@ describe("householdContextHistoryCreateSchema", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe("householdUpdateSchema change source", () => {
+  it("accepts collection and map source metadata", () => {
+    expect(householdUpdateSchema.safeParse({ latitude: 10, longitude: 105, changeSource: "COLLECTION" }).success).toBe(
+      true
+    );
+    expect(householdUpdateSchema.safeParse({ latitude: 10, longitude: 105, changeSource: "MAP" }).success).toBe(true);
+  });
+
+  it("rejects an unknown source metadata value", () => {
+    expect(householdUpdateSchema.safeParse({ latitude: 10, longitude: 105, changeSource: "OTHER" }).success).toBe(
+      false
+    );
   });
 });
 

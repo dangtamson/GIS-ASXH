@@ -1,7 +1,10 @@
 "use client";
 
 import { api, ApiError } from "@/lib/api";
+import { formatPovertyCoordinateNotification, type PovertyCoordinateUpdateEvent } from "@/lib/poverty-realtime";
 import { endpoints } from "@/lib/endpoints";
+import { getWorkspaceId } from "@/lib/auth";
+import { usePovertyCoordinateRealtime } from "@/hooks/usePovertyCoordinateRealtime";
 import type { PovertyArea, PovertyMarker, ProvinceOption, WardOption } from "@/types/poverty";
 import { getValidGeoPosition, povertyTypeOptions } from "@/components/poverty/poverty-utils";
 import { DEFAULT_CANTHO_PROVINCE_CODE, getInitialProvinceCode } from "@/components/poverty/poverty-location-utils";
@@ -46,6 +49,7 @@ export default function PovertyMapPage() {
     const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
     const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
     const [areaOptions, setAreaOptions] = useState<PovertyArea[]>([]);
+    const workspaceId = useMemo(() => getWorkspaceId(), []);
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canCreateHouseholdOnMap } = usePermission("poverty.map.create_household");
     const { can: canUpdateMarkerPosition } = usePermission("poverty.map.update_position");
@@ -58,6 +62,15 @@ export default function PovertyMapPage() {
     );
     const selectedWardCode = Form.useWatch("wardCode", form);
     const selectedProvinceCode = Form.useWatch("provinceCode", form);
+
+    const handlePovertyCoordinateUpdate = useCallback((event: PovertyCoordinateUpdateEvent) => {
+        notification.info({
+            message: "Cập nhật tọa độ hộ nghèo",
+            description: formatPovertyCoordinateNotification(event),
+        });
+    }, [notification]);
+
+    usePovertyCoordinateRealtime(workspaceId, handlePovertyCoordinateUpdate);
 
     const selectedWardName = useMemo(
         () => wardOptions.find((item) => item.code === filters.wardCode)?.fullName || wardOptions.find((item) => item.code === filters.wardCode)?.name,

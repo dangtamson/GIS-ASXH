@@ -89,6 +89,7 @@ test("buildStepOneUpdatePayload includes location fields only", () => {
         address: "So 1 Duong ABC",
         latitude: 10.03,
         longitude: 105.76,
+        changeSource: "COLLECTION",
     });
 });
 

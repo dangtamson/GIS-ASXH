@@ -62,6 +62,7 @@ import {
   getReportDetailForExport,
   getHouseholdById,
   getHouseholdDetail,
+  getAccountDisplayName,
   getLatestChangeLog,
   getPovertyWardOverviewById,
   getPublicWardMapBySlug,
@@ -91,6 +92,7 @@ import {
   updateSupport
 } from "./poverty.repository.ts";
 import { AUDIT_ACTIONS, createPovertyAuditLog, ENTITY_TYPES } from "@/services/auditLog.ts";
+import { broadcastPovertyCoordinateUpdate } from "@/services/povertyRealtime.ts";
 import {
   buildSuperAdminPovertyAccessScope,
   isLocationWithinScope,
@@ -309,6 +311,20 @@ export const updateHouseholdAdminById = asyncHandler(async (req: Request, res: R
     const response = apiResponse.error(HttpErrors.NotFound("Household"));
     res.status(response.code).send(response);
     return;
+  }
+  if (
+    body.changeSource === "COLLECTION" &&
+    req.workspaceId &&
+    req.accountId &&
+    (household.latitude !== item.latitude || household.longitude !== item.longitude)
+  ) {
+    const actorName = await getAccountDisplayName(req.accountId);
+    await broadcastPovertyCoordinateUpdate(req.workspaceId, {
+      householdId: item.id,
+      householdHeadName: item.headFullName?.trim() || "Chưa xác định tên chủ hộ",
+      actorName: actorName || "Người dùng",
+      updatedAt: new Date(item.updatedAt ?? new Date()).toISOString()
+    });
   }
   await auditPovertyMutation(
     req,

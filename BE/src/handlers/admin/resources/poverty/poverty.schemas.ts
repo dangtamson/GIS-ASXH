@@ -17,14 +17,11 @@ const optionalText = z.preprocess(
     .optional()
 );
 
-const optionalNonNegativeInt = z.preprocess(
-  (value) => {
-    if (value === null || value === undefined) return undefined;
-    if (typeof value === "string" && value.trim().length === 0) return undefined;
-    return value;
-  },
-  z.coerce.number().int().min(0).optional()
-);
+const optionalNonNegativeInt = z.preprocess((value) => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === "string" && value.trim().length === 0) return undefined;
+  return value;
+}, z.coerce.number().int().min(0).optional());
 
 const optionalDateText = z
   .string()
@@ -111,6 +108,7 @@ export const householdCreateSchema = z.object({
   memberCount: optionalNonNegativeInt,
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
+  changeSource: z.enum(["COLLECTION", "MAP"]).optional(),
   changeNote: optionalText
 });
 
@@ -152,27 +150,30 @@ export const householdAssessmentUpdateSchema = householdAssessmentCreateSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "At least one field is required" });
 
-export const householdSupportCreateSchema = z.object({
-  supportDate: optionalDateText,
-  supportTypes: z.array(z.enum(HOUSEHOLD_SUPPORT_TYPES)).min(1),
-  amounts: z.record(z.string(), z.coerce.number().min(0)).optional().default({}),
-  content: optionalText,
-  supportingUnit: optionalText,
-  note: optionalText,
-  changeNote: optionalText
-}).refine((value) => Boolean(value.supportDate), { message: "supportDate is required", path: ["supportDate"] });
+export const householdSupportCreateSchema = z
+  .object({
+    supportDate: optionalDateText,
+    supportTypes: z.array(z.enum(HOUSEHOLD_SUPPORT_TYPES)).min(1),
+    amounts: z.record(z.string(), z.coerce.number().min(0)).optional().default({}),
+    content: optionalText,
+    supportingUnit: optionalText,
+    note: optionalText,
+    changeNote: optionalText
+  })
+  .refine((value) => Boolean(value.supportDate), { message: "supportDate is required", path: ["supportDate"] });
 
 export const householdSupportUpdateSchema = householdSupportCreateSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "At least one field is required" });
 
-export const householdContextHistoryCreateSchema = z.object({
-  recordedAt: optionalDateText,
-  familySituation: optionalText,
-  currentStatus: optionalText,
-  note: optionalText,
-  changeNote: optionalText
-})
+export const householdContextHistoryCreateSchema = z
+  .object({
+    recordedAt: optionalDateText,
+    familySituation: optionalText,
+    currentStatus: optionalText,
+    note: optionalText,
+    changeNote: optionalText
+  })
   .refine((value) => Boolean(value.recordedAt), { message: "recordedAt is required", path: ["recordedAt"] })
   .refine((value) => Boolean(value.familySituation || value.currentStatus), {
     message: "At least one of familySituation or currentStatus is required",
@@ -182,22 +183,30 @@ export const householdContextHistoryCreateSchema = z.object({
 export const householdContextHistoryUpdateSchema = householdContextHistoryCreateSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "At least one field is required" })
-  .refine((value) => {
-    if ("familySituation" in value || "currentStatus" in value) {
-      return Boolean(value.familySituation || value.currentStatus);
+  .refine(
+    (value) => {
+      if ("familySituation" in value || "currentStatus" in value) {
+        return Boolean(value.familySituation || value.currentStatus);
+      }
+      return true;
+    },
+    {
+      message: "At least one of familySituation or currentStatus is required",
+      path: ["familySituation"]
     }
-    return true;
-  }, {
-    message: "At least one of familySituation or currentStatus is required",
-    path: ["familySituation"]
-  });
+  );
 
 export const importHouseholdsSchema = z.object({
   fileName: z.string().trim().min(1).optional(),
   fileContentBase64: z.string().trim().min(1)
 });
 
-export const reportQuerySchema = listHouseholdsQuerySchema.omit({ page: true, limit: true, sortBy: true, sortOrder: true });
+export const reportQuerySchema = listHouseholdsQuerySchema.omit({
+  page: true,
+  limit: true,
+  sortBy: true,
+  sortOrder: true
+});
 export const reportDetailQuerySchema = reportQuerySchema.extend({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(500).default(20)
@@ -294,7 +303,17 @@ export const normalizePovertyType = (value: unknown): PovertyType | null => {
   if (!normalized) return null;
   if (["poor", "ho ngheo", "ngheo"].includes(normalized)) return "POOR";
   if (["near poor", "ho can ngheo", "can ngheo"].includes(normalized)) return "NEAR_POOR";
-  if (["none", "khong ngheo", "khong con ngheo", "thoat ngheo", "khong thuoc dien ngheo", "khong con ngheo can ngheo"].includes(normalized)) return "NONE";
+  if (
+    [
+      "none",
+      "khong ngheo",
+      "khong con ngheo",
+      "thoat ngheo",
+      "khong thuoc dien ngheo",
+      "khong con ngheo can ngheo"
+    ].includes(normalized)
+  )
+    return "NONE";
   if (String(value).trim().toUpperCase() === "POOR") return "POOR";
   if (String(value).trim().toUpperCase() === "NEAR_POOR") return "NEAR_POOR";
   if (String(value).trim().toUpperCase() === "NONE") return "NONE";
