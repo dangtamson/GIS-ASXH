@@ -318,6 +318,14 @@ export const updateHouseholdAdminById = asyncHandler(async (req: Request, res: R
     req.accountId &&
     (household.latitude !== item.latitude || household.longitude !== item.longitude)
   ) {
+    logger.info(
+      {
+        workspaceId: req.workspaceId,
+        householdId: item.id,
+        accountId: req.accountId
+      },
+      "Broadcasting poverty coordinate update"
+    );
     const actorName = await getAccountDisplayName(req.accountId);
     await broadcastPovertyCoordinateUpdate(req.workspaceId, {
       householdId: item.id,

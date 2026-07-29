@@ -49,7 +49,7 @@ export default function PovertyMapPage() {
     const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
     const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
     const [areaOptions, setAreaOptions] = useState<PovertyArea[]>([]);
-    const workspaceId = useMemo(() => getWorkspaceId(), []);
+    const workspaceId = getWorkspaceId();
     const { can: canCreateHousehold } = usePermission("poverty.household.create");
     const { can: canCreateHouseholdOnMap } = usePermission("poverty.map.create_household");
     const { can: canUpdateMarkerPosition } = usePermission("poverty.map.update_position");
