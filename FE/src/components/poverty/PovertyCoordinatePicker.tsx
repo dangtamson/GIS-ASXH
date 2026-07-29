@@ -14,6 +14,7 @@ type PovertyCoordinatePickerProps = {
     latitude?: number | null;
     longitude?: number | null;
     onChange: (latitude: number, longitude: number) => void;
+    onLocatingChange?: (isLocating: boolean) => void;
 };
 
 const DEFAULT_CENTER: [number, number] = [10.0452, 105.7469];
@@ -51,7 +52,13 @@ function SyncMapView({ position }: { position: [number, number] | null }) {
     return null;
 }
 
-function CurrentLocationControl({ onChange }: { onChange: (latitude: number, longitude: number) => void }) {
+function CurrentLocationControl({
+    onLocateComplete,
+    onLocatingChange,
+}: {
+    onLocateComplete: (latitude: number, longitude: number) => void;
+    onLocatingChange?: (isLocating: boolean) => void;
+}) {
     const { notification } = App.useApp();
     const map = useMap();
     const [locating, setLocating] = useState(false);
@@ -63,6 +70,7 @@ function CurrentLocationControl({ onChange }: { onChange: (latitude: number, lon
         }
 
         setLocating(true);
+        onLocatingChange?.(true);
         let retryCount = 0;
         const maxRetries = 2;
 
@@ -79,7 +87,9 @@ function CurrentLocationControl({ onChange }: { onChange: (latitude: number, lon
                     return;
                 }
 
-                onChange(latitude, longitude);
+                // Chỉ fill form sau khi lấy xong toạ độ cuối cùng
+                onLocateComplete(latitude, longitude);
+                onLocatingChange?.(false);
                 map.flyTo([latitude, longitude], Math.max(map.getZoom(), 17), { duration: 0.8 });
                 setLocating(false);
             };
@@ -89,6 +99,7 @@ function CurrentLocationControl({ onChange }: { onChange: (latitude: number, lon
                     message: "Không thể lấy vị trí hiện tại",
                     description: error.message || "Vui lòng kiểm tra quyền truy cập vị trí của trình duyệt.",
                 });
+                onLocatingChange?.(false);
                 setLocating(false);
             };
 
@@ -103,12 +114,13 @@ function CurrentLocationControl({ onChange }: { onChange: (latitude: number, lon
                     message: "Lỗi khi lấy vị trí",
                     description: "Vui lòng thử lại.",
                 });
+                onLocatingChange?.(false);
                 setLocating(false);
             }
         };
 
         attemptGetLocation();
-    }, [map, notification, onChange]);
+    }, [map, notification, onLocateComplete, onLocatingChange]);
 
     return (
         <div className="leaflet-top leaflet-right">
@@ -125,6 +137,7 @@ export default function PovertyCoordinatePicker({
     latitude,
     longitude,
     onChange,
+    onLocatingChange,
 }: PovertyCoordinatePickerProps) {
     const position = getValidGeoPosition(latitude, longitude);
     const markerPosition: [number, number] | null = position ? [position.latitude, position.longitude] : null;
@@ -155,7 +168,7 @@ export default function PovertyCoordinatePicker({
                     />
                     <MapClickHandler onChange={onChange} />
                     <SyncMapView position={markerPosition} />
-                    <CurrentLocationControl onChange={onChange} />
+                    <CurrentLocationControl onLocateComplete={onChange} onLocatingChange={onLocatingChange} />
                     {markerPosition ? (
                         <Marker
                             position={markerPosition}

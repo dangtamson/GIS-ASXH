@@ -79,6 +79,9 @@ export default function PovertyCollectionStepOneForm({
 }: Props) {
     const [form] = Form.useForm<StepOneFormValues>();
     const [isGettingLocation, setIsGettingLocation] = useState(false);
+    const [isMapLocating, setIsMapLocating] = useState(false);
+    const isMapLocatingRef = useRef(false);
+    const pendingMapCoords = useRef<{ latitude: number; longitude: number } | null>(null);
     const selectedProvinceCode = Form.useWatch("provinceCode", form);
     const selectedWardCode = Form.useWatch("wardCode", form);
     const latitude = Form.useWatch("latitude", form);
@@ -395,10 +398,26 @@ export default function PovertyCollectionStepOneForm({
                 <PovertyCoordinatePicker
                     latitude={latitude}
                     longitude={longitude}
-                    onChange={(nextLatitude, nextLongitude) => form.setFieldsValue({
-                        latitude: nextLatitude,
-                        longitude: nextLongitude,
-                    })}
+                    onChange={(nextLatitude, nextLongitude) => {
+                        // Nếu đang locate từ nút bản đồ, không cập nhật form (buffer lại)
+                        if (isMapLocatingRef.current) {
+                            pendingMapCoords.current = { latitude: nextLatitude, longitude: nextLongitude };
+                            return;
+                        }
+                        form.setFieldsValue({ latitude: nextLatitude, longitude: nextLongitude });
+                    }}
+                    onLocatingChange={(locating) => {
+                        isMapLocatingRef.current = locating;
+                        setIsMapLocating(locating);
+                        // Khi locate xong, apply toạ độ cuối cùng vào form
+                        if (!locating && pendingMapCoords.current) {
+                            form.setFieldsValue({
+                                latitude: pendingMapCoords.current.latitude,
+                                longitude: pendingMapCoords.current.longitude,
+                            });
+                            pendingMapCoords.current = null;
+                        }
+                    }}
                 />
             </section>
 
@@ -416,12 +435,12 @@ export default function PovertyCollectionStepOneForm({
                         Quay lại
                     </Button>
                     <ActionButton
-                        className={`h-12 flex-1 rounded-2xl ${isGettingLocation || latitude == null || longitude == null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`h-12 flex-1 rounded-2xl ${isGettingLocation || isMapLocating || latitude == null || longitude == null ? 'opacity-50 cursor-not-allowed' : ''}`}
                         type="save"
                         label="Tiếp theo"
                         htmlType="submit"
                         loading={submitting}
-                        disabled={isGettingLocation || latitude == null || longitude == null}
+                        disabled={isGettingLocation || isMapLocating || latitude == null || longitude == null}
                     />
                 </div>
             </div>
