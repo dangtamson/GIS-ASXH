@@ -183,7 +183,20 @@ export const AUDIT_ACTIONS = {
   NOTIFICATION_READ: "notification_read",
 
   // System config
-  SYSTEM_CONFIG_UPDATED: "system_config_updated"
+  SYSTEM_CONFIG_UPDATED: "system_config_updated",
+
+  // Poverty household actions
+  POVERTY_HOUSEHOLD_CREATED: "poverty_household_created",
+  POVERTY_HOUSEHOLD_UPDATED: "poverty_household_updated",
+  POVERTY_HOUSEHOLD_DELETED: "poverty_household_deleted",
+  POVERTY_MEMBER_CREATED: "poverty_member_created",
+  POVERTY_MEMBER_UPDATED: "poverty_member_updated",
+  POVERTY_MEMBER_DELETED: "poverty_member_deleted",
+  POVERTY_ASSESSMENT_UPDATED: "poverty_assessment_updated",
+  POVERTY_CONTEXT_HISTORY_UPDATED: "poverty_context_history_updated",
+  POVERTY_SUPPORT_CREATED: "poverty_support_created",
+  POVERTY_SUPPORT_UPDATED: "poverty_support_updated",
+  POVERTY_SUPPORT_DELETED: "poverty_support_deleted"
 } as const;
 
 /**
@@ -216,8 +229,44 @@ export const ENTITY_TYPES = {
   USER_NOTIFICATION: "user_notification",
   TASK_NOTIFICATION: "task_notification",
 
-  SYSTEM_CONFIG: "system_config"
+  SYSTEM_CONFIG: "system_config",
+
+  POVERTY_HOUSEHOLD: "poverty_household",
+  POVERTY_MEMBER: "poverty_member",
+  POVERTY_ASSESSMENT: "poverty_assessment",
+  POVERTY_CONTEXT_HISTORY: "poverty_context_history",
+  POVERTY_SUPPORT: "poverty_support"
 } as const;
+
+export type PovertyAuditDetails = {
+  householdId: string;
+  objectType: string;
+  objectId: string;
+  changeNote?: string | null;
+  oldData?: Record<string, unknown> | null;
+  newData?: Record<string, unknown> | null;
+};
+
+export const createPovertyAuditLog = async (
+  action: string,
+  entityType: string,
+  actorId: string,
+  entityId: string,
+  details: PovertyAuditDetails,
+  req: Request
+): Promise<void> => {
+  await createAuditLog(
+    {
+      action,
+      entityType,
+      entityId,
+      actorId,
+      details,
+      workspaceId: req.workspaceId
+    },
+    req
+  );
+};
 
 /**
  * Convenience functions for common audit operations

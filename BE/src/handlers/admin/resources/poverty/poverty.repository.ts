@@ -438,7 +438,12 @@ export const attachEffectivePovertyTypes = <T extends HouseholdWithId & { povert
 export const attachSupportSummaries = <T extends HouseholdWithId>(
   households: T[],
   supportSummaries: SupportSummary[]
-): (T & { supportCount: number; supportTotalAmount: number; latestSupportDate: string | null; latestSupportMonthAmount: number })[] => {
+): (T & {
+  supportCount: number;
+  supportTotalAmount: number;
+  latestSupportDate: string | null;
+  latestSupportMonthAmount: number;
+})[] => {
   const supportsByHouseholdId = new Map<string, SupportSummary>();
   supportSummaries.forEach((summary) => {
     supportsByHouseholdId.set(summary.householdId, summary);
@@ -510,10 +515,7 @@ const householdFilters = (filters: Partial<ReportFilters>): SQL<unknown>[] => {
           db
             .select({ householdId: householdMembers.householdId })
             .from(householdMembers)
-            .where(or(
-              ilike(householdMembers.fullName, like),
-              ilike(householdMembers.citizenId, like)
-            ))
+            .where(or(ilike(householdMembers.fullName, like), ilike(householdMembers.citizenId, like)))
         )
       ) as SQL<unknown>
     );
@@ -757,7 +759,9 @@ export const aggregateWardOverviewRows = <
     createdAt?: Date | null;
     updatedAt?: Date | null;
   }
->(rows: T[]): PovertyDashboardOverviewItem | null => {
+>(
+  rows: T[]
+): PovertyDashboardOverviewItem | null => {
   if (rows.length === 0) return null;
 
   const firstRow = rows[0];
@@ -830,9 +834,7 @@ const isDashboardAssessmentRowMoreRecent = (
   return (candidateDecision?.timestamp ?? 0) > (currentDecision?.timestamp ?? 0);
 };
 
-export const buildDashboardMonthlyTrend = (
-  rows: DashboardMonthlyAssessmentRow[]
-): DashboardMonthlyTrendYear[] => {
+export const buildDashboardMonthlyTrend = (rows: DashboardMonthlyAssessmentRow[]): DashboardMonthlyTrendYear[] => {
   const latestByHouseholdYear = new Map<string, DashboardMonthlyAssessmentRow>();
 
   rows.forEach((row) => {
@@ -877,9 +879,8 @@ export const buildDashboardMonthlyTrend = (
     }));
 };
 
-export const buildDashboardTrendAvailableYears = (
-  rows: DashboardMonthlyTrendYear[]
-): number[] => [...new Set(rows.map((row) => row.year))].sort((left, right) => left - right);
+export const buildDashboardTrendAvailableYears = (rows: DashboardMonthlyTrendYear[]): number[] =>
+  [...new Set(rows.map((row) => row.year))].sort((left, right) => left - right);
 
 export const buildDashboardMemberTotals = (
   rows: DashboardMemberTotalsRow[]
@@ -905,7 +906,8 @@ export const buildDashboardMemberTotals = (
     { total: 0, poor: 0, nearPoor: 0 }
   );
 
-export const shouldClearOtherHeadMembers = (payload: Partial<HouseholdMemberCreateInput>): boolean => payload.isHead === true;
+export const shouldClearOtherHeadMembers = (payload: Partial<HouseholdMemberCreateInput>): boolean =>
+  payload.isHead === true;
 
 const toAreaItem = (row: typeof areas.$inferSelect): AreaItem => ({
   id: row.id,
@@ -1022,7 +1024,10 @@ export const listLocationProvinces = async (scope?: PovertyAccessScope): Promise
   }));
 };
 
-export const listLocationWards = async (provinceCode: string, scope?: PovertyAccessScope): Promise<LocationOption[]> => {
+export const listLocationWards = async (
+  provinceCode: string,
+  scope?: PovertyAccessScope
+): Promise<LocationOption[]> => {
   if (scope && !scope.hasScope) return [];
 
   const allowedWardCodes = scope ? await resolveScopedWardCodes(scope, provinceCode) : null;
@@ -1035,11 +1040,7 @@ export const listLocationWards = async (provinceCode: string, scope?: PovertyAcc
   if (allowedWardCodes) {
     conditions.push(inArray(wards.code, allowedWardCodes));
   }
-  const items = await db
-    .select()
-    .from(wards)
-    .where(whereFromConditions(conditions))
-    .orderBy(asc(wards.name));
+  const items = await db.select().from(wards).where(whereFromConditions(conditions)).orderBy(asc(wards.name));
 
   return items.map((item) => ({
     code: item.code,
@@ -1060,11 +1061,7 @@ export const listLocationAreas = async (wardCode: string, scope?: PovertyAccessS
     conditions.push(inArray(areas.id, allowedAreaIds));
   }
 
-  const items = await db
-    .select()
-    .from(areas)
-    .where(whereFromConditions(conditions))
-    .orderBy(asc(areas.name));
+  const items = await db.select().from(areas).where(whereFromConditions(conditions)).orderBy(asc(areas.name));
   return items.map(toAreaItem);
 };
 
@@ -1075,13 +1072,28 @@ const getStandardizedLocationLabels = async (input: {
 }): Promise<PovertyLocationLabels> => {
   const [province, ward, area] = await Promise.all([
     input.provinceCode
-      ? db.select().from(provinces).where(eq(provinces.code, input.provinceCode)).limit(1).then((rows) => rows[0] ?? null)
+      ? db
+          .select()
+          .from(provinces)
+          .where(eq(provinces.code, input.provinceCode))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
     input.wardCode
-      ? db.select().from(wards).where(eq(wards.code, input.wardCode)).limit(1).then((rows) => rows[0] ?? null)
+      ? db
+          .select()
+          .from(wards)
+          .where(eq(wards.code, input.wardCode))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
     input.areaId
-      ? db.select().from(areas).where(eq(areas.id, input.areaId)).limit(1).then((rows) => rows[0] ?? null)
+      ? db
+          .select()
+          .from(areas)
+          .where(eq(areas.id, input.areaId))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
       : Promise.resolve(null)
   ]);
 
@@ -1101,12 +1113,20 @@ const hydrateHouseholdLocationLabels = async <
     wardName?: string | null;
     areaName?: string | null;
   }
->(items: T[]): Promise<(T & Required<PovertyLocationLabels>)[]> => {
+>(
+  items: T[]
+): Promise<(T & Required<PovertyLocationLabels>)[]> => {
   if (items.length === 0) return [];
 
-  const provinceCodes = Array.from(new Set(items.map((item) => item.provinceCode).filter((value): value is string => Boolean(value))));
-  const wardCodes = Array.from(new Set(items.map((item) => item.wardCode).filter((value): value is string => Boolean(value))));
-  const areaIds = Array.from(new Set(items.map((item) => item.areaId).filter((value): value is string => Boolean(value))));
+  const provinceCodes = Array.from(
+    new Set(items.map((item) => item.provinceCode).filter((value): value is string => Boolean(value)))
+  );
+  const wardCodes = Array.from(
+    new Set(items.map((item) => item.wardCode).filter((value): value is string => Boolean(value)))
+  );
+  const areaIds = Array.from(
+    new Set(items.map((item) => item.areaId).filter((value): value is string => Boolean(value)))
+  );
 
   const [provinceRows, wardRows, areaRows] = await Promise.all([
     provinceCodes.length > 0 ? db.select().from(provinces).where(inArray(provinces.code, provinceCodes)) : [],
@@ -1175,12 +1195,14 @@ const syncHeadMemberSnapshot = async (
   if (existingHeadMember) {
     await db
       .update(householdMembers)
-      .set(compact({
-        fullName: hasName ? trimmedName : undefined,
-        citizenId: hasCitizenId ? trimmedCitizenId : undefined,
-        isHead: true,
-        updatedAt: new Date()
-      }))
+      .set(
+        compact({
+          fullName: hasName ? trimmedName : undefined,
+          citizenId: hasCitizenId ? trimmedCitizenId : undefined,
+          isHead: true,
+          updatedAt: new Date()
+        })
+      )
       .where(eq(householdMembers.id, existingHeadMember.id));
     return;
   }
@@ -1218,40 +1240,48 @@ export const listHouseholds = async (filters: ListHouseholdsFilters, scope?: Pov
   const orderByClause = filters.sortOrder === "asc" ? asc(sortColumn) : desc(sortColumn);
 
   const households = whereClause
-    ? await db.select().from(poorHouseholds).where(whereClause).orderBy(orderByClause).limit(filters.limit).offset(offset)
+    ? await db
+        .select()
+        .from(poorHouseholds)
+        .where(whereClause)
+        .orderBy(orderByClause)
+        .limit(filters.limit)
+        .offset(offset)
     : await db.select().from(poorHouseholds).orderBy(orderByClause).limit(filters.limit).offset(offset);
 
   const householdIds = households.map((item) => item.id);
   const headMembers =
     householdIds.length > 0
       ? await db
-        .select({
-          householdId: householdMembers.householdId,
-          fullName: householdMembers.fullName,
-          citizenId: householdMembers.citizenId
-        })
-        .from(householdMembers)
-        .where(and(inArray(householdMembers.householdId, householdIds), eq(householdMembers.isHead, true)))
-        .orderBy(asc(householdMembers.fullName))
+          .select({
+            householdId: householdMembers.householdId,
+            fullName: householdMembers.fullName,
+            citizenId: householdMembers.citizenId
+          })
+          .from(householdMembers)
+          .where(and(inArray(householdMembers.householdId, householdIds), eq(householdMembers.isHead, true)))
+          .orderBy(asc(householdMembers.fullName))
       : [];
   const [memberCounts, latestAssessments] = await Promise.all([
     householdIds.length > 0
       ? db
-        .select({
-          householdId: householdMembers.householdId,
-          memberCount: count(householdMembers.id)
-        })
-        .from(householdMembers)
-        .where(inArray(householdMembers.householdId, householdIds))
-        .groupBy(householdMembers.householdId)
+          .select({
+            householdId: householdMembers.householdId,
+            memberCount: count(householdMembers.id)
+          })
+          .from(householdMembers)
+          .where(inArray(householdMembers.householdId, householdIds))
+          .groupBy(householdMembers.householdId)
       : [],
     getLatestAssessmentSummaries(householdIds)
   ]);
 
-  const items = await hydrateHouseholdLocationLabels(attachEffectivePovertyTypes(
-    attachMemberCounts(attachHeadMemberSummaries(households, headMembers), memberCounts),
-    latestAssessments
-  ));
+  const items = await hydrateHouseholdLocationLabels(
+    attachEffectivePovertyTypes(
+      attachMemberCounts(attachHeadMemberSummaries(households, headMembers), memberCounts),
+      latestAssessments
+    )
+  );
 
   const total = totalResult?.count ?? 0;
   return {
@@ -1276,11 +1306,27 @@ export const getHouseholdDetail = async (id: string, scope?: PovertyAccessScope)
   if (!household) return null;
 
   const [members, assessments, supports, changeLogs, fieldPhotos, contextHistories] = await Promise.all([
-    db.select().from(householdMembers).where(eq(householdMembers.householdId, id)).orderBy(desc(householdMembers.isHead), asc(householdMembers.fullName)),
-    db.select().from(householdAssessments).where(eq(householdAssessments.householdId, id)).orderBy(desc(householdAssessments.assessmentYear)),
-    db.select().from(householdSupports).where(eq(householdSupports.householdId, id)).orderBy(desc(householdSupports.supportDate), desc(householdSupports.createdAt)),
+    db
+      .select()
+      .from(householdMembers)
+      .where(eq(householdMembers.householdId, id))
+      .orderBy(desc(householdMembers.isHead), asc(householdMembers.fullName)),
+    db
+      .select()
+      .from(householdAssessments)
+      .where(eq(householdAssessments.householdId, id))
+      .orderBy(desc(householdAssessments.assessmentYear)),
+    db
+      .select()
+      .from(householdSupports)
+      .where(eq(householdSupports.householdId, id))
+      .orderBy(desc(householdSupports.supportDate), desc(householdSupports.createdAt)),
     listChangeLogs(id, 50),
-    db.select().from(files).where(and(eq(files.entityType, "poor_household"), eq(files.entityId, id), isNull(files.deletedAt))).orderBy(desc(files.createdAt)),
+    db
+      .select()
+      .from(files)
+      .where(and(eq(files.entityType, "poor_household"), eq(files.entityId, id), isNull(files.deletedAt)))
+      .orderBy(desc(files.createdAt)),
     listContextHistories(id)
   ]);
 
@@ -1381,13 +1427,14 @@ export const updateHousehold = async (id: string, payload: HouseholdUpdateInput,
   const existing = await getHouseholdById(id);
   if (!existing) return null;
 
-  const labels = (payload.provinceCode || payload.wardCode || payload.areaId)
-    ? await getStandardizedLocationLabels({
-      provinceCode: payload.provinceCode ?? existing.provinceCode,
-      wardCode: payload.wardCode ?? existing.wardCode,
-      areaId: payload.areaId ?? existing.areaId
-    })
-    : {};
+  const labels =
+    payload.provinceCode || payload.wardCode || payload.areaId
+      ? await getStandardizedLocationLabels({
+          provinceCode: payload.provinceCode ?? existing.provinceCode,
+          wardCode: payload.wardCode ?? existing.wardCode,
+          areaId: payload.areaId ?? existing.areaId
+        })
+      : {};
 
   const data = compact({ ...withoutChangeNote(payload), ...labels, updatedAt: new Date() });
   const [updated] = await db.update(poorHouseholds).set(data).where(eq(poorHouseholds.id, id)).returning();
@@ -1421,9 +1468,17 @@ export const deactivateHousehold = async (id: string, changeNote?: string, chang
 };
 
 export const listMembers = async (householdId: string) =>
-  db.select().from(householdMembers).where(eq(householdMembers.householdId, householdId)).orderBy(desc(householdMembers.isHead), asc(householdMembers.fullName));
+  db
+    .select()
+    .from(householdMembers)
+    .where(eq(householdMembers.householdId, householdId))
+    .orderBy(desc(householdMembers.isHead), asc(householdMembers.fullName));
 
-export const createMember = async (householdId: string, payload: HouseholdMemberCreateInput, changedBy?: string | null) => {
+export const createMember = async (
+  householdId: string,
+  payload: HouseholdMemberCreateInput,
+  changedBy?: string | null
+) => {
   if (shouldClearOtherHeadMembers(payload)) {
     await clearOtherHeadMembers(householdId);
   }
@@ -1512,7 +1567,11 @@ export const deleteMember = async (
 };
 
 export const listAssessments = async (householdId: string) =>
-  db.select().from(householdAssessments).where(eq(householdAssessments.householdId, householdId)).orderBy(desc(householdAssessments.assessmentYear));
+  db
+    .select()
+    .from(householdAssessments)
+    .where(eq(householdAssessments.householdId, householdId))
+    .orderBy(desc(householdAssessments.assessmentYear));
 
 export const createAssessment = async (
   householdId: string,
@@ -1673,7 +1732,9 @@ export const updateContextHistory = async (
   const [existing] = await db
     .select()
     .from(householdContextHistories)
-    .where(and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId)))
+    .where(
+      and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId))
+    )
     .limit(1);
   if (!existing) return null;
 
@@ -1681,7 +1742,9 @@ export const updateContextHistory = async (
   const [updated] = await db
     .update(householdContextHistories)
     .set(data)
-    .where(and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId)))
+    .where(
+      and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId))
+    )
     .returning();
   if (updated) {
     await insertChangeLog({
@@ -1707,12 +1770,16 @@ export const deleteContextHistory = async (
   const [existing] = await db
     .select()
     .from(householdContextHistories)
-    .where(and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId)))
+    .where(
+      and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId))
+    )
     .limit(1);
   if (!existing) return null;
   const [deleted] = await db
     .delete(householdContextHistories)
-    .where(and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId)))
+    .where(
+      and(eq(householdContextHistories.id, contextHistoryId), eq(householdContextHistories.householdId, householdId))
+    )
     .returning();
   await insertChangeLog({
     householdId,
@@ -1811,6 +1878,11 @@ export const listChangeLogs = async (householdId: string, limit?: number) => {
     .orderBy(desc(householdChangeLogs.changedAt));
   const rows = typeof limit === "number" ? await query.limit(limit) : await query;
   return rows.map(mapHouseholdChangeLogRow);
+};
+
+export const getLatestChangeLog = async (householdId: string): Promise<HouseholdChangeLogItem | null> => {
+  const [item] = await listChangeLogs(householdId, 1);
+  return item ?? null;
 };
 
 export const importHouseholdRow = async (row: ImportedHouseholdInput, changedBy?: string | null) => {
@@ -1965,10 +2037,9 @@ export const listGisMarkers = async (filters: ReportFilters, scope?: PovertyAcce
     summary.latestSupportMonthAmount = monthlyAmounts?.get(latestMonth) ?? 0;
   });
 
-  return attachSupportSummaries(
-    attachMemberCounts(attachHeadMemberSummaries(households, headMembers), memberCounts),
-    [...supportsByHouseholdId.values()]
-  ).map((household) => ({
+  return attachSupportSummaries(attachMemberCounts(attachHeadMemberSummaries(households, headMembers), memberCounts), [
+    ...supportsByHouseholdId.values()
+  ]).map((household) => ({
     ...household,
     fieldPhotos: photosByHouseholdId.get(household.id) ?? []
   }));
@@ -1995,11 +2066,13 @@ export const getWardPublicLink = async (
   const [row] = await db
     .select()
     .from(povertyWardPublicLinks)
-    .where(and(
-      eq(povertyWardPublicLinks.workspaceId, workspaceId),
-      eq(povertyWardPublicLinks.provinceCode, provinceCode),
-      eq(povertyWardPublicLinks.wardCode, wardCode)
-    ))
+    .where(
+      and(
+        eq(povertyWardPublicLinks.workspaceId, workspaceId),
+        eq(povertyWardPublicLinks.provinceCode, provinceCode),
+        eq(povertyWardPublicLinks.wardCode, wardCode)
+      )
+    )
     .limit(1);
 
   return row ? toWardPublicLinkItem(row) : null;
@@ -2016,14 +2089,16 @@ export const getWardPublicLinkBySlug = async (slug: string): Promise<PovertyWard
 };
 
 export const buildPublicAreaSlug = (areaName: string, areaId: string): string =>
-  `${String(areaName ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "khu-vuc"}--${String(areaId).slice(0, 8).toLowerCase()}`;
+  `${
+    String(areaName ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "khu-vuc"
+  }--${String(areaId).slice(0, 8).toLowerCase()}`;
 
 export const upsertWardPublicLinkState = async (
   workspaceId: string,
@@ -2079,10 +2154,10 @@ export const listPovertyWardOverviews = async (
   wardCode: string,
   scope?: PovertyAccessScope
 ): Promise<PovertyWardOverviewItem[]> => {
-  const conditions = await appendWardOverviewScope([
-    eq(povertyWardOverviews.provinceCode, provinceCode),
-    eq(povertyWardOverviews.wardCode, wardCode)
-  ], scope);
+  const conditions = await appendWardOverviewScope(
+    [eq(povertyWardOverviews.provinceCode, provinceCode), eq(povertyWardOverviews.wardCode, wardCode)],
+    scope
+  );
 
   const rows = await db
     .select()
@@ -2190,7 +2265,11 @@ export const createArea = async (wardCode: string, payload: AreaCreateInput): Pr
   return toAreaItem(created);
 };
 
-export const updateArea = async (wardCode: string, areaId: string, payload: Partial<AreaCreateInput>): Promise<AreaItem | null> => {
+export const updateArea = async (
+  wardCode: string,
+  areaId: string,
+  payload: Partial<AreaCreateInput>
+): Promise<AreaItem | null> => {
   const [updated] = await db
     .update(areas)
     .set(compact({ ...payload, wardCode, updatedAt: new Date() }))
@@ -2222,15 +2301,15 @@ const getDashboardOverview = async (
     scope
   );
 
-  const targetYear = filters.year ?? (
-    await db
+  const targetYear =
+    filters.year ??
+    (await db
       .select({ year: povertyWardOverviews.year })
       .from(povertyWardOverviews)
       .where(whereFromConditions(conditions))
       .orderBy(desc(povertyWardOverviews.year))
       .limit(1)
-      .then((rows) => rows[0]?.year ?? null)
-  );
+      .then((rows) => rows[0]?.year ?? null));
 
   if (!targetYear) {
     return null;
@@ -2270,9 +2349,7 @@ const getWardOverviewTotalHouseholdMap = async (
     .where(whereFromConditions(conditions))
     .groupBy(povertyWardOverviews.year);
 
-  return new Map<number, number>(
-    rows.map((row) => [row.year, Number(row.totalHouseholds ?? 0)])
-  );
+  return new Map<number, number>(rows.map((row) => [row.year, Number(row.totalHouseholds ?? 0)]));
 };
 
 export const getDashboard = async (filters: ReportFilters, scope?: PovertyAccessScope) => {
@@ -2303,9 +2380,7 @@ export const getDashboard = async (filters: ReportFilters, scope?: PovertyAccess
     .from(poorHouseholds)
     .$dynamic();
   if (whereClause) yearlyQuery = yearlyQuery.where(whereClause);
-  const yearlyTrend = await yearlyQuery
-    .groupBy(poorHouseholds.year)
-    .orderBy(asc(poorHouseholds.year));
+  const yearlyTrend = await yearlyQuery.groupBy(poorHouseholds.year).orderBy(asc(poorHouseholds.year));
 
   const memberCountsByHousehold = db
     .select({
@@ -2323,10 +2398,7 @@ export const getDashboard = async (filters: ReportFilters, scope?: PovertyAccess
       actualMemberCount: sql<number>`coalesce(${memberCountsByHousehold.actualMemberCount}, 0)`
     })
     .from(poorHouseholds)
-    .leftJoin(
-      memberCountsByHousehold,
-      eq(poorHouseholds.id, memberCountsByHousehold.householdId)
-    )
+    .leftJoin(memberCountsByHousehold, eq(poorHouseholds.id, memberCountsByHousehold.householdId))
     .$dynamic();
   if (whereClause) memberTotalsQuery = memberTotalsQuery.where(whereClause);
   const memberTotalRows = await memberTotalsQuery;
@@ -2397,8 +2469,18 @@ export const getPublicWardMapBySlug = async (
   if (!share || !share.isPublic) return null;
 
   const [ward, province, overview, summary, markers] = await Promise.all([
-    db.select().from(wards).where(eq(wards.code, share.wardCode)).limit(1).then((rows) => rows[0] ?? null),
-    db.select().from(provinces).where(eq(provinces.code, share.provinceCode)).limit(1).then((rows) => rows[0] ?? null),
+    db
+      .select()
+      .from(wards)
+      .where(eq(wards.code, share.wardCode))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    db
+      .select()
+      .from(provinces)
+      .where(eq(provinces.code, share.provinceCode))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
     getDashboardOverview({
       year: currentYear,
       provinceCode: share.provinceCode,
@@ -2439,10 +2521,7 @@ export const getPublicAreaDetailBySlugAndAreaSlug = async (
   const wardMap = await getPublicWardMapBySlug(slug, currentYear);
   if (!wardMap?.share?.wardCode) return null;
 
-  const areaRows = await db
-    .select()
-    .from(areas)
-    .where(eq(areas.wardCode, wardMap.share.wardCode));
+  const areaRows = await db.select().from(areas).where(eq(areas.wardCode, wardMap.share.wardCode));
 
   const area = areaRows
     .map((row) => toAreaItem(row))
@@ -2529,10 +2608,10 @@ export const getPublicHouseholdDetailBySlugAndHouseholdId = async (
     },
     latestContext: detail.latestContextHistory
       ? {
-        familySituation: detail.latestContextHistory.familySituation ?? null,
-        currentStatus: detail.latestContextHistory.currentStatus ?? null,
-        recordedAt: detail.latestContextHistory.recordedAt ?? null
-      }
+          familySituation: detail.latestContextHistory.familySituation ?? null,
+          currentStatus: detail.latestContextHistory.currentStatus ?? null,
+          recordedAt: detail.latestContextHistory.recordedAt ?? null
+        }
       : null,
     fieldPhotos: (detail.fieldPhotos ?? []).map((photo) => ({
       uuid: photo.uuid,
@@ -2566,9 +2645,7 @@ export const getReportSummary = async (filters: ReportFilters, scope?: PovertyAc
     .from(poorHouseholds)
     .$dynamic();
   if (whereClause) query = query.where(whereClause);
-  const rows = await query
-    .groupBy(areaExpr, poorHouseholds.year)
-    .orderBy(desc(poorHouseholds.year), desc(count()));
+  const rows = await query.groupBy(areaExpr, poorHouseholds.year).orderBy(desc(poorHouseholds.year), desc(count()));
 
   const yearOverviewMap = await getWardOverviewTotalHouseholdMap(
     Array.from(new Set(rows.map((row) => row.year).filter((value): value is number => typeof value === "number"))),
@@ -2596,7 +2673,9 @@ const toReportDetailAddress = (item: {
   provinceName?: string | null;
 }): string | null => {
   if (item.address) return item.address;
-  const fallback = [item.areaName, item.wardName, item.provinceName].filter((value): value is string => Boolean(value && value.trim()));
+  const fallback = [item.areaName, item.wardName, item.provinceName].filter((value): value is string =>
+    Boolean(value && value.trim())
+  );
   return fallback.length > 0 ? fallback.join(", ") : null;
 };
 
@@ -2622,11 +2701,14 @@ const toReportDetailItem = (item: {
 });
 
 export const getReportDetail = async (filters: ReportDetailFilters, scope?: PovertyAccessScope) => {
-  const result = await listHouseholds({
-    ...filters,
-    sortBy: "updatedAt",
-    sortOrder: "desc"
-  }, scope);
+  const result = await listHouseholds(
+    {
+      ...filters,
+      sortBy: "updatedAt",
+      sortOrder: "desc"
+    },
+    scope
+  );
 
   return {
     items: result.items.map((item) => toReportDetailItem(item)),
@@ -2663,7 +2745,10 @@ export const getReportDetailForExport = async (
   ]);
 
   return attachMemberCounts(
-    attachHeadMemberSummaries(households, headMembers.map((item) => ({ householdId: item.householdId, fullName: item.fullName, citizenId: null }))),
+    attachHeadMemberSummaries(
+      households,
+      headMembers.map((item) => ({ householdId: item.householdId, fullName: item.fullName, citizenId: null }))
+    ),
     memberCounts
   ).map((item) => toReportDetailItem(item));
 };
