@@ -63,15 +63,6 @@ export default function PovertyMapPage() {
     const selectedWardCode = Form.useWatch("wardCode", form);
     const selectedProvinceCode = Form.useWatch("provinceCode", form);
 
-    const handlePovertyCoordinateUpdate = useCallback((event: PovertyCoordinateUpdateEvent) => {
-        notification.info({
-            message: "Cập nhật tọa độ hộ nghèo",
-            description: formatPovertyCoordinateNotification(event),
-        });
-    }, [notification]);
-
-    usePovertyCoordinateRealtime(workspaceId, handlePovertyCoordinateUpdate);
-
     const selectedWardName = useMemo(
         () => wardOptions.find((item) => item.code === filters.wardCode)?.fullName || wardOptions.find((item) => item.code === filters.wardCode)?.name,
         [filters.wardCode, wardOptions]
@@ -130,6 +121,28 @@ export default function PovertyMapPage() {
             setLoading(false);
         }
     }, [filters, focusedHouseholdId, notification]);
+
+    const refreshMarkersInBackground = useCallback(async () => {
+        try {
+            const query = buildQuery(filters);
+            const data = await api.get<{ items?: PovertyMarker[] }>(`${endpoints.poverty.gisMarkers}?${query}`);
+            setMarkers(data.items ?? []);
+        } catch (error) {
+            if (process.env.NODE_ENV !== "production") {
+                console.warn("[poverty-realtime] Background marker refresh failed", error);
+            }
+        }
+    }, [filters]);
+
+    const handlePovertyCoordinateUpdate = useCallback((event: PovertyCoordinateUpdateEvent) => {
+        notification.info({
+            message: "Cập nhật tọa độ hộ nghèo",
+            description: formatPovertyCoordinateNotification(event),
+        });
+        void refreshMarkersInBackground();
+    }, [notification, refreshMarkersInBackground]);
+
+    usePovertyCoordinateRealtime(workspaceId, handlePovertyCoordinateUpdate);
 
     useEffect(() => {
         void loadProvinces();
