@@ -10,6 +10,7 @@ import {
     buildStepOneCreatePayload,
     buildStepOneUpdatePayload,
     buildStepTwoContextPayload,
+    buildStepTwoSupportPayload,
     canSubmitCollectionStepTwo,
     createInitialCollectionState,
 } from "./poverty-collection-utils.ts";
@@ -129,4 +130,18 @@ test("buildStepTwoContextPayload trims empty strings to undefined", () => {
         currentStatus: undefined,
         note: undefined,
     });
+});
+
+test("buildStepTwoSupportPayload returns the optional support record", () => {
+    assert.deepEqual(buildStepTwoSupportPayload({
+        recordedAt: "2026-07-06",
+        supportDate: "2026-07-30",
+        supportingUnit: " VNPT ",
+        supportTypes: ["CTCI"],
+    }), {
+        supportDate: "2026-07-30",
+        supportTypes: ["CTCI"],
+        supportingUnit: "VNPT",
+    });
+    assert.equal(buildStepTwoSupportPayload({ recordedAt: "2026-07-06", supportTypes: [] }), null);
 });

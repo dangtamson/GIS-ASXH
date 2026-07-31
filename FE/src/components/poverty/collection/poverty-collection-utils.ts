@@ -1,4 +1,5 @@
 import type { AttachmentType } from "@/components/controller/input/UploadAttachmentField";
+import type { HouseholdSupportType } from "@/types/poverty";
 
 export type CollectionMode =
     | "search"
@@ -28,6 +29,9 @@ export type StepTwoFormValues = {
     familySituation?: string;
     currentStatus?: string;
     note?: string;
+    supportDate?: string;
+    supportingUnit?: string;
+    supportTypes?: HouseholdSupportType[];
 };
 
 export const COLLECTION_MAP_LAYER_Z_INDEX = 0;
@@ -128,5 +132,21 @@ export function buildStepTwoContextPayload(values: StepTwoFormValues) {
         familySituation: trim(values.familySituation),
         currentStatus: trim(values.currentStatus),
         note: trim(values.note),
+    };
+}
+
+export function buildStepTwoSupportPayload(values: StepTwoFormValues) {
+    const supportTypes = values.supportTypes ?? [];
+    if (supportTypes.length === 0) return null;
+
+    const trim = (value?: string) => {
+        const next = String(value ?? "").trim();
+        return next.length > 0 ? next : undefined;
+    };
+
+    return {
+        supportDate: trim(values.supportDate),
+        supportTypes,
+        supportingUnit: trim(values.supportingUnit),
     };
 }

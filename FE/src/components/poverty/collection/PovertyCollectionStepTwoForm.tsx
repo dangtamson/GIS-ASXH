@@ -3,9 +3,10 @@
 import type { AttachmentType } from "@/components/controller/input/UploadAttachmentField";
 import { fileToBase64 } from "@/components/controller/input/UploadAttachmentField";
 import type { StepTwoFormValues } from "@/components/poverty/collection/poverty-collection-utils";
+import { supportTypeOptions } from "@/components/poverty/poverty-support-utils";
 import { ActionButton } from "@/components/controller";
 import type { PoorHousehold } from "@/types/poverty";
-import { Alert, App, Button, DatePicker, Form, Input, Tag } from "antd";
+import { Alert, App, Button, Checkbox, DatePicker, Form, Input, Tag } from "antd";
 import dayjs from "dayjs";
 import { ArrowLeft, Camera, FileImage, ImagePlus, MapPinned, Sparkles, Trash2, UserRound } from "lucide-react";
 import Image from "next/image";
@@ -116,14 +117,14 @@ function InfoBanner({
     value?: string | null;
 }) {
     return (
-        <div className={`rounded-[22px] border px-4 py-4 ${colorClassName}`}>
+        <div className={`rounded-[22px] border px-2 py-2 ${colorClassName}`}>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em]">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm">
                     {icon}
                 </span>
                 {label}
             </div>
-            <div className="mt-3 text-sm leading-6 text-gray-800">{value || "Chưa có nội dung"}</div>
+            <div className="mt-1 text-sm leading-6 text-gray-800">{value || "Chưa có nội dung"}</div>
         </div>
     );
 }
@@ -206,7 +207,7 @@ export default function PovertyCollectionStepTwoForm({
                     <Tag color="geekblue" className="rounded-full px-3 py-1">{household.headFullName || "Chưa có chủ hộ"}</Tag>
                     <Tag color="cyan" className="rounded-full px-3 py-1">{[household.wardName, household.areaName].filter(Boolean).join(" / ") || "Chưa có địa bàn"}</Tag>
                 </div>
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <InfoBanner
                         colorClassName="border-amber-100 bg-amber-50/80 text-amber-900"
                         icon={<UserRound size={14} className="text-amber-600" />}
@@ -243,7 +244,7 @@ export default function PovertyCollectionStepTwoForm({
                     rules={[{ required: true, message: "Vui lòng nhập hoàn cảnh gia đình" }]}
                 >
                     <Input.TextArea
-                        rows={4}
+                        rows={2}
                         placeholder="Ví dụ: lao động tự do, nhà thuê, có người bệnh lâu năm..."
                     />
                 </Form.Item>
@@ -254,16 +255,39 @@ export default function PovertyCollectionStepTwoForm({
                     rules={[{ required: true, message: "Vui lòng nhập hiện trạng" }]}
                 >
                     <Input.TextArea
-                        rows={4}
+                        rows={2}
                         placeholder="Ví dụ: nhà ở xuống cấp, vừa mất việc, cần hỗ trợ y tế..."
                     />
                 </Form.Item>
 
                 <Form.Item name="note" label="Ghi chú thêm">
                     <Input.TextArea
-                        rows={3}
+                        rows={1}
                         placeholder="Thông tin bổ sung khi đi thực tế..."
                     />
+                </Form.Item>
+            </section>
+
+            <section className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-1 text-sm font-semibold text-gray-900">Thông tin hỗ trợ</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Form.Item
+                        name="supportDate"
+                        label="Thời điểm hỗ trợ"
+                        getValueProps={(value) => ({ value: value ? dayjs(value) : undefined })}
+                        normalize={(value) => {
+                            if (!value) return "";
+                            return dayjs.isDayjs(value) ? value.format("YYYY-MM-DD") : String(value);
+                        }}
+                    >
+                        <DatePicker className="h-11 w-full" format="DD/MM/YYYY" />
+                    </Form.Item>
+                    <Form.Item name="supportingUnit" label="Đơn vị hỗ trợ">
+                        <Input className="h-11" placeholder="Nhập đơn vị hỗ trợ" />
+                    </Form.Item>
+                </div>
+                <Form.Item name="supportTypes" label="Loại hỗ trợ">
+                    <Checkbox.Group className="grid grid-cols-1 gap-3 sm:grid-cols-2" options={supportTypeOptions} />
                 </Form.Item>
             </section>
 
@@ -276,7 +300,7 @@ export default function PovertyCollectionStepTwoForm({
                     <Tag color="purple">{photos.length}/{MAX_PHOTOS} ảnh</Tag>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-2 grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button
                         size="large"
                         className="h-11 rounded-2xl border-emerald-200 bg-emerald-50 text-emerald-700"

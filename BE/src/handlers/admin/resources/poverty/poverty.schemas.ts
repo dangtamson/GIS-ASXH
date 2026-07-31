@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const POVERTY_TYPES = ["POOR", "NEAR_POOR", "NONE"] as const;
 export const HOUSEHOLD_STATUSES = ["ACTIVE", "INACTIVE"] as const;
-export const HOUSEHOLD_SUPPORT_TYPES = ["HOUSING", "CASH", "HEALTHCARE", "EDUCATION", "FOOD", "OTHER"] as const;
+export const HOUSEHOLD_SUPPORT_TYPES = ["CTCI", "HOUSING", "CASH", "HEALTHCARE", "EDUCATION", "FOOD", "OTHER"] as const;
 
 export type PovertyType = (typeof POVERTY_TYPES)[number];
 export type HouseholdStatus = (typeof HOUSEHOLD_STATUSES)[number];

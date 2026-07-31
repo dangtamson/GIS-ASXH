@@ -10,6 +10,7 @@ import {
     buildStepOneCreatePayload,
     buildStepOneUpdatePayload,
     buildStepTwoContextPayload,
+    buildStepTwoSupportPayload,
     canSubmitCollectionStepTwo,
     createInitialCollectionState,
     type StepOneFormValues,
@@ -49,6 +50,13 @@ const fieldPhotoEntityType = "poor_household";
 const fieldPhotoStorageBucket = "poor_household";
 const householdSearchPageLimit = 80;
 
+function getLocalDateString(date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
 type SearchPaginationCursor = {
     keyword: string;
     normalizedKeyword: string;
@@ -69,10 +77,13 @@ const createDefaultStepOneValues = (): StepOneFormValues => ({
 });
 
 const createDefaultStepTwoValues = (): StepTwoFormValues => ({
-    recordedAt: new Date().toISOString().slice(0, 10),
+    recordedAt: getLocalDateString(),
     familySituation: "",
     currentStatus: "",
     note: "",
+    supportDate: getLocalDateString(),
+    supportingUnit: "VNPT",
+    supportTypes: [],
 });
 
 const toSafeStorageFileName = (fileName: string): string =>
@@ -715,14 +726,22 @@ export default function PovertyCollectionPage() {
                 await api.post(endpoints.poverty.householdContextHistories(collectionState.selectedHouseholdId), payload);
             }
 
+            const supportPayload = buildStepTwoSupportPayload(values);
+            if (supportPayload) {
+                if (!supportPayload.supportDate) {
+                    throw new Error("Vui lòng chọn thời điểm hỗ trợ");
+                }
+                await api.post(endpoints.poverty.householdSupports(collectionState.selectedHouseholdId), supportPayload);
+            }
+
             if (photos.length > 0) {
                 await uploadFieldPhotos(collectionState.selectedHouseholdId, photos);
             }
 
             notification.success({
                 message: "Đã hoàn tất thu thập thông tin",
-                description: shouldSaveContext || photos.length > 0
-                    ? "Dữ liệu hoàn cảnh, hiện trạng và ảnh thực tế đã được lưu."
+                description: shouldSaveContext || supportPayload || photos.length > 0
+                    ? "Dữ liệu khảo sát, hỗ trợ và ảnh thực tế đã được lưu."
                     : "Đã lưu xong hồ sơ và vị trí hộ.",
             });
 

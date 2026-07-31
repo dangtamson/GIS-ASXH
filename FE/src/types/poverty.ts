@@ -71,7 +71,7 @@ export type HouseholdAssessment = {
     updatedAt?: string | null;
 };
 
-export type HouseholdSupportType = "HOUSING" | "CASH" | "HEALTHCARE" | "EDUCATION" | "FOOD" | "OTHER";
+export type HouseholdSupportType = "CTCI" | "HOUSING" | "CASH" | "HEALTHCARE" | "EDUCATION" | "FOOD" | "OTHER";
 
 export type HouseholdSupport = {
     id: string;

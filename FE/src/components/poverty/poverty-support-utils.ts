@@ -1,6 +1,7 @@
 import type { HouseholdSupport, HouseholdSupportType } from "@/types/poverty";
 
 export const supportTypeOptions: { label: string; value: HouseholdSupportType }[] = [
+    { label: "Viễn thông công ích", value: "CTCI" },
     { label: "Nhà cửa", value: "HOUSING" },
     { label: "Tiền mặt", value: "CASH" },
     { label: "Y tế", value: "HEALTHCARE" },
