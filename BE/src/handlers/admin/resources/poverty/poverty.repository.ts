@@ -1075,27 +1075,27 @@ const getStandardizedLocationLabels = async (input: {
   const [province, ward, area] = await Promise.all([
     input.provinceCode
       ? db
-          .select()
-          .from(provinces)
-          .where(eq(provinces.code, input.provinceCode))
-          .limit(1)
-          .then((rows) => rows[0] ?? null)
+        .select()
+        .from(provinces)
+        .where(eq(provinces.code, input.provinceCode))
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
     input.wardCode
       ? db
-          .select()
-          .from(wards)
-          .where(eq(wards.code, input.wardCode))
-          .limit(1)
-          .then((rows) => rows[0] ?? null)
+        .select()
+        .from(wards)
+        .where(eq(wards.code, input.wardCode))
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
     input.areaId
       ? db
-          .select()
-          .from(areas)
-          .where(eq(areas.id, input.areaId))
-          .limit(1)
-          .then((rows) => rows[0] ?? null)
+        .select()
+        .from(areas)
+        .where(eq(areas.id, input.areaId))
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
       : Promise.resolve(null)
   ]);
 
@@ -1243,37 +1243,37 @@ export const listHouseholds = async (filters: ListHouseholdsFilters, scope?: Pov
 
   const households = whereClause
     ? await db
-        .select()
-        .from(poorHouseholds)
-        .where(whereClause)
-        .orderBy(orderByClause)
-        .limit(filters.limit)
-        .offset(offset)
+      .select()
+      .from(poorHouseholds)
+      .where(whereClause)
+      .orderBy(orderByClause)
+      .limit(filters.limit)
+      .offset(offset)
     : await db.select().from(poorHouseholds).orderBy(orderByClause).limit(filters.limit).offset(offset);
 
   const householdIds = households.map((item) => item.id);
   const headMembers =
     householdIds.length > 0
       ? await db
-          .select({
-            householdId: householdMembers.householdId,
-            fullName: householdMembers.fullName,
-            citizenId: householdMembers.citizenId
-          })
-          .from(householdMembers)
-          .where(and(inArray(householdMembers.householdId, householdIds), eq(householdMembers.isHead, true)))
-          .orderBy(asc(householdMembers.fullName))
+        .select({
+          householdId: householdMembers.householdId,
+          fullName: householdMembers.fullName,
+          citizenId: householdMembers.citizenId
+        })
+        .from(householdMembers)
+        .where(and(inArray(householdMembers.householdId, householdIds), eq(householdMembers.isHead, true)))
+        .orderBy(asc(householdMembers.fullName))
       : [];
   const [memberCounts, latestAssessments] = await Promise.all([
     householdIds.length > 0
       ? db
-          .select({
-            householdId: householdMembers.householdId,
-            memberCount: count(householdMembers.id)
-          })
-          .from(householdMembers)
-          .where(inArray(householdMembers.householdId, householdIds))
-          .groupBy(householdMembers.householdId)
+        .select({
+          householdId: householdMembers.householdId,
+          memberCount: count(householdMembers.id)
+        })
+        .from(householdMembers)
+        .where(inArray(householdMembers.householdId, householdIds))
+        .groupBy(householdMembers.householdId)
       : [],
     getLatestAssessmentSummaries(householdIds)
   ]);
@@ -1385,10 +1385,10 @@ export const mapHouseholdChangeLogRow = (row: HouseholdChangeLogQueryRow): House
   changedAt: row.changedAt,
   changedByAccount: row.changedByUuid
     ? {
-        uuid: row.changedByUuid,
-        fullName: row.changedByFullName,
-        email: row.changedByEmail
-      }
+      uuid: row.changedByUuid,
+      fullName: row.changedByFullName,
+      email: row.changedByEmail
+    }
     : null
 });
 
@@ -1441,10 +1441,10 @@ export const updateHousehold = async (id: string, payload: HouseholdUpdateInput,
   const labels =
     payload.provinceCode || payload.wardCode || payload.areaId
       ? await getStandardizedLocationLabels({
-          provinceCode: payload.provinceCode ?? existing.provinceCode,
-          wardCode: payload.wardCode ?? existing.wardCode,
-          areaId: payload.areaId ?? existing.areaId
-        })
+        provinceCode: payload.provinceCode ?? existing.provinceCode,
+        wardCode: payload.wardCode ?? existing.wardCode,
+        areaId: payload.areaId ?? existing.areaId
+      })
       : {};
 
   const data = compact({ ...withoutChangeMetadata(payload), ...labels, updatedAt: new Date() });
@@ -2100,15 +2100,14 @@ export const getWardPublicLinkBySlug = async (slug: string): Promise<PovertyWard
 };
 
 export const buildPublicAreaSlug = (areaName: string, areaId: string): string =>
-  `${
-    String(areaName ?? "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/đ/g, "d")
-      .replace(/Đ/g, "D")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "khu-vuc"
+  `${String(areaName ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "khu-vuc"
   }--${String(areaId).slice(0, 8).toLowerCase()}`;
 
 export const upsertWardPublicLinkState = async (
@@ -2619,10 +2618,10 @@ export const getPublicHouseholdDetailBySlugAndHouseholdId = async (
     },
     latestContext: detail.latestContextHistory
       ? {
-          familySituation: detail.latestContextHistory.familySituation ?? null,
-          currentStatus: detail.latestContextHistory.currentStatus ?? null,
-          recordedAt: detail.latestContextHistory.recordedAt ?? null
-        }
+        familySituation: detail.latestContextHistory.familySituation ?? null,
+        currentStatus: detail.latestContextHistory.currentStatus ?? null,
+        recordedAt: detail.latestContextHistory.recordedAt ?? null
+      }
       : null,
     fieldPhotos: (detail.fieldPhotos ?? []).map((photo) => ({
       uuid: photo.uuid,
@@ -2770,6 +2769,23 @@ export const listHouseholdsForExport = async (filters: ReportFilters, scope?: Po
   let query = db.select().from(poorHouseholds).$dynamic();
   if (whereClause) query = query.where(whereClause);
   const households = await query.orderBy(desc(poorHouseholds.updatedAt));
-  const latestAssessments = await getLatestAssessmentSummaries(households.map((item) => item.id));
-  return hydrateHouseholdLocationLabels(attachEffectivePovertyTypes(households, latestAssessments));
+  const householdIds = households.map((item) => item.id);
+  const [headMembers, latestAssessments] = await Promise.all([
+    householdIds.length > 0
+      ? db
+        .select({
+          householdId: householdMembers.householdId,
+          fullName: householdMembers.fullName,
+          citizenId: householdMembers.citizenId
+        })
+        .from(householdMembers)
+        .where(and(inArray(householdMembers.householdId, householdIds), eq(householdMembers.isHead, true)))
+        .orderBy(asc(householdMembers.fullName))
+      : [],
+    getLatestAssessmentSummaries(householdIds)
+  ]);
+
+  return hydrateHouseholdLocationLabels(
+    attachEffectivePovertyTypes(attachHeadMemberSummaries(households, headMembers), latestAssessments)
+  );
 };

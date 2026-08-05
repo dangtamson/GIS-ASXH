@@ -24,6 +24,7 @@ export type HouseholdExportRow = {
   id?: string;
   code: string | null;
   year: number;
+  headFullName?: string | null;
   povertyType: string | null;
   status?: string | null;
   provinceName?: string | null;
@@ -182,6 +183,7 @@ const householdExportHeaders = [
   "ID",
   "Mã hộ",
   "Năm",
+  "Tên chủ hộ",
   "Loại hộ",
   "Trạng thái",
   "Tỉnh/Thành phố",
@@ -194,6 +196,19 @@ const householdExportHeaders = [
   "Ngày cập nhật"
 ];
 
+const formatPovertyTypeLabel = (value?: string | null): string => {
+  switch (value) {
+    case "POOR":
+      return "Hộ nghèo";
+    case "NEAR_POOR":
+      return "Hộ cận nghèo";
+    case "NONE":
+      return "Không còn nghèo/cận nghèo";
+    default:
+      return value ?? "";
+  }
+};
+
 export const buildHouseholdExportWorkbook = (rows: HouseholdExportRow[]): string => {
   const data = [
     householdExportHeaders,
@@ -201,7 +216,8 @@ export const buildHouseholdExportWorkbook = (rows: HouseholdExportRow[]): string
       row.id ?? "",
       row.code ?? "",
       row.year ?? "",
-      row.povertyType ?? "",
+      row.headFullName ?? "",
+      formatPovertyTypeLabel(row.povertyType),
       row.status ?? "",
       row.provinceName ?? "",
       row.wardName ?? "",
