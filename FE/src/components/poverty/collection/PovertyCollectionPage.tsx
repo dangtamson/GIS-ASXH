@@ -272,6 +272,10 @@ export default function PovertyCollectionPage() {
     const [selectedHousehold, setSelectedHousehold] = useState<PoorHousehold | null>(null);
     const [stepOneValues, setStepOneValues] = useState<StepOneFormValues>(createDefaultStepOneValues);
     const [stepTwoValues, setStepTwoValues] = useState<StepTwoFormValues>(createDefaultStepTwoValues);
+    const [stepTwoLatestContext, setStepTwoLatestContext] = useState<{
+        familySituation?: string | null;
+        currentStatus?: string | null;
+    } | null>(null);
     const [stepTwoPhotos, setStepTwoPhotos] = useState<AttachmentType[]>([]);
     const [provinceOptions, setProvinceOptions] = useState<ProvinceOption[]>([]);
     const [wardOptions, setWardOptions] = useState<WardOption[]>([]);
@@ -375,6 +379,7 @@ export default function PovertyCollectionPage() {
         setShowSortControls(false);
         setStepOneValues(createDefaultStepOneValues());
         setStepTwoValues(createDefaultStepTwoValues());
+        setStepTwoLatestContext(null);
         setStepTwoPhotos([]);
         setWardOptions([]);
         setAreaOptions([]);
@@ -424,8 +429,14 @@ export default function PovertyCollectionPage() {
                     ? currentMemberCount
                     : (members.length > 0 ? members.length : data.household.memberCount),
             };
+            const latestContext = data.latestContextHistory;
 
             hydrateFromHousehold(resolvedHousehold);
+            setStepTwoLatestContext({
+                familySituation: latestContext?.familySituation ?? null,
+                currentStatus: latestContext?.currentStatus ?? null,
+            });
+            setStepTwoValues(createDefaultStepTwoValues());
             setCollectionState({
                 mode: "update-step-1",
                 step: 1,
@@ -632,6 +643,7 @@ export default function PovertyCollectionPage() {
         setSelectedHousehold(null);
         setStepOneValues(createDefaultStepOneValues());
         setStepTwoValues(createDefaultStepTwoValues());
+        setStepTwoLatestContext(null);
         setStepTwoPhotos([]);
         setCollectionState({
             mode: "create-step-1",
@@ -969,6 +981,7 @@ export default function PovertyCollectionPage() {
                             household={selectedHousehold}
                             initialPhotos={stepTwoPhotos}
                             initialValues={stepTwoValues}
+                            latestContext={stepTwoLatestContext}
                             onBack={(values) => {
                                 setStepTwoValues(values);
                                 setCollectionState((current) => ({

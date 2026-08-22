@@ -16,6 +16,10 @@ type Props = {
     household: PoorHousehold;
     initialPhotos: AttachmentType[];
     initialValues: StepTwoFormValues;
+    latestContext?: {
+        familySituation?: string | null;
+        currentStatus?: string | null;
+    } | null;
     onBack: (values: StepTwoFormValues) => void;
     onPhotosChange: (photos: AttachmentType[]) => void;
     onSubmit: (values: StepTwoFormValues, photos: AttachmentType[]) => void | Promise<void>;
@@ -133,6 +137,7 @@ export default function PovertyCollectionStepTwoForm({
     household,
     initialPhotos,
     initialValues,
+    latestContext = null,
     onBack,
     onPhotosChange,
     onSubmit,
@@ -212,13 +217,13 @@ export default function PovertyCollectionStepTwoForm({
                         colorClassName="border-amber-100 bg-amber-50/80 text-amber-900"
                         icon={<UserRound size={14} className="text-amber-600" />}
                         label="Hoàn cảnh gia đình"
-                        value={initialValues.familySituation}
+                        value={latestContext?.familySituation ?? initialValues.familySituation}
                     />
                     <InfoBanner
                         colorClassName="border-emerald-100 bg-emerald-50/80 text-emerald-900"
                         icon={<MapPinned size={14} className="text-emerald-600" />}
                         label="Hiện trạng đang có"
-                        value={initialValues.currentStatus}
+                        value={latestContext?.currentStatus ?? initialValues.currentStatus}
                     />
                 </div>
             </section>
