@@ -354,6 +354,237 @@ export const poorHouseholds = gisasxhSchema.table(
   })
 );
 
+export const socialAssistancePublicPortals = gisasxhSchema.table(
+  "social_assistance_public_portals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    publicSlug: varchar("public_slug", { length: 120 }).notNull(),
+    intakeEnabled: boolean("intake_enabled").notNull().default(false),
+    programsEnabled: boolean("programs_enabled").notNull().default(false),
+    resultsEnabled: boolean("results_enabled").notNull().default(false),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueWorkspacePortal: unique("social_assistance_public_portals_workspace_key").on(table.workspaceId),
+    uniquePublicSlug: unique("social_assistance_public_portals_slug_key").on(table.publicSlug),
+    idxSocialAssistancePortalsWorkspace: index("idx_social_assistance_portals_workspace").on(table.workspaceId)
+  })
+);
+
+export const socialAssistanceRequests = gisasxhSchema.table(
+  "social_assistance_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    portalId: uuid("portal_id")
+      .notNull()
+      .references(() => socialAssistancePublicPortals.id, { onDelete: "restrict" }),
+    receiptCode: varchar("receipt_code", { length: 40 }).notNull(),
+    idempotencyKeyHash: varchar("idempotency_key_hash", { length: 64 }).notNull(),
+    source: varchar("source", { length: 32 }).notNull(),
+    contactName: varchar("contact_name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 40 }).notNull(),
+    needCategory: varchar("need_category", { length: 80 }).notNull(),
+    needDescription: text("need_description").notNull(),
+    address: text("address").notNull(),
+    provinceCode: varchar("province_code", { length: 20 }).notNull(),
+    wardCode: varchar("ward_code", { length: 20 }).notNull(),
+    areaId: uuid("area_id").references(() => areas.id, { onDelete: "set null" }),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
+    consentAt: timestamp("consent_at", { precision: 6, withTimezone: true }).notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("RECEIVED"),
+    matchedHouseholdId: uuid("matched_household_id").references(() => poorHouseholds.id, { onDelete: "set null" }),
+    verifiedBy: uuid("verified_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    verifiedAt: timestamp("verified_at", { precision: 6, withTimezone: true }),
+    internalReason: text("internal_reason"),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueReceiptCode: unique("social_assistance_requests_receipt_code_key").on(table.receiptCode),
+    uniquePortalIdempotencyKey: unique("social_assistance_requests_portal_idempotency_key").on(
+      table.portalId,
+      table.idempotencyKeyHash
+    ),
+    idxSocialAssistanceRequestsWorkspaceStatus: index("idx_social_assistance_requests_workspace_status").on(
+      table.workspaceId,
+      table.status
+    ),
+    idxSocialAssistanceRequestsWorkspaceWard: index("idx_social_assistance_requests_workspace_ward").on(
+      table.workspaceId,
+      table.wardCode
+    ),
+    idxSocialAssistanceRequestsArea: index("idx_social_assistance_requests_area").on(table.areaId),
+    idxSocialAssistanceRequestsPortal: index("idx_social_assistance_requests_portal").on(table.portalId),
+    idxSocialAssistanceRequestsHousehold: index("idx_social_assistance_requests_household").on(
+      table.matchedHouseholdId
+    )
+  })
+);
+
+export const socialAssistancePrograms = gisasxhSchema.table(
+  "social_assistance_programs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    publicDescription: text("public_description").notNull(),
+    category: varchar("category", { length: 80 }).notNull(),
+    eligibilitySummary: text("eligibility_summary").notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("DRAFT"),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    idxSocialAssistanceProgramsWorkspaceStatus: index("idx_social_assistance_programs_workspace_status").on(
+      table.workspaceId,
+      table.status
+    ),
+    idxSocialAssistanceProgramsWorkspaceDates: index("idx_social_assistance_programs_workspace_dates").on(
+      table.workspaceId,
+      table.startDate,
+      table.endDate
+    )
+  })
+);
+
+export const socialAssistancePledges = gisasxhSchema.table(
+  "social_assistance_pledges",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    portalId: uuid("portal_id")
+      .notNull()
+      .references(() => socialAssistancePublicPortals.id, { onDelete: "restrict" }),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => socialAssistancePrograms.id, { onDelete: "restrict" }),
+    idempotencyKeyHash: varchar("idempotency_key_hash", { length: 64 }).notNull(),
+    donorType: varchar("donor_type", { length: 32 }).notNull(),
+    donorName: varchar("donor_name", { length: 255 }).notNull(),
+    contactPhone: varchar("contact_phone", { length: 40 }).notNull(),
+    contactEmail: varchar("contact_email", { length: 255 }),
+    pledgeType: varchar("pledge_type", { length: 16 }).notNull(),
+    pledgedAmount: numeric("pledged_amount", { precision: 14, scale: 2, mode: "number" }),
+    itemDescription: text("item_description"),
+    receivedAmount: numeric("received_amount", { precision: 14, scale: 2, mode: "number" }),
+    receivedDescription: text("received_description"),
+    status: varchar("status", { length: 32 }).notNull().default("PENDING_REVIEW"),
+    consentAt: timestamp("consent_at", { precision: 6, withTimezone: true }).notNull(),
+    reviewedBy: uuid("reviewed_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { precision: 6, withTimezone: true }),
+    internalNote: text("internal_note"),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniquePortalPledgeIdempotency: unique("social_assistance_pledges_portal_idempotency_key").on(
+      table.portalId,
+      table.idempotencyKeyHash
+    ),
+    idxSocialAssistancePledgesWorkspaceStatus: index("idx_social_assistance_pledges_workspace_status").on(
+      table.workspaceId,
+      table.status
+    ),
+    idxSocialAssistancePledgesProgram: index("idx_social_assistance_pledges_program").on(table.programId)
+  })
+);
+
+export const socialAssistanceAllocations = gisasxhSchema.table(
+  "social_assistance_allocations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => socialAssistancePrograms.id, { onDelete: "restrict" }),
+    requestId: uuid("request_id")
+      .notNull()
+      .references(() => socialAssistanceRequests.id, { onDelete: "restrict" }),
+    plannedCashAmount: numeric("planned_cash_amount", { precision: 14, scale: 2, mode: "number" }),
+    plannedItemDescription: text("planned_item_description"),
+    deliveredCashAmount: numeric("delivered_cash_amount", { precision: 14, scale: 2, mode: "number" }),
+    deliveredItemDescription: text("delivered_item_description"),
+    status: varchar("status", { length: 32 }).notNull().default("PLANNED"),
+    deliveryDate: date("delivery_date"),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    internalNote: text("internal_note"),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueProgramRequestAllocation: unique("social_assistance_allocations_program_request_key").on(
+      table.programId,
+      table.requestId
+    ),
+    idxSocialAssistanceAllocationsWorkspaceStatus: index("idx_social_assistance_allocations_workspace_status").on(
+      table.workspaceId,
+      table.status
+    ),
+    idxSocialAssistanceAllocationsProgram: index("idx_social_assistance_allocations_program").on(table.programId),
+    idxSocialAssistanceAllocationsRequest: index("idx_social_assistance_allocations_request").on(table.requestId)
+  })
+);
+
+export const socialAssistancePublications = gisasxhSchema.table(
+  "social_assistance_publications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    publicationBatchId: uuid("publication_batch_id").notNull(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    periodStart: date("period_start").notNull(),
+    periodEnd: date("period_end").notNull(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => socialAssistancePrograms.id, { onDelete: "restrict" }),
+    provinceCode: varchar("province_code", { length: 20 }).notNull(),
+    wardCode: varchar("ward_code", { length: 20 }).notNull(),
+    areaId: uuid("area_id").references(() => areas.id, { onDelete: "set null" }),
+    recipientCount: integer("recipient_count").notNull(),
+    deliveredCashAmount: numeric("delivered_cash_amount", { precision: 14, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    deliveredItemCount: integer("delivered_item_count").notNull().default(0),
+    status: varchar("status", { length: 16 }).notNull().default("DRAFT"),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    approvedBy: uuid("approved_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    approvedAt: timestamp("approved_at", { precision: 6, withTimezone: true }),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    idxSocialAssistancePublicationsBatch: index("idx_social_assistance_publications_batch").on(table.publicationBatchId),
+    idxSocialAssistancePublicationsWorkspaceStatus: index("idx_social_assistance_publications_workspace_status").on(
+      table.workspaceId,
+      table.status,
+      table.periodStart,
+      table.periodEnd
+    ),
+    idxSocialAssistancePublicationsProgram: index("idx_social_assistance_publications_program").on(table.programId)
+  })
+);
+
 export const povertyWardOverviews = gisasxhSchema.table(
   "poverty_ward_overviews",
   {

@@ -15,7 +15,7 @@ export const whitelist: RegExp[] = [
 export const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-workspace-id", "x-request-id"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-workspace-id", "x-request-id", "idempotency-key"],
   optionsSuccessStatus: 204,
   origin: function (origin: string | undefined, callback: (a: null | Error, b?: boolean) => void): void {
     // Allows an undefined origin. eg GET requests from the browser or curl requests.

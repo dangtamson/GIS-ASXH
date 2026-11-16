@@ -196,7 +196,20 @@ export const AUDIT_ACTIONS = {
   POVERTY_CONTEXT_HISTORY_UPDATED: "poverty_context_history_updated",
   POVERTY_SUPPORT_CREATED: "poverty_support_created",
   POVERTY_SUPPORT_UPDATED: "poverty_support_updated",
-  POVERTY_SUPPORT_DELETED: "poverty_support_deleted"
+  POVERTY_SUPPORT_DELETED: "poverty_support_deleted",
+
+  // Social assistance actions
+  SOCIAL_ASSISTANCE_REQUEST_CREATED: "social_assistance_request_created",
+  SOCIAL_ASSISTANCE_REQUEST_STATUS_UPDATED: "social_assistance_request_status_updated",
+  SOCIAL_ASSISTANCE_PROGRAM_CREATED: "social_assistance_program_created",
+  SOCIAL_ASSISTANCE_PROGRAM_UPDATED: "social_assistance_program_updated",
+  SOCIAL_ASSISTANCE_PLEDGE_CREATED: "social_assistance_pledge_created",
+  SOCIAL_ASSISTANCE_PLEDGE_STATUS_UPDATED: "social_assistance_pledge_status_updated",
+  SOCIAL_ASSISTANCE_ALLOCATION_CREATED: "social_assistance_allocation_created",
+  SOCIAL_ASSISTANCE_ALLOCATION_UPDATED: "social_assistance_allocation_updated",
+  SOCIAL_ASSISTANCE_PUBLICATION_DRAFT_CREATED: "social_assistance_publication_draft_created",
+  SOCIAL_ASSISTANCE_PUBLICATION_APPROVED: "social_assistance_publication_approved",
+  SOCIAL_ASSISTANCE_PORTAL_UPDATED: "social_assistance_portal_updated"
 } as const;
 
 /**
@@ -235,7 +248,14 @@ export const ENTITY_TYPES = {
   POVERTY_MEMBER: "poverty_member",
   POVERTY_ASSESSMENT: "poverty_assessment",
   POVERTY_CONTEXT_HISTORY: "poverty_context_history",
-  POVERTY_SUPPORT: "poverty_support"
+  POVERTY_SUPPORT: "poverty_support",
+
+  SOCIAL_ASSISTANCE_REQUEST: "social_assistance_request",
+  SOCIAL_ASSISTANCE_PROGRAM: "social_assistance_program",
+  SOCIAL_ASSISTANCE_PLEDGE: "social_assistance_pledge",
+  SOCIAL_ASSISTANCE_ALLOCATION: "social_assistance_allocation",
+  SOCIAL_ASSISTANCE_PUBLICATION: "social_assistance_publication",
+  SOCIAL_ASSISTANCE_PORTAL: "social_assistance_portal"
 } as const;
 
 export type PovertyAuditDetails = {

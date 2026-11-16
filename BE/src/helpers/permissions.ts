@@ -131,9 +131,32 @@ export const API_ROUTES = {
   povertyWardOverviewById: "/poverty/ward-overviews/:id",
   povertyWardAreas: "/poverty/wards/:wardCode/areas",
   povertyWardAreaById: "/poverty/wards/:wardCode/areas/:areaId",
+  socialAssistanceRequests: "/social-assistance/requests",
+  socialAssistanceRequestById: "/social-assistance/requests/:id",
+  socialAssistanceRequestStatus: "/social-assistance/requests/:id/status",
+  socialAssistancePublicPortal: "/social-assistance/public-portal",
+  socialAssistancePrograms: "/social-assistance/programs",
+  socialAssistanceProgramById: "/social-assistance/programs/:id",
+  socialAssistancePledges: "/social-assistance/pledges",
+  socialAssistancePledgeReconcile: "/social-assistance/pledges/:id/reconcile",
+  socialAssistanceAllocations: "/social-assistance/allocations",
+  socialAssistanceAllocationById: "/social-assistance/allocations/:id",
+  socialAssistanceAllocationStatus: "/social-assistance/allocations/:id/status",
+  socialAssistanceDashboard: "/social-assistance/reports/dashboard",
+  socialAssistancePublicationPreview: "/social-assistance/publications/preview",
+  socialAssistancePublicationOptions: "/social-assistance/publications/options",
+  socialAssistancePublicationDraft: "/social-assistance/publications",
+  socialAssistancePublicationApprove: "/social-assistance/publications/:batchId/approve",
+  publicSocialAssistanceMap: "/public/social-assistance/:slug/map",
   publicPovertyWardBySlug: "/public/poverty/wards/:slug",
   publicPovertyAreaBySlug: "/public/poverty/wards/:slug/areas/:areaSlug",
-  publicPovertyHouseholdBySlug: "/public/poverty/wards/:slug/households/:householdId"
+  publicPovertyHouseholdBySlug: "/public/poverty/wards/:slug/households/:householdId",
+  publicSocialAssistanceRequests: "/public/social-assistance/:slug/requests",
+  publicSocialAssistancePrograms: "/public/social-assistance/:slug/programs",
+  publicSocialAssistancePledges: "/public/social-assistance/:slug/pledges",
+  publicSocialAssistanceProvinces: "/public/social-assistance/:slug/locations/provinces",
+  publicSocialAssistanceWards: "/public/social-assistance/:slug/locations/wards",
+  publicSocialAssistancePortalFromWard: "/public/social-assistance/from-ward/:wardSlug"
 } as const;
 
 export type RouteName = keyof typeof API_ROUTES;
@@ -195,7 +218,31 @@ const RESOURCE_PERMISSION_CODES = {
   PovertyWardArea: buildCrudPermissionCodes("poverty.ward_area"),
   PovertyMap: buildReadPermissionCode("poverty.map"),
   PovertyDashboard: buildReadPermissionCode("poverty.dashboard"),
-  PovertyReport: buildReadPermissionCode("poverty.report")
+  PovertyReport: buildReadPermissionCode("poverty.report"),
+  SocialAssistanceRequest: {
+    View: "social_assistance.request.view",
+    Create: "social_assistance.request.create",
+    Review: "social_assistance.request.review"
+  },
+  SocialAssistanceProgram: {
+    View: "social_assistance.program.view",
+    Manage: "social_assistance.program.manage"
+  },
+  SocialAssistancePledge: {
+    View: "social_assistance.pledge.view",
+    Reconcile: "social_assistance.pledge.reconcile"
+  },
+  SocialAssistanceAllocation: {
+    View: "social_assistance.allocation.view",
+    Manage: "social_assistance.allocation.manage"
+  },
+  SocialAssistanceReport: buildReadPermissionCode("social_assistance.report"),
+  SocialAssistancePublication: {
+    Manage: "social_assistance.publication.manage"
+  },
+  SocialAssistancePortal: {
+    Manage: "social_assistance.portal.manage"
+  }
 } as const;
 
 export const PERMISSION_CODES = {
@@ -271,6 +318,18 @@ export const PERMISSION_CODES = {
   PovertyDashboardView: RESOURCE_PERMISSION_CODES.PovertyDashboard.Read,
   PovertyReportView: RESOURCE_PERMISSION_CODES.PovertyReport.Read,
   PovertyReportExport: "poverty.report.export",
+  SocialAssistanceRequestView: RESOURCE_PERMISSION_CODES.SocialAssistanceRequest.View,
+  SocialAssistanceRequestCreate: RESOURCE_PERMISSION_CODES.SocialAssistanceRequest.Create,
+  SocialAssistanceRequestReview: RESOURCE_PERMISSION_CODES.SocialAssistanceRequest.Review,
+  SocialAssistanceProgramView: RESOURCE_PERMISSION_CODES.SocialAssistanceProgram.View,
+  SocialAssistanceProgramManage: RESOURCE_PERMISSION_CODES.SocialAssistanceProgram.Manage,
+  SocialAssistancePledgeView: RESOURCE_PERMISSION_CODES.SocialAssistancePledge.View,
+  SocialAssistancePledgeReconcile: RESOURCE_PERMISSION_CODES.SocialAssistancePledge.Reconcile,
+  SocialAssistanceAllocationView: RESOURCE_PERMISSION_CODES.SocialAssistanceAllocation.View,
+  SocialAssistanceAllocationManage: RESOURCE_PERMISSION_CODES.SocialAssistanceAllocation.Manage,
+  SocialAssistanceReportView: RESOURCE_PERMISSION_CODES.SocialAssistanceReport.Read,
+  SocialAssistancePublicationManage: RESOURCE_PERMISSION_CODES.SocialAssistancePublication.Manage,
+  SocialAssistancePortalManage: RESOURCE_PERMISSION_CODES.SocialAssistancePortal.Manage,
   OwnerOnly: "owner"
 } as const;
 
@@ -1222,6 +1281,89 @@ permissions.set(API_ROUTES.povertyWardAreaById, {
   workspaceScoped: true
 });
 
+permissions.set(API_ROUTES.socialAssistancePrograms, {
+  permissions: {
+    GET: PERMISSION_CODES.SocialAssistanceProgramView,
+    POST: PERMISSION_CODES.SocialAssistanceProgramManage
+  },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceProgramById, {
+  permissions: { PATCH: PERMISSION_CODES.SocialAssistanceProgramManage },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePledges, {
+  permissions: { GET: PERMISSION_CODES.SocialAssistancePledgeView },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePledgeReconcile, {
+  permissions: { PATCH: PERMISSION_CODES.SocialAssistancePledgeReconcile },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceAllocations, {
+  permissions: {
+    GET: PERMISSION_CODES.SocialAssistanceAllocationView,
+    POST: PERMISSION_CODES.SocialAssistanceAllocationManage
+  },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceAllocationById, {
+  permissions: { GET: PERMISSION_CODES.SocialAssistanceAllocationView },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceAllocationStatus, {
+  permissions: { PATCH: PERMISSION_CODES.SocialAssistanceAllocationManage },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceDashboard, {
+  permissions: { GET: PERMISSION_CODES.SocialAssistanceReportView },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePublicationPreview, {
+  permissions: { POST: PERMISSION_CODES.SocialAssistancePublicationManage },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePublicationOptions, {
+  permissions: { GET: PERMISSION_CODES.SocialAssistancePublicationManage },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePublicationDraft, {
+  permissions: { POST: PERMISSION_CODES.SocialAssistancePublicationManage },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePublicationApprove, {
+  permissions: { POST: PERMISSION_CODES.SocialAssistancePublicationManage },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.publicSocialAssistanceMap, {
+  permissions: {},
+  authenticated: false
+});
+
 permissions.set(API_ROUTES.publicPovertyWardBySlug, {
   permissions: {},
   authenticated: false
@@ -1233,6 +1375,63 @@ permissions.set(API_ROUTES.publicPovertyAreaBySlug, {
 });
 
 permissions.set(API_ROUTES.publicPovertyHouseholdBySlug, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicSocialAssistanceRequests, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicSocialAssistancePrograms, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicSocialAssistancePledges, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicSocialAssistanceProvinces, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.publicSocialAssistanceWards, {
+  permissions: {},
+  authenticated: false
+});
+
+permissions.set(API_ROUTES.socialAssistanceRequests, {
+  permissions: { GET: PERMISSION_CODES.SocialAssistanceRequestView },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceRequestById, {
+  permissions: { GET: PERMISSION_CODES.SocialAssistanceRequestView },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistanceRequestStatus, {
+  permissions: { PATCH: PERMISSION_CODES.SocialAssistanceRequestReview },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.socialAssistancePublicPortal, {
+  permissions: {
+    GET: PERMISSION_CODES.SocialAssistancePortalManage,
+    PUT: PERMISSION_CODES.SocialAssistancePortalManage
+  },
+  authenticated: true,
+  workspaceScoped: true
+});
+
+permissions.set(API_ROUTES.publicSocialAssistancePortalFromWard, {
   permissions: {},
   authenticated: false
 });

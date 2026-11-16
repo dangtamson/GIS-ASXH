@@ -55,3 +55,15 @@ export const authRateLimit = createRateLimiter({
   max: 1000, // 5 requests per 15 minutes for auth operations
   message: "Too many authentication attempts, please try again later."
 });
+
+export const socialAssistanceIntakeRateLimit = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: "Too many support requests from this IP, please try again later."
+});
+
+export const socialAssistanceLocationRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: "Too many location lookups from this IP, please try again later."
+});

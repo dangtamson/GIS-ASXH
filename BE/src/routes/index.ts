@@ -38,10 +38,13 @@ import { isAuthenticated } from "@/middleware/isAuthenticated.ts";
 import { isAuthorized } from "@/middleware/isAuthorized.ts";
 import { authRateLimit } from "@/middleware/rateLimiter.ts";
 import type { Application } from "express";
+import { registerSocialAssistancePublicRoutes } from "./social-assistance-public.ts";
 
 const { API_ROUTES } = permissions;
 
 export function routes(app: Application): void {
+  registerSocialAssistancePublicRoutes(app);
+
   app.get(API_ROUTES.root, isAuthenticated, checkAccountStatus, isAuthorized, (_req, res) => {
     res.send(`Routes are active! route: ${API_ROUTES.root} with test ${test}`);
   });

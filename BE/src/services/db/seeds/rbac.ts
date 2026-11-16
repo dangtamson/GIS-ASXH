@@ -68,7 +68,19 @@ const defaultPermissions = [
   { code: "poverty.map.update_position", name: "Update poverty marker position", description: "Update household latitude and longitude by dragging markers on the map" },
   { code: "poverty.dashboard.read", name: "View poverty dashboard", description: "View poverty dashboard metrics and charts" },
   { code: "poverty.report.read", name: "View poverty reports", description: "View poverty report summaries" },
-  { code: "poverty.report.export", name: "Export poverty reports", description: "Export poverty reports to spreadsheet" }
+  { code: "poverty.report.export", name: "Export poverty reports", description: "Export poverty reports to spreadsheet" },
+  { code: "social_assistance.request.view", name: "View social assistance requests", description: "View hardship support requests" },
+  { code: "social_assistance.request.create", name: "Create social assistance requests", description: "Create requests on behalf of residents" },
+  { code: "social_assistance.request.review", name: "Review social assistance requests", description: "Verify, request information, or reject a request" },
+  { code: "social_assistance.program.view", name: "View social assistance programs", description: "View social assistance programs" },
+  { code: "social_assistance.program.manage", name: "Manage social assistance programs", description: "Create, update, publish, or close programs" },
+  { code: "social_assistance.pledge.view", name: "View social assistance pledges", description: "View donor and organization pledges" },
+  { code: "social_assistance.pledge.reconcile", name: "Reconcile social assistance pledges", description: "Confirm receipt and reconcile cash or in-kind contributions" },
+  { code: "social_assistance.allocation.view", name: "View social assistance allocations", description: "View allocations to verified requests" },
+  { code: "social_assistance.allocation.manage", name: "Manage social assistance allocations", description: "Plan, approve, deliver, and reconcile support" },
+  { code: "social_assistance.report.read", name: "View social assistance reports", description: "View social assistance coordination reports" },
+  { code: "social_assistance.publication.manage", name: "Manage social assistance publication", description: "Preview and approve public result publications" },
+  { code: "social_assistance.portal.manage", name: "Manage social assistance portal", description: "Configure public portal links and enabled features" }
 ] as const;
 
 const defaultRolePermissionMatrix: ReadonlyArray<{ roleCode: string; permissionCodes: readonly string[] }> = [

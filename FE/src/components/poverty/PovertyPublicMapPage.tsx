@@ -28,6 +28,7 @@ import {
     Building2,
     CircleAlert,
     House,
+    HeartHandshake,
     MapPinned,
     RefreshCcw,
     Search,
@@ -130,6 +131,7 @@ export default function PovertyPublicMapPage({ slug }: PovertyPublicMapPageProps
     const [activeExplorerTab, setActiveExplorerTab] = useState<PublicExplorerTabKey>("list");
     const [search, setSearch] = useState("");
     const [povertyFilter, setPovertyFilter] = useState<PublicPovertyFilter>("ALL");
+    const [socialAssistancePortalSlug, setSocialAssistancePortalSlug] = useState<string | null>(null);
 
     const loadPublicWardMap = useCallback(async () => {
         setLoading(true);
@@ -149,6 +151,21 @@ export default function PovertyPublicMapPage({ slug }: PovertyPublicMapPageProps
     useEffect(() => {
         void loadPublicWardMap();
     }, [loadPublicWardMap]);
+
+    useEffect(() => {
+        let active = true;
+        void publicApiGet<{ publicSlug: string }>(endpoints.socialAssistance.publicPortalFromWard(slug))
+            .then((portal) => {
+                if (active) setSocialAssistancePortalSlug(portal.publicSlug);
+            })
+            .catch(() => {
+                if (active) setSocialAssistancePortalSlug(null);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [slug]);
 
     useEffect(() => {
         setHasLoadedOnce(false);
@@ -268,6 +285,15 @@ export default function PovertyPublicMapPage({ slug }: PovertyPublicMapPageProps
                                     {provinceName ? `${wardName}, ${provinceName}` : wardName}. Dữ liệu đang hiển thị cho năm {share?.currentYear ?? new Date().getFullYear()}.
                                 </p>
                             </div>
+                            {socialAssistancePortalSlug ? (
+                                <Button
+                                    className="border-white/70 bg-white/95 text-emerald-800 hover:!border-white hover:!bg-white"
+                                    icon={<HeartHandshake size={16} />}
+                                    onClick={() => router.push(`/an-sinh/${encodeURIComponent(socialAssistancePortalSlug)}/dang-ky?source=MAP`)}
+                                >
+                                    Đăng ký hỗ trợ
+                                </Button>
+                            ) : null}
                         </div>
 
                         <div className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4">

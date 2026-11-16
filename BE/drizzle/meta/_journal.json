@@ -50,6 +50,34 @@
       "when": 1773830400000,
       "tag": "0006_workspace_required",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792992044621,
+      "tag": "0020_social_assistance_intake",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792996500000,
+      "tag": "0021_social_assistance_programs",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792997800000,
+      "tag": "0022_social_assistance_allocations",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792999900000,
+      "tag": "0023_social_assistance_publications",
+      "breakpoints": true
     }
   ]
 }

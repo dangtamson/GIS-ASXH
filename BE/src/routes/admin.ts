@@ -24,6 +24,7 @@ import { registerWorkflowAdminRoutes } from "./admin/workflow.ts";
 import { setupNotificationAdminRoutes } from "./admin/notifications.ts";
 import { registerPovertyAdminRoutes } from "./admin/poverty.ts";
 import { registerImportAdminRoutes } from "./admin/imports.ts";
+import { registerSocialAssistanceAdminRoutes } from "./admin/social-assistance.ts";
 
 const adminGuards: readonly RequestHandler[] = [adminRateLimit, isAuthenticated, checkAccountStatus, isAuthorized];
 
@@ -59,6 +60,7 @@ export function adminRoutes(app: Application): void {
   setupNotificationAdminRoutes(app, adminGuards);
   registerImportAdminRoutes(app, adminGuards);
   registerPovertyAdminRoutes(app, adminGuards);
+  registerSocialAssistanceAdminRoutes(app, adminGuards);
 
   // Audit log management
   app.get("/admin/audit-logs", ...adminGuards, getAuditLogs);

@@ -42,7 +42,8 @@ function SyncMapView({ position }: { position: [number, number] | null }) {
     const map = useMap();
 
     useEffect(() => {
-        window.setTimeout(() => map.invalidateSize(), 80);
+        const timeoutId = window.setTimeout(() => map.invalidateSize(), 80);
+        return () => window.clearTimeout(timeoutId);
     }, [map]);
 
     useEffect(() => {

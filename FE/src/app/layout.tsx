@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Be_Vietnam_Pro } from 'next/font/google';
+import { Be_Vietnam_Pro, Plus_Jakarta_Sans } from 'next/font/google';
 import "@/app/globals.css";
 import "flatpickr/dist/flatpickr.css";
 import "leaflet/dist/leaflet.css";
@@ -18,6 +18,11 @@ import { AppInit } from "@/layout/AppInit";
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "600", "700"],
+});
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plus-jakarta",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={`${beVietnamPro.className} dark:bg-gray-900`}>
+      <body className={`${beVietnamPro.className} ${plusJakarta.variable} dark:bg-gray-900`}>
         <AppInit />
 
         <AppProvider>
