@@ -7,6 +7,7 @@ import { getPublicSocialAssistancePortalFromWardHandler } from "@/handlers/socia
 import { listPublicSocialAssistanceProgramsHandler } from "@/handlers/social-assistance/programs.handlers.ts";
 import { submitPublicSocialAssistancePledge } from "@/handlers/social-assistance/pledges.handlers.ts";
 import { getPublicSocialAssistanceMapHandler } from "@/handlers/social-assistance/publications.handlers.ts";
+import { listPublicDistributionBatchesHandler } from "@/handlers/social-assistance/distribution-batches.handlers.ts";
 import { API_ROUTES } from "@/helpers/permissions.ts";
 import { socialAssistanceIntakeRateLimit, socialAssistanceLocationRateLimit } from "@/middleware/rateLimiter.ts";
 import type { Application } from "express";
@@ -43,4 +44,9 @@ export const registerSocialAssistancePublicRoutes = (app: Application): void => 
         submitPublicSocialAssistancePledge
     );
     app.get(API_ROUTES.publicSocialAssistanceMap, socialAssistanceLocationRateLimit, getPublicSocialAssistanceMapHandler);
+    app.get(
+        API_ROUTES.publicSocialAssistanceAllocations,
+        socialAssistanceLocationRateLimit,
+        listPublicDistributionBatchesHandler
+    );
 };

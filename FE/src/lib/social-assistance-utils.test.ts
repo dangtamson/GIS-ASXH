@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { PublicSocialAssistanceDistributionBatch } from "@/types/social-assistance";
 import * as socialAssistanceUtils from "./social-assistance-utils.ts";
 import {
     buildSocialAssistanceDashboardQuery,
@@ -9,9 +10,34 @@ import {
     getPublicSocialAssistanceMapMeasureValue,
     getPublicSocialAssistancePortalSummary,
     getPublicSocialAssistanceProgramSummary,
+    filterPublicDistributionBatches,
+    summarizePublicDistributionBatches,
     getSocialAssistanceRequestStatusLabel,
     sortPublicSocialAssistanceWardSummary
 } from "./social-assistance-utils.ts";
+
+const makePublicDistributionBatch = (
+    overrides: Partial<PublicSocialAssistanceDistributionBatch> = {}
+): PublicSocialAssistanceDistributionBatch => ({
+    documentNumber: "1440/QD-UBND",
+    documentDate: "2026-10-12",
+    title: "Housing support",
+    fundingSourceText: "Provincial budget",
+    supportItemName: "Housing repair grant",
+    unitLabel: "household",
+    unitAmount: 80_000_000,
+    declaredTotalQuantity: 1,
+    declaredTotalAmount: 80_000_000,
+    eligibilitySummary: "Approved poor households",
+    eligibilityApprovalYear: 2025,
+    submissionDeadline: null,
+    completionDeadline: null,
+    programTitle: null,
+    status: "PUBLISHED",
+    publishedAt: "2026-10-12T09:00:00.000Z",
+    lines: [],
+    ...overrides
+});
 
 test("request status labels are localized for staff", () => {
     assert.equal(getSocialAssistanceRequestStatusLabel("RECEIVED"), "Mới tiếp nhận");
@@ -156,4 +182,31 @@ test("ward ranking follows the selected measure without mutating the source", ()
     assert.deepEqual(sortPublicSocialAssistanceWardSummary(rows, "cash").map((row) => row.wardCode), ["31119", "31510", "31117"]);
     assert.deepEqual(sortPublicSocialAssistanceWardSummary(rows, "recipients").map((row) => row.wardCode), ["31117", "31119", "31510"]);
     assert.deepEqual(rows.map((row) => row.wardCode), originalOrder);
+});
+
+test("public allocation totals include published batches only and keep closed history", () => {
+    const batches = [
+        makePublicDistributionBatch({ documentNumber: "1440/QD-UBND", title: "Housing", programTitle: "Housing program", declaredTotalQuantity: 19, declaredTotalAmount: 1_520_000_000, lines: [{ provinceCode: "92", wardCode: "31117", allocatedQuantity: 4 }] }),
+        makePublicDistributionBatch({ documentNumber: "1441/QD-UBND", title: "Repair", declaredTotalQuantity: 9, declaredTotalAmount: 720_000_000, lines: [{ provinceCode: "92", wardCode: "31117", allocatedQuantity: 2 }] }),
+        makePublicDistributionBatch({ documentNumber: "1444/QD-UBND", documentDate: "2026-10-13", title: "Historical", status: "CLOSED", declaredTotalQuantity: 3, declaredTotalAmount: 240_000_000, lines: [{ provinceCode: "92", wardCode: "31118", allocatedQuantity: 3 }] })
+    ];
+
+    assert.deepEqual(summarizePublicDistributionBatches(batches), {
+        activeBatchCount: 2,
+        activeQuantity: 28,
+        activeAmount: 2_240_000_000,
+        closedBatchCount: 1
+    });
+});
+
+test("public allocation filters preserve separate document rows for the same locality", () => {
+    const batches = [
+        makePublicDistributionBatch({ documentNumber: "1440/QD-UBND", title: "Housing", programTitle: "Housing program", declaredTotalQuantity: 19, declaredTotalAmount: 1_520_000_000, lines: [{ provinceCode: "92", wardCode: "31117", allocatedQuantity: 4 }, { provinceCode: "92", wardCode: "31118", allocatedQuantity: 2 }] }),
+        makePublicDistributionBatch({ documentNumber: "1441/QD-UBND", title: "Repair", declaredTotalQuantity: 9, declaredTotalAmount: 720_000_000, lines: [{ provinceCode: "92", wardCode: "31117", allocatedQuantity: 2 }] })
+    ];
+
+    const filtered = filterPublicDistributionBatches(batches, { year: "2026", provinceCode: "92", wardCode: "31117" });
+    assert.deepEqual(filtered.map((batch) => batch.documentNumber), ["1440/QD-UBND", "1441/QD-UBND"]);
+    assert.deepEqual(filtered.map((batch) => batch.lines.map((line) => line.wardCode)), [["31117"], ["31117"]]);
+    assert.deepEqual(filterPublicDistributionBatches(batches, { search: "1440", programTitle: "housing" }).map((batch) => batch.documentNumber), ["1440/QD-UBND"]);
 });

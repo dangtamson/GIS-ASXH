@@ -116,6 +116,24 @@ export const endpoints = {
         pledgeReconcile: (id: string) => `/social-assistance/pledges/${encodeURIComponent(id)}/reconcile`,
         allocations: "/social-assistance/allocations",
         allocationStatus: (id: string) => `/social-assistance/allocations/${encodeURIComponent(id)}/status`,
+        distributionBatches: (filters?: { status?: string; programId?: string; documentNumber?: string }) => {
+            const query = new URLSearchParams();
+            if (filters?.status) query.set("status", filters.status);
+            if (filters?.programId) query.set("programId", filters.programId);
+            if (filters?.documentNumber) query.set("documentNumber", filters.documentNumber);
+            const suffix = query.toString();
+            return `/social-assistance/distribution-batches${suffix ? `?${suffix}` : ""}`;
+        },
+        distributionBatch: (id: string) => `/social-assistance/distribution-batches/${encodeURIComponent(id)}`,
+        distributionBatchPublish: (id: string) => `/social-assistance/distribution-batches/${encodeURIComponent(id)}/publish`,
+        distributionBatchClose: (id: string) => `/social-assistance/distribution-batches/${encodeURIComponent(id)}/close`,
+        publicAllocations: (slug: string, filters?: { provinceCode?: string; wardCode?: string }) => {
+            const query = new URLSearchParams();
+            if (filters?.provinceCode) query.set("provinceCode", filters.provinceCode);
+            if (filters?.wardCode) query.set("wardCode", filters.wardCode);
+            const suffix = query.toString();
+            return `/public/social-assistance/${encodeURIComponent(slug)}/allocations${suffix ? `?${suffix}` : ""}`;
+        },
         dashboard: "/social-assistance/reports/dashboard",
         publicationPreview: "/social-assistance/publications/preview",
         publicationOptions: "/social-assistance/publications/options",

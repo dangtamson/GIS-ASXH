@@ -78,6 +78,20 @@
       "when": 1792999900000,
       "tag": "0023_social_assistance_publications",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794873650000,
+      "tag": "0024_social_assistance_distribution_batches",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794957700000,
+      "tag": "0025_application_schema_menu_foreign_keys",
+      "breakpoints": true
     }
   ]
 }

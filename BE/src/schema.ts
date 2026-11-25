@@ -1,8 +1,10 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   bigint,
   boolean,
+  check,
   date,
   doublePrecision,
   index,
@@ -25,6 +27,9 @@ import {
 import { relations } from "drizzle-orm/relations";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
+import { config } from "./config.ts";
+
+export const applicationSchema = pgSchema(config.db_schema);
 
 export const uuidSchema = z.uuid();
 export const uuidObjectSchema = z.object({ uuid: uuidSchema });
@@ -65,7 +70,7 @@ export const TaskStatus = {
 } as const;
 export type TaskStatusType = (typeof TaskStatus)[keyof typeof TaskStatus];
 
-export const accounts = pgTable("accounts", {
+export const accounts = applicationSchema.table("accounts", {
   uuid: uuid("uuid").defaultRandom().primaryKey(),
   fullName: text("full_name").notNull(),
   phone: varchar("phone", { length: 256 }),
@@ -85,7 +90,7 @@ export const accounts = pgTable("accounts", {
   lastFailedLoginAt: timestamp("last_failed_login_at", { precision: 6, withTimezone: true })
 });
 
-export const workspaces = pgTable("workspaces", {
+export const workspaces = applicationSchema.table("workspaces", {
   uuid: uuid("uuid").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
@@ -93,7 +98,7 @@ export const workspaces = pgTable("workspaces", {
   accountId: uuid("account_id").notNull()
 });
 
-export const workspaceFeatures = pgTable("workspace_features", {
+export const workspaceFeatures = applicationSchema.table("workspace_features", {
   uuid: uuid("uuid").defaultRandom().primaryKey(),
   workspaceId: uuid("workspace_id")
     .notNull()
@@ -127,7 +132,7 @@ export const systemConfigs = pgTable(
   })
 );
 
-export const roles = pgTable(
+export const roles = applicationSchema.table(
   "roles",
   {
     id: serial("id").primaryKey(),
@@ -142,14 +147,14 @@ export const roles = pgTable(
   })
 );
 
-export const permissions = pgTable("permissions", {
+export const permissions = applicationSchema.table("permissions", {
   id: serial("id").primaryKey(),
   code: varchar("code", { length: 150 }).unique(),
   name: varchar("name", { length: 255 }),
   description: text("description")
 });
 
-export const rolePermissions = pgTable(
+export const rolePermissions = applicationSchema.table(
   "role_permissions",
   {
     roleId: integer("role_id")
@@ -164,7 +169,7 @@ export const rolePermissions = pgTable(
   })
 );
 
-export const roleFeatures = pgTable(
+export const roleFeatures = applicationSchema.table(
   "role_features",
   {
     roleId: integer("role_id")
@@ -295,9 +300,7 @@ export const administrativeRegions = pgTable("administrative_regions", {
   name: text("name").notNull()
 });
 
-export const gisasxhSchema = pgSchema("gisasxh");
-
-export const areas = gisasxhSchema.table(
+export const areas = applicationSchema.table(
   "areas",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -326,7 +329,7 @@ export const areas = gisasxhSchema.table(
   })
 );
 
-export const poorHouseholds = gisasxhSchema.table(
+export const poorHouseholds = applicationSchema.table(
   "poor_households",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -354,7 +357,7 @@ export const poorHouseholds = gisasxhSchema.table(
   })
 );
 
-export const socialAssistancePublicPortals = gisasxhSchema.table(
+export const socialAssistancePublicPortals = applicationSchema.table(
   "social_assistance_public_portals",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -365,6 +368,7 @@ export const socialAssistancePublicPortals = gisasxhSchema.table(
     intakeEnabled: boolean("intake_enabled").notNull().default(false),
     programsEnabled: boolean("programs_enabled").notNull().default(false),
     resultsEnabled: boolean("results_enabled").notNull().default(false),
+    allocationsEnabled: boolean("allocations_enabled").notNull().default(false),
     createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
     updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
@@ -377,7 +381,7 @@ export const socialAssistancePublicPortals = gisasxhSchema.table(
   })
 );
 
-export const socialAssistanceRequests = gisasxhSchema.table(
+export const socialAssistanceRequests = applicationSchema.table(
   "social_assistance_requests",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -431,7 +435,7 @@ export const socialAssistanceRequests = gisasxhSchema.table(
   })
 );
 
-export const socialAssistancePrograms = gisasxhSchema.table(
+export const socialAssistancePrograms = applicationSchema.table(
   "social_assistance_programs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -463,7 +467,7 @@ export const socialAssistancePrograms = gisasxhSchema.table(
   })
 );
 
-export const socialAssistancePledges = gisasxhSchema.table(
+export const socialAssistancePledges = applicationSchema.table(
   "social_assistance_pledges",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -507,7 +511,7 @@ export const socialAssistancePledges = gisasxhSchema.table(
   })
 );
 
-export const socialAssistanceAllocations = gisasxhSchema.table(
+export const socialAssistanceAllocations = applicationSchema.table(
   "social_assistance_allocations",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -546,7 +550,106 @@ export const socialAssistanceAllocations = gisasxhSchema.table(
   })
 );
 
-export const socialAssistancePublications = gisasxhSchema.table(
+export const socialAssistanceDistributionBatches = applicationSchema.table(
+  "social_assistance_distribution_batches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    programId: uuid("program_id").references(() => socialAssistancePrograms.id, { onDelete: "restrict" }),
+    supersedesBatchId: uuid("supersedes_batch_id").references(
+      (): AnyPgColumn => socialAssistanceDistributionBatches.id,
+      { onDelete: "set null" }
+    ),
+    documentNumber: varchar("document_number", { length: 100 }).notNull(),
+    documentDate: date("document_date").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    fundingSourceText: text("funding_source_text").notNull(),
+    supportItemName: varchar("support_item_name", { length: 255 }).notNull(),
+    unitLabel: varchar("unit_label", { length: 40 }).notNull(),
+    unitAmount: numeric("unit_amount", { precision: 14, scale: 2, mode: "number" }).notNull(),
+    declaredTotalQuantity: integer("declared_total_quantity").notNull(),
+    declaredTotalAmount: numeric("declared_total_amount", { precision: 14, scale: 2, mode: "number" }).notNull(),
+    eligibilitySummary: text("eligibility_summary").notNull(),
+    eligibilityApprovalYear: integer("eligibility_approval_year"),
+    submissionDeadline: date("submission_deadline"),
+    completionDeadline: date("completion_deadline"),
+    status: varchar("status", { length: 16 }).notNull().default("DRAFT"),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    publishedBy: uuid("published_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    publishedAt: timestamp("published_at", { precision: 6, withTimezone: true }),
+    closedBy: uuid("closed_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    closedAt: timestamp("closed_at", { precision: 6, withTimezone: true }),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueWorkspaceDocumentNumber: unique("social_assistance_distribution_batches_workspace_document_key").on(
+      table.workspaceId,
+      table.documentNumber
+    ),
+    idxDistributionBatchesWorkspaceStatusDate: index("idx_social_assistance_distribution_batches_workspace_status_date").on(
+      table.workspaceId,
+      table.status,
+      table.documentDate
+    ),
+    idxDistributionBatchesProgram: index("idx_social_assistance_distribution_batches_program").on(table.programId),
+    idxDistributionBatchesSupersedes: index("idx_social_assistance_distribution_batches_supersedes").on(table.supersedesBatchId),
+    distributionBatchStatusCheck: check(
+      "social_assistance_distribution_batches_status_check",
+      sql`${table.status} IN ('DRAFT', 'PUBLISHED', 'CLOSED')`
+    ),
+    distributionBatchAmountsCheck: check(
+      "social_assistance_distribution_batches_amounts_check",
+      sql`${table.unitAmount} > 0 AND ${table.declaredTotalQuantity} > 0 AND ${table.declaredTotalAmount} > 0`
+    ),
+    distributionBatchDeadlineCheck: check(
+      "social_assistance_distribution_batches_deadline_check",
+      sql`${table.submissionDeadline} IS NULL OR ${table.completionDeadline} IS NULL OR ${table.completionDeadline} >= ${table.submissionDeadline}`
+    )
+  })
+);
+
+export const socialAssistanceDistributionLines = applicationSchema.table(
+  "social_assistance_distribution_lines",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => socialAssistanceDistributionBatches.id, { onDelete: "restrict" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.uuid, { onDelete: "cascade" }),
+    provinceCode: varchar("province_code", { length: 20 }).notNull(),
+    wardCode: varchar("ward_code", { length: 20 }).notNull(),
+    allocatedQuantity: integer("allocated_quantity").notNull(),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueBatchProvinceWard: unique("social_assistance_distribution_lines_batch_location_key").on(
+      table.batchId,
+      table.provinceCode,
+      table.wardCode
+    ),
+    idxDistributionLinesWorkspaceBatch: index("idx_social_assistance_distribution_lines_workspace_batch").on(
+      table.workspaceId,
+      table.batchId
+    ),
+    idxDistributionLinesLocation: index("idx_social_assistance_distribution_lines_location").on(
+      table.provinceCode,
+      table.wardCode
+    ),
+    distributionLineQuantityCheck: check(
+      "social_assistance_distribution_lines_quantity_check",
+      sql`${table.allocatedQuantity} > 0`
+    )
+  })
+);
+
+export const socialAssistancePublications = applicationSchema.table(
   "social_assistance_publications",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -585,7 +688,7 @@ export const socialAssistancePublications = gisasxhSchema.table(
   })
 );
 
-export const povertyWardOverviews = gisasxhSchema.table(
+export const povertyWardOverviews = applicationSchema.table(
   "poverty_ward_overviews",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -616,7 +719,7 @@ export const povertyWardOverviews = gisasxhSchema.table(
   })
 );
 
-export const povertyWardPublicLinks = gisasxhSchema.table(
+export const povertyWardPublicLinks = applicationSchema.table(
   "poverty_ward_public_links",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -645,7 +748,7 @@ export const povertyWardPublicLinks = gisasxhSchema.table(
   })
 );
 
-export const householdMembers = gisasxhSchema.table("household_members", {
+export const householdMembers = applicationSchema.table("household_members", {
   id: uuid("id").defaultRandom().primaryKey(),
   householdId: uuid("household_id")
     .notNull()
@@ -664,7 +767,7 @@ export const householdMembers = gisasxhSchema.table("household_members", {
   updatedAt: timestamp("updated_at", { precision: 6 }).defaultNow()
 });
 
-export const householdChangeLogs = gisasxhSchema.table("household_change_logs", {
+export const householdChangeLogs = applicationSchema.table("household_change_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   householdId: uuid("household_id").references(() => poorHouseholds.id),
   actionType: text("action_type").notNull(),
@@ -677,7 +780,7 @@ export const householdChangeLogs = gisasxhSchema.table("household_change_logs", 
   changedAt: timestamp("changed_at", { precision: 6 }).defaultNow()
 });
 
-export const householdAssessments = gisasxhSchema.table(
+export const householdAssessments = applicationSchema.table(
   "household_assessments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -702,7 +805,7 @@ export const householdAssessments = gisasxhSchema.table(
   })
 );
 
-export const householdContextHistories = gisasxhSchema.table("household_context_histories", {
+export const householdContextHistories = applicationSchema.table("household_context_histories", {
   id: uuid("id").defaultRandom().primaryKey(),
   householdId: uuid("household_id")
     .notNull()
@@ -715,7 +818,7 @@ export const householdContextHistories = gisasxhSchema.table("household_context_
   updatedAt: timestamp("updated_at", { precision: 6 }).defaultNow()
 });
 
-export const householdSupports = gisasxhSchema.table("household_supports", {
+export const householdSupports = applicationSchema.table("household_supports", {
   id: uuid("id").defaultRandom().primaryKey(),
   householdId: uuid("household_id")
     .notNull()
@@ -730,7 +833,7 @@ export const householdSupports = gisasxhSchema.table("household_supports", {
   updatedAt: timestamp("updated_at", { precision: 6 }).defaultNow()
 });
 
-export const workspaceMemberships = pgTable(
+export const workspaceMemberships = applicationSchema.table(
   "workspace_memberships",
   {
     uuid: uuid("uuid").defaultRandom().primaryKey(),
@@ -1045,7 +1148,7 @@ export const loginAttempts = pgTable(
   })
 );
 
-export const features = pgTable(
+export const features = applicationSchema.table(
   "features",
   {
     uuid: uuid("uuid").defaultRandom().primaryKey(),
@@ -1077,7 +1180,7 @@ export const features = pgTable(
   })
 );
 
-export const featureSubItems = pgTable(
+export const featureSubItems = applicationSchema.table(
   "feature_sub_items",
   {
     uuid: uuid("uuid").defaultRandom().primaryKey(),

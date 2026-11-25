@@ -59,6 +59,7 @@ export const config = {
   db_user: process.env.POSTGRES_USER || "postgres",
   db_password: process.env.POSTGRES_PASSWORD || "postgres",
   db_name: process.env.POSTGRES_DB || "postgres",
+  db_schema: process.env.POSTGRES_SCHEMA || "gisasxh",
   supabaseUrl: process.env.SUPABASE_URL || "https://example.supabase.co",
   supabasePublishableKey: getSupabasePublishableKey(),
   supabaseSecretKey: getSupabaseSecretKey()

@@ -19,6 +19,7 @@
     "build:tsc": "rm -rf dist && tsc -p tsconfig.json",
     "test": "vitest --run --coverage",
     "docs:postman": "tsx ./scripts/generate-postman.ts",
+    "seed:social-assistance-features": "tsx ./scripts/seed-social-assistance-features.ts",
     "migrate:create": "npx drizzle-kit generate",
     "migrate": "npx drizzle-kit migrate",
     "migrate:push": "npx drizzle-kit push",

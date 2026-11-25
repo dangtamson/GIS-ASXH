@@ -33,9 +33,10 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
     const [programsEnabled, setProgramsEnabled] = useState(false);
     const [resultsEnabled, setResultsEnabled] = useState(false);
     const [intakeEnabled, setIntakeEnabled] = useState(false);
+    const [allocationsEnabled, setAllocationsEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
-    const [serviceErrors, setServiceErrors] = useState({ programs: false, map: false, locations: false });
+    const [serviceErrors, setServiceErrors] = useState({ programs: false, map: false, locations: false, allocations: false });
     const [period, setPeriod] = useState<string>();
     const [programId, setProgramId] = useState<string>();
     const [selectedWard, setSelectedWard] = useState<string>();
@@ -54,20 +55,23 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
         void Promise.all([
             loadOptional<ListResponse<SocialAssistanceProgram>>(endpoints.socialAssistance.publicPrograms(slug)),
             loadOptional<ListResponse<SocialAssistancePublicMapItem>>(endpoints.socialAssistance.publicMap(slug)),
-            loadOptional<ListResponse<{ code: string }>>(endpoints.socialAssistance.publicProvinces(slug))
-        ]).then(([programResult, mapResult, locationResult]) => {
+            loadOptional<ListResponse<{ code: string }>>(endpoints.socialAssistance.publicProvinces(slug)),
+            loadOptional<ListResponse<{ documentNumber: string }>>(endpoints.socialAssistance.publicAllocations(slug))
+        ]).then(([programResult, mapResult, locationResult, allocationResult]) => {
             if (!active) return;
             setPrograms(programResult.data?.items ?? []);
             setMapItems(mapResult.data?.items ?? []);
             setProgramsEnabled(programResult.data !== null);
             setResultsEnabled(mapResult.data !== null);
             setIntakeEnabled(locationResult.data !== null);
+            setAllocationsEnabled(allocationResult.data !== null);
             setServiceErrors({
                 programs: programResult.failed,
                 map: mapResult.failed,
-                locations: locationResult.failed
+                locations: locationResult.failed,
+                allocations: allocationResult.failed
             });
-            if (programResult.failed && mapResult.failed && locationResult.failed) {
+            if (programResult.failed && mapResult.failed && locationResult.failed && allocationResult.failed) {
                 setLoadError("Cổng thông tin chưa mở hoặc hiện không kết nối được. Vui lòng thử lại sau.");
             }
         }).finally(() => { if (active) setLoading(false); });
@@ -166,6 +170,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                     <div className="flex w-full flex-wrap gap-3 sm:w-auto">
                         <Button type="primary" className="!bg-[#e11d48] hover:!bg-[#be123c]" disabled={!intakeEnabled || loading} href={intakeEnabled ? `${basePath}/dang-ky?source=WEBSITE` : undefined} icon={<ArrowRight size={16} />}>Đăng ký nhận hỗ trợ</Button>
                         <Button className="!border-[#006c4a] !text-[#006c4a]" disabled={!programsEnabled || loading} href={programsEnabled ? `${basePath}/chuong-trinh#pledge` : undefined} icon={<HandHeart size={16} />}>Đăng ký ủng hộ</Button>
+                        <Button className="!border-[#00288e] !text-[#00288e]" disabled={!allocationsEnabled || loading} href={allocationsEnabled ? `${basePath}/phan-bo` : undefined} icon={<ArrowRight size={16} />}>Chỉ tiêu phân bổ</Button>
                     </div>
                 </section>
                 {serviceErrors.locations ? <Alert type="warning" showIcon message="Chưa thể kiểm tra trạng thái tiếp nhận yêu cầu hỗ trợ." description="Vui lòng thử lại sau." /> : null}

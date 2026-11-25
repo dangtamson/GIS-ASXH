@@ -1,19 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { select, insert, insertValues, getWardPublicLinkBySlug } = vi.hoisted(() => ({
+const { select, insert, update, insertValues, getWardPublicLinkBySlug } = vi.hoisted(() => ({
     select: vi.fn(),
     insert: vi.fn(),
+    update: vi.fn(),
     insertValues: vi.fn(),
     getWardPublicLinkBySlug: vi.fn()
 }));
 
-vi.mock("@/services/db/drizzle.ts", () => ({ db: { select, insert } }));
+vi.mock("@/services/db/drizzle.ts", () => ({ db: { select, insert, update } }));
 vi.mock("@/handlers/admin/resources/poverty/poverty.repository.ts", () => ({ getWardPublicLinkBySlug }));
 
 import {
     createSocialAssistancePortalAlias,
     getOrCreateSocialAssistancePortal,
-    resolveSocialAssistancePortalFromWardSlug
+    resolveSocialAssistancePortalFromWardSlug,
+    updateSocialAssistancePortal
 } from "./portal.repository.ts";
 
 const portal = {
@@ -22,8 +24,10 @@ const portal = {
     publicSlug: "sa-stable-slug",
     intakeEnabled: true,
     programsEnabled: false,
-    resultsEnabled: false
+    resultsEnabled: false,
+    allocationsEnabled: false
 };
+const actorId = "33333333-3333-4333-8333-333333333333";
 
 const setPortalRows = (rows: unknown[]) => {
     let callIndex = 0;
@@ -74,5 +78,22 @@ describe("social assistance portal repository", () => {
         await expect(resolveSocialAssistancePortalFromWardSlug("public-ward-slug")).resolves.toEqual({
             publicSlug: "can-tho"
         });
+    });
+
+    it("supports allocation visibility independently from delivered result visibility", async () => {
+        const updatedPortal = { ...portal, allocationsEnabled: true, resultsEnabled: false };
+        const returning = vi.fn().mockResolvedValue([updatedPortal]);
+        const where = vi.fn().mockReturnValue({ returning });
+        const set = vi.fn().mockReturnValue({ where });
+        update.mockReturnValue({ set });
+        const innerJoin = vi.fn().mockResolvedValue([{ workspaceId: portal.workspaceId, workspaceName: "UBND TP Cần Thơ" }]);
+        select.mockReturnValue({ from: vi.fn().mockReturnValue({ innerJoin }) });
+
+        await expect(updateSocialAssistancePortal(portal.workspaceId, actorId, { allocationsEnabled: true })).resolves.toEqual({
+            ...updatedPortal,
+            publicAlias: "can-tho"
+        });
+        expect(set).toHaveBeenCalledWith(expect.objectContaining({ allocationsEnabled: true, updatedBy: actorId }));
+        expect(set).not.toHaveBeenCalledWith(expect.objectContaining({ resultsEnabled: true }));
     });
 });

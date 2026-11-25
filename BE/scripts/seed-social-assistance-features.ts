@@ -1,6 +1,14 @@
-import { and, eq } from "drizzle-orm";
-import { features, roleFeatures, roles, workspaces } from "../src/schema.ts";
-import { db } from "../src/services/db/drizzle.ts";
+import { and, eq, inArray } from "drizzle-orm";
+import {
+    features,
+    permissions,
+    roleFeatures,
+    rolePermissions,
+    roles,
+    workspaceFeatures,
+    workspaces
+} from "../src/schema.ts";
+import { closeDbPool, db } from "../src/services/db/drizzle.ts";
 
 const SOCIAL_ASSISTANCE_FEATURES = [
     {
@@ -75,61 +83,107 @@ const SOCIAL_ASSISTANCE_FEATURES = [
     }
 ] as const;
 
-async function seedSocialAssistanceFeature(): Promise<void> {
-    const [adminRole] = await db
-        .select({ id: roles.id })
-        .from(roles)
-        .where(eq(roles.code, "admin"))
-        .limit(1);
+const SOCIAL_ASSISTANCE_PERMISSIONS = [
+    ["social_assistance.request.view", "View social assistance requests"],
+    ["social_assistance.request.review", "Review social assistance requests"],
+    ["social_assistance.program.view", "View social assistance programs"],
+    ["social_assistance.program.manage", "Manage social assistance programs"],
+    ["social_assistance.pledge.view", "View social assistance pledges"],
+    ["social_assistance.pledge.reconcile", "Reconcile social assistance pledges"],
+    ["social_assistance.allocation.view", "View social assistance allocations"],
+    ["social_assistance.allocation.manage", "Manage social assistance allocations"],
+    ["social_assistance.distribution_batch.view", "View locality allocation batches"],
+    ["social_assistance.distribution_batch.manage", "Manage locality allocation batches"],
+    ["social_assistance.distribution_batch.publish", "Publish locality allocation batches"],
+    ["social_assistance.report.read", "View social assistance reports"],
+    ["social_assistance.publication.manage", "Manage public social assistance results"],
+    ["social_assistance.portal.manage", "Manage social assistance public portal"]
+] as const;
 
-    if (!adminRole) {
-        throw new Error("Default admin role is missing; seed RBAC defaults first");
-    }
+const ADMIN_ROLE_CODES = ["ADMIN", "SUPER_ADMIN", "admin"] as const;
 
+async function seedSocialAssistanceFeatures(): Promise<void> {
     const workspaceRows = await db.select({ uuid: workspaces.uuid }).from(workspaces);
-
-    for (const workspace of workspaceRows) {
-        for (const featureDefinition of SOCIAL_ASSISTANCE_FEATURES) {
-            const [existing] = await db
-                .select({ uuid: features.uuid })
-                .from(features)
-                .where(and(eq(features.workspaceId, workspace.uuid), eq(features.code, featureDefinition.code)))
-                .limit(1);
-
-            let featureId = existing?.uuid;
-            if (!featureId) {
-                const [created] = await db
-                    .insert(features)
-                    .values({ workspaceId: workspace.uuid, ...featureDefinition, enabled: true })
-                    .onConflictDoNothing({ target: [features.workspaceId, features.code] })
-                    .returning({ uuid: features.uuid });
-                featureId = created?.uuid;
-            }
-
-            if (!featureId) {
-                const [upserted] = await db
-                    .select({ uuid: features.uuid })
-                    .from(features)
-                    .where(and(eq(features.workspaceId, workspace.uuid), eq(features.code, featureDefinition.code)))
-                    .limit(1);
-                featureId = upserted?.uuid;
-            }
-
-            if (!featureId) continue;
-
-            await db
-                .insert(roleFeatures)
-                .values({ roleId: adminRole.id, featureId })
-                .onConflictDoNothing({ target: [roleFeatures.roleId, roleFeatures.featureId] });
-        }
+    if (workspaceRows.length === 0) {
+        throw new Error("No workspaces found; cannot seed social assistance features");
     }
+
+    const permissionValues = SOCIAL_ASSISTANCE_PERMISSIONS.map(([code, name]) => ({
+        code,
+        name,
+        description: name
+    }));
+
+    await db.transaction(async (tx) => {
+        await tx.insert(permissions).values(permissionValues).onConflictDoNothing({ target: permissions.code });
+
+        const storedPermissions = await tx
+            .select({ id: permissions.id, code: permissions.code })
+            .from(permissions)
+            .where(inArray(permissions.code, SOCIAL_ASSISTANCE_PERMISSIONS.map(([code]) => code)));
+
+        for (const workspace of workspaceRows) {
+            await tx
+                .insert(features)
+                .values(SOCIAL_ASSISTANCE_FEATURES.map((feature) => ({
+                    workspaceId: workspace.uuid,
+                    ...feature,
+                    enabled: true,
+                    requiresSuperAdmin: false,
+                    requiresWorkspaceAdmin: false
+                })))
+                .onConflictDoNothing({ target: [features.workspaceId, features.code] });
+
+            const storedFeatures = await tx
+                .select({ uuid: features.uuid, code: features.code })
+                .from(features)
+                .where(and(
+                    eq(features.workspaceId, workspace.uuid),
+                    inArray(features.code, SOCIAL_ASSISTANCE_FEATURES.map((feature) => feature.code))
+                ));
+            if (storedFeatures.length !== SOCIAL_ASSISTANCE_FEATURES.length) {
+                throw new Error(`Could not resolve every social assistance feature for workspace ${workspace.uuid}`);
+            }
+
+            const existingWorkspaceLinks = await tx
+                .select({ featureId: workspaceFeatures.featureId })
+                .from(workspaceFeatures)
+                .where(eq(workspaceFeatures.workspaceId, workspace.uuid));
+            const linkedFeatureIds = new Set(existingWorkspaceLinks.map((link) => link.featureId));
+            const newWorkspaceLinks = storedFeatures
+                .filter((feature) => !linkedFeatureIds.has(feature.uuid))
+                .map((feature) => ({ workspaceId: workspace.uuid, featureId: feature.uuid }));
+            if (newWorkspaceLinks.length > 0) {
+                await tx.insert(workspaceFeatures).values(newWorkspaceLinks);
+            }
+
+            const adminRoles = await tx
+                .select({ id: roles.id })
+                .from(roles)
+                .where(and(eq(roles.workspaceId, workspace.uuid), inArray(roles.code, [...ADMIN_ROLE_CODES])));
+            if (adminRoles.length === 0) continue;
+
+            const roleFeatureRows = adminRoles.flatMap((role) => storedFeatures.map((feature) => ({
+                roleId: role.id,
+                featureId: feature.uuid
+            })));
+            await tx.insert(roleFeatures).values(roleFeatureRows).onConflictDoNothing();
+
+            const rolePermissionRows = adminRoles.flatMap((role) => storedPermissions.flatMap((permission) =>
+                permission.id == null ? [] : [{ roleId: role.id, permissionId: permission.id }]
+            ));
+            if (rolePermissionRows.length > 0) {
+                await tx.insert(rolePermissions).values(rolePermissionRows).onConflictDoNothing();
+            }
+        }
+    });
+
+    console.info(`Seeded ${SOCIAL_ASSISTANCE_FEATURES.length} social assistance menu features for ${workspaceRows.length} workspaces`);
 }
 
-seedSocialAssistanceFeature()
-    .then(() => {
-        console.info("Social assistance feature seeded for existing workspaces");
-    })
+void seedSocialAssistanceFeatures()
     .catch((error: unknown) => {
-        console.error("Failed to seed social assistance feature", error);
+        console.error("Failed to seed social assistance features", error);
         process.exitCode = 1;
-    });
+    })
+    .finally(async () => closeDbPool());

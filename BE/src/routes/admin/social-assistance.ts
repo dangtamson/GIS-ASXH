@@ -15,6 +15,14 @@ import {
     listSocialAssistanceAllocationsAdmin,
     updateSocialAssistanceAllocationAdmin
 } from "@/handlers/social-assistance/allocations.handlers.ts";
+import {
+    closeDistributionBatchAdmin,
+    createDistributionBatchAdmin,
+    getDistributionBatchAdmin,
+    listDistributionBatchesAdmin,
+    publishDistributionBatchAdmin,
+    updateDraftDistributionBatchAdmin
+} from "@/handlers/social-assistance/distribution-batches.handlers.ts";
 import { getSocialAssistanceDashboardAdmin } from "@/handlers/social-assistance/dashboard.handlers.ts";
 import {
     approveSocialAssistancePublicationAdmin,
@@ -45,6 +53,12 @@ export const registerSocialAssistanceAdminRoutes = (
     app.get(API_ROUTES.socialAssistanceAllocations, ...guards, listSocialAssistanceAllocationsAdmin);
     app.post(API_ROUTES.socialAssistanceAllocations, ...guards, createSocialAssistanceAllocationAdmin);
     app.patch(API_ROUTES.socialAssistanceAllocationStatus, ...guards, updateSocialAssistanceAllocationAdmin);
+    app.get(API_ROUTES.socialAssistanceDistributionBatches, ...guards, listDistributionBatchesAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionBatches, ...guards, createDistributionBatchAdmin);
+    app.get(API_ROUTES.socialAssistanceDistributionBatchById, ...guards, getDistributionBatchAdmin);
+    app.patch(API_ROUTES.socialAssistanceDistributionBatchById, ...guards, updateDraftDistributionBatchAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionBatchPublish, ...guards, publishDistributionBatchAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionBatchClose, ...guards, closeDistributionBatchAdmin);
     app.get(API_ROUTES.socialAssistanceDashboard, ...guards, getSocialAssistanceDashboardAdmin);
     app.get(API_ROUTES.socialAssistancePublicationOptions, ...guards, getSocialAssistancePublicationOptionsAdmin);
     app.post(API_ROUTES.socialAssistancePublicationPreview, ...guards, previewSocialAssistancePublicationAdmin);

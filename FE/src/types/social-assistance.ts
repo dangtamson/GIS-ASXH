@@ -76,6 +76,60 @@ export type SocialAssistancePublicPortal = {
     intakeEnabled: boolean;
     programsEnabled: boolean;
     resultsEnabled: boolean;
+    allocationsEnabled: boolean;
+};
+
+export type DistributionBatchStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
+
+export type DistributionBatchLineInput = {
+    provinceCode: string;
+    wardCode: string;
+    allocatedQuantity: number;
+};
+
+export type DistributionBatchLine = DistributionBatchLineInput & {
+    batchId: string;
+    workspaceId: string;
+};
+
+export type DistributionBatchCreateInput = {
+    programId?: string | null;
+    supersedesBatchId?: string | null;
+    documentNumber: string;
+    documentDate: string;
+    title: string;
+    fundingSourceText: string;
+    supportItemName: string;
+    unitLabel: string;
+    unitAmount: number;
+    declaredTotalQuantity: number;
+    declaredTotalAmount: number;
+    eligibilitySummary: string;
+    eligibilityApprovalYear?: number | null;
+    submissionDeadline?: string | null;
+    completionDeadline?: string | null;
+    lines: DistributionBatchLineInput[];
+};
+
+export type SocialAssistanceDistributionBatch = DistributionBatchCreateInput & {
+    id: string;
+    workspaceId: string;
+    status: DistributionBatchStatus;
+    createdBy: string | null;
+    updatedBy: string | null;
+    publishedBy: string | null;
+    publishedAt: string | null;
+    closedBy: string | null;
+    closedAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+};
+
+export type PublicSocialAssistanceDistributionBatch = Omit<DistributionBatchCreateInput, "programId" | "supersedesBatchId" | "lines"> & {
+    programTitle: string | null;
+    status: Exclude<DistributionBatchStatus, "DRAFT">;
+    publishedAt: string | null;
+    lines: Array<DistributionBatchLineInput & { provinceName?: string | null; wardName?: string | null }>;
 };
 
 export type SocialAssistanceProgramStatus = "DRAFT" | "PUBLISHED" | "CLOSED";

@@ -1,5 +1,6 @@
 import type {
     PublicSocialAssistanceRequestInput,
+    PublicSocialAssistanceDistributionBatch,
     SocialAssistanceProgram,
     SocialAssistancePublicMapItem,
     SocialAssistanceRequestSource
@@ -145,5 +146,45 @@ export const getPublicSocialAssistanceProgramSummary = (
         deliveredCashAmount: 0,
         deliveredItemCount: 0,
         geographyCount: geographies.size
+    });
+};
+
+export type PublicDistributionBatchFilters = {
+    year?: string;
+    search?: string;
+    programTitle?: string;
+    provinceCode?: string;
+    wardCode?: string;
+};
+
+export const summarizePublicDistributionBatches = (
+    batches: PublicSocialAssistanceDistributionBatch[]
+) => {
+    const activeBatches = batches.filter((batch) => batch.status === "PUBLISHED");
+    return {
+        activeBatchCount: activeBatches.length,
+        activeQuantity: activeBatches.reduce((total, batch) => total + batch.declaredTotalQuantity, 0),
+        activeAmount: activeBatches.reduce((total, batch) => total + batch.declaredTotalAmount, 0),
+        closedBatchCount: batches.filter((batch) => batch.status === "CLOSED").length
+    };
+};
+
+export const filterPublicDistributionBatches = (
+    batches: PublicSocialAssistanceDistributionBatch[],
+    filters: PublicDistributionBatchFilters
+): PublicSocialAssistanceDistributionBatch[] => {
+    const search = filters.search?.trim().toLocaleLowerCase("vi");
+    const programTitle = filters.programTitle?.trim().toLocaleLowerCase("vi");
+    return batches.flatMap((batch) => {
+        if (filters.year && batch.documentDate.slice(0, 4) !== filters.year) return [];
+        if (search && !`${batch.documentNumber} ${batch.title} ${batch.fundingSourceText}`.toLocaleLowerCase("vi").includes(search)) return [];
+        if (programTitle && !(batch.programTitle ?? "").toLocaleLowerCase("vi").includes(programTitle)) return [];
+
+        const lines = batch.lines.filter((line) =>
+            (!filters.provinceCode || line.provinceCode === filters.provinceCode)
+            && (!filters.wardCode || line.wardCode === filters.wardCode)
+        );
+        if ((filters.provinceCode || filters.wardCode) && lines.length === 0) return [];
+        return [{ ...batch, lines }];
     });
 };

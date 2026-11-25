@@ -30,7 +30,8 @@ const portal = {
     publicSlug: "sa-stable-slug",
     intakeEnabled: false,
     programsEnabled: false,
-    resultsEnabled: false
+    resultsEnabled: false,
+    allocationsEnabled: false
 };
 
 const createMockRes = (): Response =>
@@ -77,6 +78,19 @@ describe("social assistance portal handlers", () => {
             expect.objectContaining({ action: "social_assistance_portal_updated", workspaceId: portal.workspaceId }),
             req
         );
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("updates public allocation visibility without enabling delivered results", async () => {
+        getOrCreateSocialAssistancePortal.mockResolvedValue(portal);
+        updateSocialAssistancePortal.mockResolvedValue({ ...portal, allocationsEnabled: true, resultsEnabled: false });
+        const req = createAdminRequest({ allocationsEnabled: true });
+        const res = createMockRes();
+
+        updateSocialAssistancePortalAdmin(req, res, vi.fn());
+        await flushAsync();
+
+        expect(updateSocialAssistancePortal).toHaveBeenCalledWith(portal.workspaceId, req.accountId, { allocationsEnabled: true });
         expect(res.status).toHaveBeenCalledWith(200);
     });
 

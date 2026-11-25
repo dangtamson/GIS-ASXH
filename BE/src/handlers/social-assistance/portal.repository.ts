@@ -37,6 +37,7 @@ export const getOrCreateSocialAssistancePortal = async (workspaceId: string, act
             intakeEnabled: false,
             programsEnabled: false,
             resultsEnabled: false,
+            allocationsEnabled: false,
             createdBy: actorId,
             updatedBy: actorId
         })
@@ -56,6 +57,7 @@ export type SocialAssistancePortalUpdate = {
     intakeEnabled?: boolean;
     programsEnabled?: boolean;
     resultsEnabled?: boolean;
+    allocationsEnabled?: boolean;
 };
 
 export const updateSocialAssistancePortal = async (

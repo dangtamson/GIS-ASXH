@@ -7,6 +7,7 @@ import { getAccount, getWorkspaceId } from "@/lib/auth";
 import { extractList, getCategoryLabel } from "@/lib/data-utils";
 import { endpoints } from "@/lib/endpoints";
 import { useSidebar } from "../context/SidebarContext";
+import { HandHeart } from "lucide-react";
 import {
   BoxCubeIcon,
   CalenderIcon,
@@ -534,16 +535,39 @@ const AppSidebar: React.FC = () => {
       }));
   }, [dynamicFeatures, canAccessFeature]);
 
+  const socialAssistanceSubItems = useMemo(() => {
+    return dynamicFeatures
+      .filter((feature) => feature.groupName === "social_assistance")
+      .filter((feature) => canAccessFeature(feature))
+      .sort((left, right) => (left.orderIndex ?? 0) - (right.orderIndex ?? 0))
+      .map((feature) => ({
+        name: feature.name,
+        path: feature.path,
+        pro: false,
+        order: feature.orderIndex ?? Number.MAX_SAFE_INTEGER
+      }));
+  }, [dynamicFeatures, canAccessFeature]);
+
   const primaryNavItems = useMemo<NavItem[]>(() => {
-    if (povertySubItems.length === 0) {
+    if (povertySubItems.length === 0 && socialAssistanceSubItems.length === 0) {
       return navItems;
     }
 
-    const povertyGroup: NavItem = {
-      icon: <GroupIcon />,
-      name: "Hộ nghèo",
-      subItems: povertySubItems,
-    };
+    const groups: NavItem[] = [];
+    if (povertySubItems.length > 0) {
+      groups.push({
+        icon: <GroupIcon />,
+        name: "Hộ nghèo",
+        subItems: povertySubItems
+      });
+    }
+    if (socialAssistanceSubItems.length > 0) {
+      groups.push({
+        icon: <HandHeart size={20} />,
+        name: "An sinh xã hội",
+        subItems: socialAssistanceSubItems
+      });
+    }
     const overviewIndex = navItems.findIndex((item) => {
       const normalizedName = item.name
         .normalize("NFD")
@@ -557,10 +581,10 @@ const AppSidebar: React.FC = () => {
 
     return [
       ...navItems.slice(0, insertIndex),
-      povertyGroup,
+      ...groups,
       ...navItems.slice(insertIndex),
     ];
-  }, [navItems, povertySubItems]);
+  }, [navItems, povertySubItems, socialAssistanceSubItems]);
 
   const categoryFeatureItems = useMemo(() => {
     return dynamicFeatures

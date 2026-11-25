@@ -9,7 +9,7 @@ import type {
     SocialAssistanceSource
 } from "./requests.schemas.ts";
 
-export type PublicPortalFeature = "intakeEnabled" | "programsEnabled" | "resultsEnabled";
+export type PublicPortalFeature = "intakeEnabled" | "programsEnabled" | "resultsEnabled" | "allocationsEnabled";
 
 export type PublicRequestInput = {
     contactName: string;
@@ -51,6 +51,7 @@ export const getPublicPortalBySlug = async (slug: string, feature: PublicPortalF
             intakeEnabled: socialAssistancePublicPortals.intakeEnabled,
             programsEnabled: socialAssistancePublicPortals.programsEnabled,
             resultsEnabled: socialAssistancePublicPortals.resultsEnabled,
+            allocationsEnabled: socialAssistancePublicPortals.allocationsEnabled,
             createdBy: socialAssistancePublicPortals.createdBy,
             updatedBy: socialAssistancePublicPortals.updatedBy,
             createdAt: socialAssistancePublicPortals.createdAt,

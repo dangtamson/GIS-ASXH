@@ -51,6 +51,7 @@ export function PublicAssistanceLayout({ slug, title, children }: { slug: string
     const links = [
         { href: basePath, label: "Bản đồ địa lý" },
         { href: `${basePath}/chuong-trinh`, label: "Chương trình" },
+        { href: `${basePath}/phan-bo`, label: "Phân bổ hỗ trợ" },
         { href: `${basePath}/ban-do`, label: "Kết quả hỗ trợ" },
         { href: `${basePath}#privacy`, label: "Kiểm chứng & Minh bạch" }
     ];
@@ -76,8 +77,10 @@ export function PublicAssistanceLayout({ slug, title, children }: { slug: string
                                 <span className="min-w-0"><strong className="block text-sm font-bold uppercase text-[#131b2e] sm:text-base">Bản đồ an sinh số <span className="ml-1 rounded bg-[#dae2fd] px-1.5 py-0.5 font-mono text-[10px] text-[#00288e]">GIS 4.0</span></strong><span className="block text-xs text-[#444653]">Mặt trận Tổ quốc Việt Nam</span></span>
                             </Link>
                             <nav aria-label="Điều hướng an sinh" className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto sm:flex-wrap">
-                                {links.map(({ href, label }, index) => {
-                                    const isActive = index === 0 ? pathname === basePath : index === 1 ? pathname.includes("/chuong-trinh") : index === 2 ? pathname.endsWith("/ban-do") : false;
+                                {links.map(({ href, label }) => {
+                                    const isActive = href === basePath
+                                        ? pathname === basePath
+                                        : pathname === href || pathname.startsWith(`${href}/`);
                                     return <Link key={href} href={href} aria-current={isActive ? "page" : undefined} className={`inline-flex min-h-10 items-center justify-center rounded px-2 py-2 text-center text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${isActive ? "bg-[#e2e7ff] text-[#00288e]" : "text-[#444653] hover:bg-[#f2f3ff] hover:text-[#00288e]"}`}>{label}</Link>;
                                 })}
                             </nav>
@@ -98,7 +101,7 @@ export function PublicAssistanceLayout({ slug, title, children }: { slug: string
                         <div className="mx-auto grid max-w-[1920px] gap-6 px-4 py-8 text-sm text-[#444653] sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
                             <section><h2 className="font-bold text-[#131b2e]">Hệ thống GIS an sinh xã hội</h2><p className="mt-2 leading-6">Nền tảng số hóa quản lý không gian an sinh cộng đồng thuộc Mặt trận Tổ quốc Việt Nam.</p></section>
                             <section><h2 className="font-bold text-[#131b2e]">Tiêu chuẩn dữ liệu</h2><p className="mt-2 leading-6">Dữ liệu tổng hợp được công khai sau khi duyệt; vị trí và thông tin cá nhân không hiển thị trên bản đồ.</p></section>
-                            <section><h2 className="font-bold text-[#131b2e]">Kênh tương tác</h2><Link href={`${basePath}/dang-ky?source=WEBSITE`} className="mt-2 inline-flex min-h-9 items-center text-[#00288e] hover:underline">Gửi nhu cầu hỗ trợ</Link></section>
+                            <section><h2 className="font-bold text-[#131b2e]">Kênh tương tác</h2><Link href={`${basePath}/dang-ky?source=WEBSITE`} className="mt-2 inline-flex min-h-9 items-center text-[#00288e] hover:underline">Gửi nhu cầu hỗ trợ</Link><Link href={`${basePath}/phan-bo`} className="mt-1 inline-flex min-h-9 items-center text-[#00288e] hover:underline">Chỉ tiêu phân bổ</Link></section>
                             <section id="privacy"><h2 className="font-bold text-[#131b2e]">Cam kết dữ liệu</h2><p className="mt-2 leading-6">Thông tin cá nhân được bảo mật và chỉ dùng để xem xét, phối hợp hỗ trợ theo quy định.</p></section>
                         </div>
                     </footer>

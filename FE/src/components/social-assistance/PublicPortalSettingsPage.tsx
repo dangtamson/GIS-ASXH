@@ -9,7 +9,7 @@ import { Copy, ExternalLink, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type PortalResponse = { item: SocialAssistancePublicPortal };
-type PortalFlag = "intakeEnabled" | "programsEnabled" | "resultsEnabled";
+type PortalFlag = "intakeEnabled" | "programsEnabled" | "resultsEnabled" | "allocationsEnabled";
 
 export default function PublicPortalSettingsPage() {
     const { message } = App.useApp();
@@ -84,6 +84,13 @@ export default function PublicPortalSettingsPage() {
                                 <p className="mt-1 text-sm text-slate-500">Cho phép xem số liệu đã được duyệt công khai.</p>
                             </div>
                             <div className="flex items-center gap-3"><Tag color={portal.resultsEnabled ? "green" : "default"}>{portal.resultsEnabled ? "Đang mở" : "Tạm đóng"}</Tag><Switch aria-label="Mở kết quả giám sát" checked={portal.resultsEnabled} loading={saving === "resultsEnabled"} disabled={saving !== null} onChange={(value) => void updateFlag("resultsEnabled", value)} /></div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                            <div>
+                                <p className="font-medium text-slate-900">Chỉ tiêu phân bổ theo địa bàn</p>
+                                <p className="mt-1 text-sm text-slate-500">Công khai số lượng được giao theo công văn và xã/phường.</p>
+                            </div>
+                            <div className="flex items-center gap-3"><Tag color={portal.allocationsEnabled ? "green" : "default"}>{portal.allocationsEnabled ? "Đang mở" : "Tạm đóng"}</Tag><Switch aria-label="Mở chỉ tiêu phân bổ công khai" checked={portal.allocationsEnabled} loading={saving === "allocationsEnabled"} disabled={saving !== null} onChange={(value) => void updateFlag("allocationsEnabled", value)} /></div>
                         </div>
                         <div className="space-y-3 p-4">
                             <div>
