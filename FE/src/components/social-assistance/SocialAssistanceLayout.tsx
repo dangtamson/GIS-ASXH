@@ -135,16 +135,16 @@ export function PublicAssistanceLayout({
                         backgroundImage: "radial-gradient(circle at 12% 0%, rgba(17, 64, 154, 0.06), transparent 36%), radial-gradient(circle at 88% 0%, rgba(5, 150, 105, 0.06), transparent 32%)"
                     }}
                 >
-                    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 shadow-xs shadow-slate-200/40 backdrop-blur-xl">
-                        <div className="h-1 w-full bg-gradient-to-r from-[#0b2f7a] via-[#0284c7] to-[#059669]" aria-hidden="true" />
+                    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 shadow-xs shadow-slate-200/40 backdrop-blur-xl">
+                        <div className="h-1 w-full bg-gradient-to-r from-[#0b2f7a] via-[#1346a8] to-[#0d9488]" aria-hidden="true" />
                         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-5 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
-                            <Link href={basePath} className="group flex min-w-0 items-center gap-3">
-                                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#0b2f7a] via-[#1346a8] to-[#0e7490] text-white shadow-md shadow-blue-900/20 transition-transform duration-200 group-hover:scale-[1.03]">
+                            <Link href={basePath} className="group flex min-w-0 items-center gap-3 !text-slate-900">
+                                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#0b2f7a] via-[#1346a8] to-[#0d9488] text-white shadow-md shadow-blue-900/15 transition-transform duration-200 group-hover:scale-[1.03]">
                                     <MapPinned size={22} />
                                 </span>
                                 <span className="min-w-0">
                                     <strong className="flex flex-wrap items-center gap-1.5 text-sm font-bold tracking-tight text-slate-900 sm:text-base">
-                                        <span className="uppercase">Bản đồ an sinh số</span>
+                                        <span className="uppercase">An sinh cộng đồng</span>
                                         <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#11409a] ring-1 ring-blue-200/80">
                                             GIS 4.0
                                         </span>
@@ -153,7 +153,7 @@ export function PublicAssistanceLayout({
                                 </span>
                             </Link>
 
-                            <nav aria-label="Điều hướng an sinh" className="grid w-full grid-cols-2 gap-1 rounded-xl bg-slate-100/80 p-1 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+                            <nav aria-label="Điều hướng an sinh" className="grid w-full grid-cols-2 gap-1 rounded-xl bg-slate-100/85 p-1 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                                 {links.map(({ href, label }) => {
                                     const isActive = href === basePath
                                         ? pathname === basePath
@@ -165,8 +165,8 @@ export function PublicAssistanceLayout({
                                             aria-current={isActive ? "page" : undefined}
                                             className={`inline-flex min-h-9 items-center justify-center rounded-lg px-2.5 py-1.5 text-center text-xs font-semibold transition-all duration-150 sm:px-3.5 sm:text-sm ${
                                                 isActive
-                                                    ? "bg-white text-[#11409a] shadow-xs ring-1 ring-slate-200/80"
-                                                    : "text-slate-600 hover:bg-white/60 hover:text-[#11409a]"
+                                                    ? "bg-white !text-[#11409a] shadow-xs ring-1 ring-slate-200/80"
+                                                    : "!text-slate-600 hover:bg-white/70 hover:!text-[#11409a]"
                                             }`}
                                         >
                                             {label}
@@ -178,14 +178,14 @@ export function PublicAssistanceLayout({
                             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                                 <Link
                                     href={`${basePath}/dang-ky?source=WEBSITE`}
-                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-3.5 text-center text-xs font-semibold text-white shadow-sm shadow-rose-600/25 transition-all duration-150 hover:from-rose-700 hover:to-red-700 hover:shadow-md hover:shadow-rose-600/30 sm:px-4 sm:text-sm"
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b2f7a] to-[#1346a8] px-3.5 text-center text-xs font-semibold !text-white shadow-sm shadow-blue-900/20 transition-all duration-150 hover:from-[#08245e] hover:to-[#0f3a8a] hover:shadow-md sm:px-4 sm:text-sm"
                                 >
                                     <ArrowDownToLine size={15} />
                                     <span>Gửi yêu cầu hỗ trợ</span>
                                 </Link>
                                 <Link
                                     href={`${basePath}/chuong-trinh#pledge`}
-                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 text-center text-xs font-semibold text-emerald-800 transition-all duration-150 hover:border-emerald-300 hover:bg-emerald-100/80 sm:px-4 sm:text-sm"
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50/90 px-3.5 text-center text-xs font-semibold !text-teal-800 transition-all duration-150 hover:border-teal-300 hover:bg-teal-100/90 sm:px-4 sm:text-sm"
                                 >
                                     <HandHeart size={15} />
                                     <span>Ủng hộ quỹ</span>
@@ -196,7 +196,7 @@ export function PublicAssistanceLayout({
 
                     <main className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                         {!hidePageHeader ? (
-                            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-4 shadow-xs backdrop-blur-sm sm:px-6">
+                            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/95 px-5 py-4 shadow-xs backdrop-blur-sm sm:px-6">
                                 <div className="min-w-0 space-y-1">
                                     {badge ? (
                                         <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#11409a] ring-1 ring-blue-100">
@@ -207,7 +207,7 @@ export function PublicAssistanceLayout({
                                     <div className="flex min-w-0 items-center gap-2.5">
                                         <h1 className="min-w-0 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{title}</h1>
                                         {pathname === basePath ? (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200/80">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-200/80">
                                                 <ShieldCheck size={14} aria-label="Dữ liệu tổng hợp công khai" />
                                                 <span className="hidden sm:inline">Đã kiểm duyệt</span>
                                             </span>
@@ -218,7 +218,7 @@ export function PublicAssistanceLayout({
                                 {pathname !== basePath ? (
                                     <Link
                                         href={basePath}
-                                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-[#11409a]"
+                                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold !text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:!text-[#11409a]"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>Bản đồ địa lý</span>
@@ -230,14 +230,14 @@ export function PublicAssistanceLayout({
                     </main>
 
                     <footer className="mt-10 border-t border-slate-800 bg-slate-950 text-slate-300">
-                        <div className="h-1 w-full bg-gradient-to-r from-[#0b2f7a] via-[#0284c7] to-[#059669]" aria-hidden="true" />
+                        <div className="h-1 w-full bg-gradient-to-r from-[#0b2f7a] via-[#1346a8] to-[#0d9488]" aria-hidden="true" />
                         <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-10 text-sm sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
                             <section className="space-y-3">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-600 text-white">
+                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#1346a8] to-[#0d9488] text-white">
                                         <MapPinned size={18} />
                                     </span>
-                                    <h2 className="font-bold text-white">Hệ thống GIS an sinh xã hội</h2>
+                                    <h2 className="font-bold text-white">An sinh cộng đồng · GIS 4.0</h2>
                                 </div>
                                 <p className="leading-6 text-slate-400">
                                     Nền tảng số hóa quản lý không gian an sinh cộng đồng thuộc Mặt trận Tổ quốc Việt Nam.
@@ -246,7 +246,7 @@ export function PublicAssistanceLayout({
 
                             <section className="space-y-2.5">
                                 <h2 className="flex items-center gap-2 font-bold text-white">
-                                    <ShieldCheck size={16} className="text-emerald-400" />
+                                    <ShieldCheck size={16} className="text-teal-400" />
                                     Tiêu chuẩn dữ liệu
                                 </h2>
                                 <p className="leading-6 text-slate-400">
@@ -257,15 +257,15 @@ export function PublicAssistanceLayout({
                             <section className="space-y-2">
                                 <h2 className="font-bold text-white">Kênh tương tác</h2>
                                 <div className="flex flex-col gap-1.5 pt-1">
-                                    <Link href={`${basePath}/dang-ky?source=WEBSITE`} className="inline-flex min-h-8 items-center gap-1.5 text-sky-400 transition-colors hover:text-sky-300">
+                                    <Link href={`${basePath}/dang-ky?source=WEBSITE`} className="inline-flex min-h-8 items-center gap-1.5 !text-sky-300 transition-colors hover:!text-white">
                                         <span>Gửi nhu cầu hỗ trợ</span>
                                         <ExternalLink size={13} />
                                     </Link>
-                                    <Link href={`${basePath}/chuong-trinh#pledge`} className="inline-flex min-h-8 items-center gap-1.5 text-emerald-400 transition-colors hover:text-emerald-300">
+                                    <Link href={`${basePath}/chuong-trinh#pledge`} className="inline-flex min-h-8 items-center gap-1.5 !text-teal-300 transition-colors hover:!text-white">
                                         <span>Đăng ký cam kết ủng hộ</span>
                                         <ExternalLink size={13} />
                                     </Link>
-                                    <Link href={`${basePath}/phan-bo`} className="inline-flex min-h-8 items-center gap-1.5 text-sky-400 transition-colors hover:text-sky-300">
+                                    <Link href={`${basePath}/phan-bo`} className="inline-flex min-h-8 items-center gap-1.5 !text-sky-300 transition-colors hover:!text-white">
                                         <span>Chỉ tiêu phân bổ</span>
                                         <ExternalLink size={13} />
                                     </Link>
@@ -274,7 +274,7 @@ export function PublicAssistanceLayout({
 
                             <section id="privacy" className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                                 <h2 className="flex items-center gap-2 font-bold text-white">
-                                    <Lock size={15} className="text-emerald-400" />
+                                    <Lock size={15} className="text-teal-400" />
                                     Cam kết dữ liệu
                                 </h2>
                                 <p className="mt-2 leading-6 text-slate-400">
@@ -284,7 +284,7 @@ export function PublicAssistanceLayout({
                         </div>
                         <div className="border-t border-slate-800/80">
                             <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:px-6 lg:px-8">
-                                <span>© Cổng công khai An sinh xã hội · GIS 4.0</span>
+                                <span>© Cổng công khai An sinh cộng đồng · GIS 4.0</span>
                                 <span>Minh bạch · Kịp thời · Bảo mật thông tin công dân</span>
                             </div>
                         </div>

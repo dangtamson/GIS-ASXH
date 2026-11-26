@@ -1,8 +1,6 @@
 import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { HandHeart, MapPinned, ShieldCheck, Sparkles } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 import React from "react";
 
 const COMMUNITY_PILLARS = [
@@ -102,44 +100,30 @@ export default function AuthLayout({
                 </span>
               </div>
 
-              <div className="my-auto space-y-7 py-8">
-                <div className="space-y-3">
+              <div className="my-auto space-y-8 py-8">
+                <div className="space-y-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-200/90">
-                    Nền tảng điều hành & kết nối
+                    Nền tảng điều hành &amp; kết nối
                   </p>
-                  <h2 className="text-3xl font-bold tracking-tight text-white xl:text-4xl">
+                  <h2 className="text-3xl font-bold tracking-tight text-white xl:text-5xl">
                     An sinh cộng đồng
                   </h2>
-                  <p className="max-w-xl text-sm leading-6 text-sky-100/85 xl:text-base">
+                  <p className="max-w-xl text-sm leading-7 text-sky-100/85 xl:text-base">
                     Số hóa bản đồ không gian an sinh xã hội, kết nối nguồn lực cộng đồng và theo dõi hành trình hỗ trợ minh bạch đến từng địa bàn.
                   </p>
                 </div>
 
-                <Link
-                  href="#"
-                  className="block max-w-xl overflow-hidden rounded-2xl border border-white/15 bg-white/10 p-4 shadow-2xl shadow-blue-950/30 backdrop-blur-xl transition hover:bg-white/14"
-                >
-                  <Image
-                    width={700}
-                    height={250}
-                    src="/images/logo/imagebannerlogingis.png"
-                    alt="An sinh cộng đồng GIS"
-                    className="h-auto w-full rounded-xl object-contain"
-                    priority
-                  />
-                </Link>
-
-                <div className="grid max-w-2xl gap-3 sm:grid-cols-3">
+                <div className="grid max-w-2xl gap-3.5 sm:grid-cols-3">
                   {COMMUNITY_PILLARS.map(({ icon: Icon, title, description, accent }) => (
                     <div
                       key={title}
-                      className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-md"
+                      className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md"
                     >
-                      <span className={`grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br ${accent}`}>
-                        <Icon size={18} />
+                      <span className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ${accent}`}>
+                        <Icon size={19} />
                       </span>
-                      <h3 className="mt-3 text-sm font-bold text-white">{title}</h3>
-                      <p className="mt-1 text-xs leading-5 text-sky-100/80">{description}</p>
+                      <h3 className="mt-3.5 text-sm font-bold text-white">{title}</h3>
+                      <p className="mt-1.5 text-xs leading-5 text-sky-100/80">{description}</p>
                     </div>
                   ))}
                 </div>

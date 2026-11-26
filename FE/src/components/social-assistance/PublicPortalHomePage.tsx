@@ -106,7 +106,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
     }, [visibleItems]);
 
     return (
-        <PublicAssistanceLayout slug={slug} title="Bản đồ an sinh số" hidePageHeader>
+        <PublicAssistanceLayout slug={slug} title="An sinh cộng đồng" hidePageHeader>
             <div className="space-y-6 lg:space-y-7">
                 {loadError ? <Alert type="warning" showIcon message={loadError} className="!rounded-xl" /> : null}
 
@@ -119,8 +119,8 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                         }}
                         aria-hidden="true"
                     />
-                    <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" aria-hidden="true" />
-                    <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-emerald-400/15 blur-3xl" aria-hidden="true" />
+                    <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl" aria-hidden="true" />
+                    <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-teal-400/18 blur-3xl" aria-hidden="true" />
 
                     <div className="relative z-10 space-y-6">
                         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -130,7 +130,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                         <Sparkles size={13} />
                                         Hệ thống thông tin địa lý · GIS 4.0
                                     </span>
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30 backdrop-blur-md">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-400/20 px-3 py-1 text-xs font-semibold text-teal-100 ring-1 ring-teal-300/30 backdrop-blur-md">
                                         <ShieldCheck size={14} aria-label="Dữ liệu tổng hợp công khai" />
                                         Dữ liệu tổng hợp đã duyệt
                                     </span>
@@ -139,7 +139,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                     </span>
                                 </div>
                                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-                                    Bản đồ an sinh số
+                                    An sinh cộng đồng
                                 </h1>
                                 <p className="text-sm leading-6 text-sky-100/90 sm:text-base">
                                     Theo dõi nguồn lực, chương trình đang mở và kết quả hỗ trợ an sinh xã hội minh bạch theo từng địa bàn.
@@ -149,7 +149,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 {intakeEnabled ? (
                                     <Link
                                         href={`${basePath}/dang-ky?source=WEBSITE`}
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-4 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 transition-all hover:from-rose-600 hover:to-red-700"
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold !text-[#0b2f7a] shadow-lg shadow-blue-950/20 transition-all hover:bg-blue-50"
                                     >
                                         <span>Đăng ký nhận hỗ trợ</span>
                                         <ArrowRight size={16} />
@@ -158,7 +158,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 {resultsEnabled ? (
                                     <Link
                                         href={`${basePath}/ban-do`}
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur-md transition-all hover:bg-white/25"
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-semibold !text-white ring-1 ring-white/30 backdrop-blur-md transition-all hover:bg-white/25"
                                     >
                                         <Layers size={16} />
                                         <span>Toàn cảnh GIS</span>
@@ -172,25 +172,25 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 icon={<UsersRound size={18} />}
                                 label="Lượt nhận hỗ trợ"
                                 value={resultsEnabled ? summary.supportCount.toLocaleString("vi-VN") : "—"}
-                                accent="from-sky-400/25 to-blue-500/25 text-sky-200"
+                                accent="from-sky-400/25 to-blue-500/25 text-sky-100"
                             />
                             <HeroStat
                                 icon={<FolderHeart size={18} />}
                                 label="Chương trình mở"
                                 value={programsEnabled ? programs.length.toString() : "—"}
-                                accent="from-indigo-400/25 to-violet-500/25 text-indigo-200"
+                                accent="from-blue-400/25 to-indigo-500/25 text-blue-100"
                             />
                             <HeroStat
                                 icon={<Banknote size={18} />}
                                 label="Tiền mặt đã trao"
                                 value={resultsEnabled ? formatCompactCurrency(summary.deliveredCashAmount) : "—"}
-                                accent="from-emerald-400/25 to-teal-500/25 text-emerald-200"
+                                accent="from-teal-400/25 to-emerald-500/25 text-teal-100"
                             />
                             <HeroStat
                                 icon={<Gift size={18} />}
                                 label="Lượt hiện vật"
                                 value={resultsEnabled ? summary.deliveredItemCount.toLocaleString("vi-VN") : "—"}
-                                accent="from-amber-400/25 to-orange-500/25 text-amber-200"
+                                accent="from-cyan-400/25 to-sky-500/25 text-cyan-100"
                             />
                         </div>
                     </div>
@@ -227,7 +227,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                             </div>
                         </div>
                         {resultsEnabled ? (
-                            <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 text-sm font-semibold text-[#11409a] ring-1 ring-blue-100 transition-colors hover:bg-blue-100" href={`${basePath}/ban-do`}>
+                            <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 text-sm font-semibold !text-[#11409a] ring-1 ring-blue-100 transition-colors hover:bg-blue-100" href={`${basePath}/ban-do`}>
                                 <span>Mở toàn cảnh GIS</span>
                                 <ArrowRight size={15} />
                             </Link>
@@ -248,8 +248,8 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                     <div className="flex items-center gap-2">
                                         <span>Ít</span>
                                         <span className="h-2.5 w-6 rounded-full bg-[#7dd3fc]" aria-hidden="true" />
-                                        <span className="h-2.5 w-6 rounded-full bg-[#0284c7]" aria-hidden="true" />
-                                        <span className="h-2.5 w-6 rounded-full bg-[#e11d48]" aria-hidden="true" />
+                                        <span className="h-2.5 w-6 rounded-full bg-[#2563eb]" aria-hidden="true" />
+                                        <span className="h-2.5 w-6 rounded-full bg-[#0f3a8a]" aria-hidden="true" />
                                         <span>Nhiều</span>
                                     </div>
                                 </div>
@@ -268,8 +268,8 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 <div aria-label="Chỉ số tổng hợp" className="grid grid-cols-2 gap-px border-b border-slate-200/80 bg-slate-200/70">
                                     <PortalStat label="Lượt nhận hỗ trợ" value={resultsEnabled ? summary.supportCount.toLocaleString("vi-VN") : "—"} tone="text-slate-900" />
                                     <PortalStat label="Chương trình mở" value={programsEnabled ? programs.length.toString() : "—"} tone="text-[#11409a]" />
-                                    <PortalStat label="Tiền mặt đã trao" value={resultsEnabled ? formatCompactCurrency(summary.deliveredCashAmount) : "—"} tone="text-emerald-700" />
-                                    <PortalStat label="Lượt hiện vật" value={resultsEnabled ? summary.deliveredItemCount.toLocaleString("vi-VN") : "—"} tone="text-amber-700" />
+                                    <PortalStat label="Tiền mặt đã trao" value={resultsEnabled ? formatCompactCurrency(summary.deliveredCashAmount) : "—"} tone="text-teal-700" />
+                                    <PortalStat label="Lượt hiện vật" value={resultsEnabled ? summary.deliveredItemCount.toLocaleString("vi-VN") : "—"} tone="text-sky-700" />
                                 </div>
                                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-3">
                                     <h4 className="text-sm font-bold text-slate-900">Kết quả theo địa bàn</h4>
@@ -305,7 +305,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                                 </div>
                                                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                                                     <div
-                                                        className={`h-full rounded-full transition-all duration-300 ${isSelected ? "bg-[#11409a]" : "bg-sky-500/80 group-hover:bg-[#11409a]"}`}
+                                                        className={`h-full rounded-full transition-all duration-300 ${isSelected ? "bg-[#0f3a8a]" : "bg-[#2563eb]/80 group-hover:bg-[#0f3a8a]"}`}
                                                         style={{ width: `${pct}%` }}
                                                     />
                                                 </div>
@@ -316,28 +316,28 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                             </aside>
                         </div>
                     ) : serviceErrors.map ? <div className="p-5"><Alert type="error" showIcon message="Không thể tải kết quả bản đồ" description="Dịch vụ kết quả công khai hiện không khả dụng. Vui lòng thử lại sau." /></div> : <div className="py-12"><Empty description="Kết quả chưa được mở công khai" /></div>}
-                    <p className="flex items-start gap-2.5 border-t border-slate-200/80 bg-emerald-50/40 px-5 py-3 text-xs leading-5 text-slate-600">
-                        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-700" />
+                    <p className="flex items-start gap-2.5 border-t border-slate-200/80 bg-teal-50/40 px-5 py-3 text-xs leading-5 text-slate-600">
+                        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-teal-700" />
                         <span>Chỉ hiển thị số liệu tổng hợp đã được duyệt, không công khai thông tin cá nhân hoặc vị trí từng hộ.</span>
                     </p>
                 </section>
 
-                <section aria-label="Đăng ký hỗ trợ và ủng hộ" className="relative overflow-hidden rounded-2xl border border-blue-200/70 bg-gradient-to-r from-blue-50 via-white to-emerald-50 p-6 shadow-sm sm:p-7">
+                <section aria-label="Đăng ký hỗ trợ và ủng hộ" className="relative overflow-hidden rounded-2xl border border-blue-200/70 bg-gradient-to-r from-blue-50/90 via-white to-teal-50/80 p-6 shadow-sm sm:p-7">
                     <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
                         <div className="flex items-start gap-4">
-                            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#11409a] to-[#0e7490] text-white shadow-md shadow-blue-900/15">
+                            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#0b2f7a] to-[#0d9488] text-white shadow-md shadow-blue-900/15">
                                 <HandHeart size={24} />
                             </span>
                             <div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-rose-600">Hệ thống trợ giúp hai chiều</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-[#11409a]">Hệ thống trợ giúp hai chiều</p>
                                 <h2 className="mt-1 text-lg font-bold text-slate-900">Kết nối hỗ trợ cộng đồng</h2>
                                 <p className="mt-1 text-sm text-slate-600">Theo dõi hành trình hỗ trợ minh bạch theo địa bàn, kết nối trực tiếp nhu cầu và nguồn lực xã hội.</p>
                             </div>
                         </div>
                         <div className="flex w-full flex-wrap gap-2.5 sm:w-auto">
-                            <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-rose-600 !to-red-600 hover:!from-rose-700 hover:!to-red-700 !shadow-sm" disabled={!intakeEnabled || loading} href={intakeEnabled ? `${basePath}/dang-ky?source=WEBSITE` : undefined} icon={<ArrowRight size={16} />}>Đăng ký nhận hỗ trợ</Button>
-                            <Button size="large" className="!border-emerald-300 !bg-emerald-50 !text-emerald-800 hover:!border-emerald-400 hover:!bg-emerald-100" disabled={!programsEnabled || loading} href={programsEnabled ? `${basePath}/chuong-trinh#pledge` : undefined} icon={<HandHeart size={16} />}>Đăng ký ủng hộ</Button>
-                            <Button size="large" className="!border-blue-200 !bg-white !text-[#11409a] hover:!border-blue-300 hover:!bg-blue-50" disabled={!allocationsEnabled || loading} href={allocationsEnabled ? `${basePath}/phan-bo` : undefined} icon={<ArrowRight size={16} />}>Chỉ tiêu phân bổ</Button>
+                            <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-[#0b2f7a] !to-[#1346a8] !text-white hover:!from-[#08245e] hover:!to-[#0f3a8a] !shadow-sm" disabled={!intakeEnabled || loading} href={intakeEnabled ? `${basePath}/dang-ky?source=WEBSITE` : undefined} icon={<ArrowRight size={16} />}>Đăng ký nhận hỗ trợ</Button>
+                            <Button size="large" className="!border-teal-300 !bg-teal-50 !text-teal-800 hover:!border-teal-400 hover:!bg-teal-100" disabled={!programsEnabled || loading} href={programsEnabled ? `${basePath}/chuong-trinh#pledge` : undefined} icon={<HandHeart size={16} />}>Đăng ký ủng hộ</Button>
+                            <Button size="large" className="!border-slate-300 !bg-white !text-slate-700 hover:!border-blue-300 hover:!bg-blue-50 hover:!text-[#11409a]" disabled={!allocationsEnabled || loading} href={allocationsEnabled ? `${basePath}/phan-bo` : undefined} icon={<ArrowRight size={16} />}>Chỉ tiêu phân bổ</Button>
                         </div>
                     </div>
                 </section>
@@ -346,11 +346,11 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                 <section aria-label="Chương trình đang mở" className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Đang tiếp nhận & triển khai</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">Đang tiếp nhận &amp; triển khai</p>
                             <h2 className="mt-0.5 text-xl font-bold text-slate-900">Chương trình đang mở</h2>
                         </div>
                         {programsEnabled ? (
-                            <Link href={`${basePath}/chuong-trinh`} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#11409a] shadow-xs transition-colors hover:border-blue-200 hover:bg-blue-50">
+                            <Link href={`${basePath}/chuong-trinh`} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold !text-[#11409a] shadow-xs transition-colors hover:border-blue-200 hover:bg-blue-50">
                                 <span>Tất cả chương trình</span>
                                 <ArrowRight size={15} />
                             </Link>
@@ -364,12 +364,12 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                         <div className="grid gap-5 md:grid-cols-3">
                             {programs.slice(0, 3).map((program) => (
                                 <article key={program.id} className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-950/5">
-                                    <div className="h-1.5 w-full bg-gradient-to-r from-[#11409a] via-sky-500 to-emerald-500" aria-hidden="true" />
+                                    <div className="h-1.5 w-full bg-gradient-to-r from-[#0b2f7a] via-[#1346a8] to-[#0d9488]" aria-hidden="true" />
                                     <div className="flex flex-1 flex-col p-5 sm:p-6">
                                         <div className="mb-3 flex items-center justify-between gap-2">
-                                            <Tag className="!m-0 !rounded-full !border-0 !bg-emerald-50 !px-3 !py-0.5 !font-semibold !text-emerald-700" color="green">{getSocialAssistanceCategoryLabel(program.category)}</Tag>
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
-                                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                            <Tag className="!m-0 !rounded-full !border-0 !bg-teal-50 !px-3 !py-0.5 !font-semibold !text-teal-700">{getSocialAssistanceCategoryLabel(program.category)}</Tag>
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-700">
+                                                <span className="h-2 w-2 rounded-full bg-teal-500" />
                                                 Đang mở
                                             </span>
                                         </div>
@@ -379,7 +379,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                             <span className="font-semibold text-slate-800">Đối tượng: </span>
                                             {program.eligibilitySummary}
                                         </div>
-                                        <Link className="mt-auto inline-flex min-h-10 items-center justify-between rounded-xl bg-slate-50 px-3.5 text-sm font-semibold text-[#11409a] transition-colors group-hover:bg-blue-50" href={`${basePath}/chuong-trinh`}>
+                                        <Link className="mt-auto inline-flex min-h-10 items-center justify-between rounded-xl bg-slate-50 px-3.5 text-sm font-semibold !text-[#11409a] transition-colors group-hover:bg-blue-50" href={`${basePath}/chuong-trinh`}>
                                             <span>Xem chương trình</span>
                                             <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                                         </Link>

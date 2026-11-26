@@ -165,22 +165,21 @@ export default function PublicProgramsPage({ slug }: Props) {
         <PublicAssistanceLayout
             slug={slug}
             title="Chương trình an sinh xã hội"
-            badge="Bản đồ an sinh số · GIS"
+            badge="An sinh cộng đồng · GIS"
             subtitle="Chương trình đang công khai, kết quả hỗ trợ đã được duyệt và đăng ký cam kết ủng hộ trực tuyến."
         >
             <div className="space-y-6 lg:space-y-7">
-                <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#0b2f7a] via-[#1346a8] to-[#0b6673] p-5 text-white shadow-md shadow-blue-950/10 sm:px-6">
+                <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#081c4c] via-[#113a8c] to-[#0b6673] p-5 text-white shadow-md shadow-blue-950/10 sm:px-6">
                     <div className="space-y-1">
                         <p className="text-xs font-semibold uppercase tracking-wider text-sky-200">Chung tay vì cộng đồng</p>
                         <h2 className="text-lg font-bold text-white sm:text-xl">Danh sách chương trình an sinh xã hội</h2>
                         <p className="text-sm text-sky-100/90">Chọn chương trình phù hợp để xem kết quả phân bổ hoặc đăng ký cam kết đồng hành.</p>
                     </div>
                     <Button
-                        type="primary"
                         size="large"
                         href="#pledge"
                         icon={<HandCoins size={16} />}
-                        className="!border-0 !bg-emerald-500 hover:!bg-emerald-600 !shadow-md !shadow-emerald-950/20"
+                        className="!border-0 !bg-white !font-bold !text-[#0b2f7a] hover:!bg-blue-50 !shadow-md !shadow-blue-950/20"
                     >
                         Ủng hộ chương trình
                     </Button>
@@ -189,8 +188,8 @@ export default function PublicProgramsPage({ slug }: Props) {
                 <section aria-label="Tổng quan chương trình" className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
                     <ProgramMetric icon={<FolderHeart size={18} />} iconTone="bg-blue-50 text-[#11409a] ring-blue-100" label="Chương trình công khai" value={overview.programCount.toLocaleString("vi-VN")} detail="Đang tiếp nhận ủng hộ" tone="text-[#11409a]" />
                     <ProgramMetric icon={<UsersRound size={18} />} iconTone="bg-slate-100 text-slate-700 ring-slate-200" label="Lượt nhận hỗ trợ" value={overview.supportInstances.toLocaleString("vi-VN")} detail="Tổng hợp theo chương trình" tone="text-slate-900" />
-                    <ProgramMetric icon={<Banknote size={18} />} iconTone="bg-emerald-50 text-emerald-700 ring-emerald-100" label="Tiền mặt đã trao" value={formatCurrency(overview.deliveredCashAmount)} detail="Theo kết quả đã duyệt" tone="text-emerald-700" />
-                    <ProgramMetric icon={<MapPin size={18} />} iconTone="bg-amber-50 text-amber-700 ring-amber-100" label="Địa bàn có kết quả" value={overview.geographyCount.toLocaleString("vi-VN")} detail="Xã/phường có dữ liệu công khai" tone="text-amber-700" />
+                    <ProgramMetric icon={<Banknote size={18} />} iconTone="bg-teal-50 text-teal-700 ring-teal-100" label="Tiền mặt đã trao" value={formatCurrency(overview.deliveredCashAmount)} detail="Theo kết quả đã duyệt" tone="text-teal-700" />
+                    <ProgramMetric icon={<MapPin size={18} />} iconTone="bg-sky-50 text-sky-700 ring-sky-100" label="Địa bàn có kết quả" value={overview.geographyCount.toLocaleString("vi-VN")} detail="Xã/phường có dữ liệu công khai" tone="text-sky-700" />
                 </section>
 
                 <section aria-label="Lọc chương trình" className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/50 sm:p-5">
@@ -310,7 +309,7 @@ export default function PublicProgramsPage({ slug }: Props) {
                                 </div>
                                 <div className="flex items-center gap-2.5 border-t border-slate-200/80 bg-slate-50/70 px-5 py-3 text-xs text-slate-500">
                                     <span>Ít hỗ trợ</span>
-                                    <span className="h-2.5 flex-1 rounded-full bg-gradient-to-r from-[#7dd3fc] via-[#0284c7] to-[#e11d48]" />
+                                    <span className="h-2.5 flex-1 rounded-full bg-gradient-to-r from-[#7dd3fc] via-[#2563eb] to-[#0f3a8a]" />
                                     <span>Nhiều hỗ trợ</span>
                                 </div>
                             </section>
@@ -363,7 +362,7 @@ export default function PublicProgramsPage({ slug }: Props) {
                         <Tabs items={[
                             { key: "overview", label: "Tổng quan & mục tiêu", children: <div className="space-y-5 py-2"><section><h3 className="text-sm font-bold uppercase tracking-wide text-slate-700">Nội dung chương trình</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{detailProgram.publicDescription}</p></section><section className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200/70"><h3 className="text-sm font-bold text-slate-900">Tiêu chí & đối tượng tiếp nhận</h3><p className="mt-2 text-sm leading-6 text-slate-600">{detailProgram.eligibilitySummary}</p></section></div> },
                             { key: "map", label: "Bản đồ không gian & địa bàn", children: <div className="space-y-3 py-2"><p className="text-sm text-slate-600">Vị trí hiển thị là kết quả tổng hợp đã được duyệt theo xã/phường.</p>{detailMapFeatures.features.length ? <div className="overflow-hidden rounded-xl border border-slate-200"><PublicResultsMap features={detailMapFeatures} items={detailMapItems} heightClassName="h-[320px] sm:h-[440px]" /></div> : <Empty description="Chưa có kết quả địa bàn đã duyệt cho chương trình này" />}</div> },
-                            { key: "results", label: "Kết quả đã công khai", children: <section aria-label="Kết quả đã duyệt" className="grid grid-cols-1 gap-3.5 py-3 sm:grid-cols-3"><ProgramMetric icon={<UsersRound size={18} />} iconTone="bg-blue-50 text-[#11409a] ring-blue-100" label="Lượt hỗ trợ" value={detailSummary.supportInstances.toLocaleString("vi-VN")} detail="Aggregate đã duyệt" tone="text-[#11409a]" /><ProgramMetric icon={<Banknote size={18} />} iconTone="bg-emerald-50 text-emerald-700 ring-emerald-100" label="Tiền mặt đã trao" value={formatCurrency(detailSummary.deliveredCashAmount)} detail="Aggregate công khai" tone="text-emerald-700" /><ProgramMetric icon={<HandCoins size={18} />} iconTone="bg-amber-50 text-amber-700 ring-amber-100" label="Lượt hiện vật" value={detailSummary.deliveredItemCount.toLocaleString("vi-VN")} detail="Aggregate công khai" tone="text-amber-700" /></section> }
+                            { key: "results", label: "Kết quả đã công khai", children: <section aria-label="Kết quả đã duyệt" className="grid grid-cols-1 gap-3.5 py-3 sm:grid-cols-3"><ProgramMetric icon={<UsersRound size={18} />} iconTone="bg-blue-50 text-[#11409a] ring-blue-100" label="Lượt hỗ trợ" value={detailSummary.supportInstances.toLocaleString("vi-VN")} detail="Aggregate đã duyệt" tone="text-[#11409a]" /><ProgramMetric icon={<Banknote size={18} />} iconTone="bg-teal-50 text-teal-700 ring-teal-100" label="Tiền mặt đã trao" value={formatCurrency(detailSummary.deliveredCashAmount)} detail="Aggregate công khai" tone="text-teal-700" /><ProgramMetric icon={<HandCoins size={18} />} iconTone="bg-sky-50 text-sky-700 ring-sky-100" label="Lượt hiện vật" value={detailSummary.deliveredItemCount.toLocaleString("vi-VN")} detail="Aggregate công khai" tone="text-sky-700" /></section> }
                         ]} />
                     </> : null}
                 </Modal>

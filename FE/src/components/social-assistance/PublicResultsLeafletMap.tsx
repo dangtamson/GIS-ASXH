@@ -69,8 +69,8 @@ export default function PublicResultsLeafletMap({
                     const wardCode = String(properties?.adcode ?? "");
                     const total = wardTotals.get(`${provinceCode}:${wardCode}`);
                     const ratio = total ? getPublicSocialAssistanceMapMeasureValue(total, measure) / maxMeasureValue : 0;
-                    const fillColor = !total ? "#e2e8f0" : ratio > 0.66 ? "#e11d48" : ratio > 0.33 ? "#0284c7" : "#7dd3fc";
-                    return { color: "#1e293b", weight: 1.25, opacity: 0.85, fillColor, fillOpacity: total ? 0.72 : 0.3 };
+                    const fillColor = !total ? "#e2e8f0" : ratio > 0.66 ? "#0f3a8a" : ratio > 0.33 ? "#2563eb" : "#7dd3fc";
+                    return { color: "#0f2b66", weight: 1.4, opacity: 0.85, fillColor, fillOpacity: total ? 0.68 : 0.28 };
                 }}
                 onEachFeature={(feature, layer) => {
                     const properties = feature.properties as WardProperties;

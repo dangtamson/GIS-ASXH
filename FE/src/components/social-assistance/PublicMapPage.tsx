@@ -86,8 +86,8 @@ export default function PublicMapPage({ slug }: { slug: string }) {
         { title: "Tỉnh/thành", dataIndex: "provinceCode", key: "provinceCode", render: (value: string) => <span className="text-slate-600">{value}</span> },
         { title: "Xã/phường", dataIndex: "wardCode", key: "wardCode", render: (value: string) => <span className="font-medium text-slate-800">{wardName(value)}</span> },
         { title: "Lượt nhận hỗ trợ", dataIndex: "recipientCount", key: "recipientCount", align: "right", render: (value: number) => <span className="font-semibold tabular-nums text-[#11409a]">{value.toLocaleString("vi-VN")}</span> },
-        { title: "Tiền mặt đã trao", dataIndex: "deliveredCashAmount", key: "deliveredCashAmount", align: "right", render: (value: number) => <span className="font-semibold tabular-nums text-emerald-700">{currency(value)}</span> },
-        { title: "Lượt trao hiện vật", dataIndex: "deliveredItemCount", key: "deliveredItemCount", align: "right", render: (value: number) => <span className="font-semibold tabular-nums text-amber-700">{value.toLocaleString("vi-VN")}</span> }
+        { title: "Tiền mặt đã trao", dataIndex: "deliveredCashAmount", key: "deliveredCashAmount", align: "right", render: (value: number) => <span className="font-semibold tabular-nums text-teal-700">{currency(value)}</span> },
+        { title: "Lượt trao hiện vật", dataIndex: "deliveredItemCount", key: "deliveredItemCount", align: "right", render: (value: number) => <span className="font-semibold tabular-nums text-sky-700">{value.toLocaleString("vi-VN")}</span> }
     ];
 
     return (
@@ -120,15 +120,15 @@ export default function PublicMapPage({ slug }: { slug: string }) {
                     />
                     <MapStatCard
                         icon={<Banknote size={19} />}
-                        iconTone="bg-emerald-50 text-emerald-700 ring-emerald-100"
-                        tone="text-emerald-700"
+                        iconTone="bg-teal-50 text-teal-700 ring-teal-100"
+                        tone="text-teal-700"
                         label="Tiền mặt đã trao"
                         value={currency(summary.deliveredCashAmount)}
                     />
                     <MapStatCard
                         icon={<Gift size={19} />}
-                        iconTone="bg-amber-50 text-amber-700 ring-amber-100"
-                        tone="text-amber-700"
+                        iconTone="bg-sky-50 text-sky-700 ring-sky-100"
+                        tone="text-sky-700"
                         label="Lượt trao hiện vật"
                         value={summary.deliveredItemCount.toLocaleString("vi-VN")}
                     />
@@ -167,8 +167,8 @@ export default function PublicMapPage({ slug }: { slug: string }) {
                                             <div className="flex items-center gap-2">
                                                 <span>Ít</span>
                                                 <span className="h-2.5 w-6 rounded-full bg-[#7dd3fc]" aria-hidden="true" />
-                                                <span className="h-2.5 w-6 rounded-full bg-[#0284c7]" aria-hidden="true" />
-                                                <span className="h-2.5 w-6 rounded-full bg-[#e11d48]" aria-hidden="true" />
+                                                <span className="h-2.5 w-6 rounded-full bg-[#2563eb]" aria-hidden="true" />
+                                                <span className="h-2.5 w-6 rounded-full bg-[#0f3a8a]" aria-hidden="true" />
                                                 <span>Nhiều</span>
                                             </div>
                                         </div>

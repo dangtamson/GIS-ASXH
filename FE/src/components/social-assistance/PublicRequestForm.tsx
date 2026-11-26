@@ -147,7 +147,7 @@ export default function PublicRequestForm({ slug, source }: Props) {
                 </div>
 
                 <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/50">
-                    <div className="h-1.5 w-full bg-gradient-to-r from-rose-500 via-[#11409a] to-emerald-500" aria-hidden="true" />
+                    <div className="h-1.5 w-full bg-gradient-to-r from-[#0b2f7a] via-[#1346a8] to-[#0d9488]" aria-hidden="true" />
                     <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 px-5 py-5 sm:px-8">
                         <Steps current={step} responsive size="small" items={[{ title: "Thông tin và nhu cầu" }, { title: "Địa chỉ liên hệ" }]} />
                     </div>
@@ -210,9 +210,9 @@ export default function PublicRequestForm({ slug, source }: Props) {
                             <div className="sticky bottom-0 z-10 mt-6 flex flex-wrap justify-between gap-3 border-t border-slate-200/80 bg-white/95 py-4 backdrop-blur-sm [&_.ant-btn]:min-h-11">
                                 {step === 1 ? <Button size="large" icon={<ArrowLeft size={15} />} onClick={() => setStep(0)}>Quay lại</Button> : <span />}
                                 {step === 0 ? (
-                                    <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-rose-600 !to-red-600 hover:!from-rose-700 hover:!to-red-700 !shadow-sm" icon={<ArrowRight size={15} />} onClick={() => void continueToLocation()}>Tiếp tục</Button>
+                                    <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-[#0b2f7a] !to-[#1346a8] !text-white hover:!from-[#08245e] hover:!to-[#0f3a8a] !shadow-sm" icon={<ArrowRight size={15} />} onClick={() => void continueToLocation()}>Tiếp tục</Button>
                                 ) : (
-                                    <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-rose-600 !to-red-600 hover:!from-rose-700 hover:!to-red-700 !shadow-sm" icon={<Send size={15} />} loading={submitting} onClick={() => void submitRequest()}>Xác nhận & gửi yêu cầu</Button>
+                                    <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-[#0b2f7a] !to-[#1346a8] !text-white hover:!from-[#08245e] hover:!to-[#0f3a8a] !shadow-sm" icon={<Send size={15} />} loading={submitting} onClick={() => void submitRequest()}>Xác nhận & gửi yêu cầu</Button>
                                 )}
                             </div>
                         </Form>
