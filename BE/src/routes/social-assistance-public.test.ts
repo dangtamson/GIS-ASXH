@@ -19,6 +19,7 @@ const {
     publicProgramsHandler: vi.fn(),
     publicPledgeHandler: vi.fn()
 }));
+const { publicOrdersHandler } = vi.hoisted(() => ({ publicOrdersHandler: vi.fn() }));
 
 vi.mock("@/middleware/rateLimiter.ts", () => ({
     socialAssistanceIntakeRateLimit: rateLimit,
@@ -38,6 +39,9 @@ vi.mock("@/handlers/social-assistance/programs.handlers.ts", () => ({
 }));
 vi.mock("@/handlers/social-assistance/pledges.handlers.ts", () => ({
     submitPublicSocialAssistancePledge: publicPledgeHandler
+}));
+vi.mock("@/handlers/social-assistance/distribution-orders.handlers.ts", () => ({
+    listPublicDistributionOrdersHandler: publicOrdersHandler
 }));
 
 import { registerSocialAssistancePublicRoutes } from "./social-assistance-public.ts";
@@ -67,6 +71,11 @@ describe("social assistance public routes", () => {
             "/public/social-assistance/:slug/programs",
             locationRateLimit,
             publicProgramsHandler
+        );
+        expect(app.get).toHaveBeenCalledWith(
+            "/public/social-assistance/:slug/distribution-orders",
+            locationRateLimit,
+            publicOrdersHandler
         );
         expect(app.post).toHaveBeenCalledWith(
             "/public/social-assistance/:slug/pledges",

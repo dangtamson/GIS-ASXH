@@ -81,6 +81,8 @@ const defaultPermissions = [
   { code: "social_assistance.distribution_batch.view", name: "View social assistance distribution batches", description: "View locality-level official allocation batches" },
   { code: "social_assistance.distribution_batch.manage", name: "Manage social assistance distribution batches", description: "Create and update draft locality allocation batches" },
   { code: "social_assistance.distribution_batch.publish", name: "Publish social assistance distribution batches", description: "Publish and close locality allocation batches" },
+  { code: "social_assistance.beneficiary.view", name: "View private social assistance beneficiaries", description: "View scoped private household beneficiary records" },
+  { code: "social_assistance.beneficiary.manage", name: "Manage private social assistance beneficiaries", description: "Create or update scoped private household beneficiary records" },
   { code: "social_assistance.report.read", name: "View social assistance reports", description: "View social assistance coordination reports" },
   { code: "social_assistance.publication.manage", name: "Manage social assistance publication", description: "Preview and approve public result publications" },
   { code: "social_assistance.portal.manage", name: "Manage social assistance portal", description: "Configure public portal links and enabled features" }

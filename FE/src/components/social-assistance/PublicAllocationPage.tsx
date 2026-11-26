@@ -6,7 +6,7 @@ import {
     filterPublicDistributionBatches,
     summarizePublicDistributionBatches
 } from "@/lib/social-assistance-utils";
-import type { PublicSocialAssistanceDistributionBatch } from "@/types/social-assistance";
+import type { PublicDistributionOrder, PublicSocialAssistanceDistributionBatch } from "@/types/social-assistance";
 import { Alert, Descriptions, Drawer, Empty, Input, Select, Spin, Table, Tag, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import dayjs from "dayjs";
@@ -40,6 +40,7 @@ export default function PublicAllocationPage({ slug }: { slug: string }) {
     const batches = loadState?.slug === slug ? loadState.batches : EMPTY_BATCHES;
     const unavailable = loadState?.slug === slug && loadState.unavailable;
     const error = loadState?.slug === slug ? loadState.error : null;
+    const [publicOrders, setPublicOrders] = useState<PublicDistributionOrder[]>([]);
     const [year, setYear] = useState<string>();
     const [search, setSearch] = useState("");
     const [programTitle, setProgramTitle] = useState<string>();
@@ -48,10 +49,14 @@ export default function PublicAllocationPage({ slug }: { slug: string }) {
 
     useEffect(() => {
         let active = true;
-        void publicApiGet<ListResponse<PublicSocialAssistanceDistributionBatch>>(
-            endpoints.socialAssistance.publicAllocations(slug)
-        ).then((response) => {
-            if (active) setLoadState({ slug, batches: response.items ?? [], unavailable: false, error: null });
+        void Promise.all([
+            publicApiGet<ListResponse<PublicSocialAssistanceDistributionBatch>>(endpoints.socialAssistance.publicAllocations(slug)),
+            publicApiGet<ListResponse<PublicDistributionOrder>>(endpoints.socialAssistance.publicDistributionOrders(slug)).catch(() => ({ items: [] }))
+        ]).then(([batchResponse, orderResponse]) => {
+            if (active) {
+                setLoadState({ slug, batches: batchResponse.items ?? [], unavailable: false, error: null });
+                setPublicOrders(orderResponse.items ?? []);
+            }
         }).catch((loadError: unknown) => {
             if (!active) return;
             const isUnavailable = loadError instanceof PublicApiError && loadError.status === 404;
@@ -157,6 +162,23 @@ export default function PublicAllocationPage({ slug }: { slug: string }) {
                             <Select aria-label="Tỉnh/thành phố" allowClear placeholder="Tất cả tỉnh/thành phố" value={provinceCode} options={provinces.map(([value, label]) => ({ value, label }))} onChange={(value) => { setProvinceCode(value); setWardCode(undefined); }} />
                             <Select aria-label="Xã/phường" allowClear placeholder="Tất cả xã/phường" value={wardCode} options={wards.map(([value, label]) => ({ value, label }))} onChange={setWardCode} />
                         </SocialAssistanceToolbar>
+
+                        {publicOrders.length ? (
+                            <section aria-label="Công văn hỗ trợ đa thành phần" className="border-y border-gray-200 bg-white">
+                                <div className="border-b border-gray-200 px-4 py-3"><Typography.Text strong>Công văn đa thành phần</Typography.Text></div>
+                                <div className="divide-y divide-gray-100">
+                                    {publicOrders.flatMap((order) => order.components.map((component) => (
+                                        <div key={`${order.documentNumber}:${component.name}`} className="grid gap-2 px-4 py-3 md:grid-cols-[240px_1fr_180px]">
+                                            <div><strong className="block text-sm">{order.documentNumber}</strong><span className="text-xs text-gray-600">{order.title}</span></div>
+                                            <div><strong className="block text-sm">{component.name}</strong><span className="text-xs text-gray-600">{component.declaredTotalQuantity.toLocaleString("vi-VN")} {component.unitLabel} · {currency(component.projectedTotalAmount)}</span></div>
+                                            <div className="text-sm text-gray-700">{component.targets.map((target) => target.type === "LOCALITY"
+                                                ? `${target.wardName || target.wardCode}`
+                                                : target.organizationName || "Tổ chức").join("; ")}</div>
+                                        </div>
+                                    )))}
+                                </div>
+                            </section>
+                        ) : null}
 
                         {rows.length ? (
                             <section aria-label="Chỉ tiêu theo công văn và xã phường" className="min-w-0 border-y border-gray-200 bg-white">

@@ -9,6 +9,7 @@ import type { TableColumnsType } from "antd";
 import { Check, ChevronRight, HandCoins, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import DistributionBatchManagementPage from "./DistributionBatchManagementPage";
+import DistributionOrderManagementPage from "./DistributionOrderManagementPage";
 
 type AllocationStatus = "PLANNED" | "APPROVED" | "DELIVERED" | "RECONCILED";
 type Allocation = {
@@ -52,7 +53,7 @@ const currency = (amount: number | null) => amount == null ? "—" : `${amount.t
 export default function AllocationManagementPage() {
     const [form] = Form.useForm<FormValues>();
     const { message } = App.useApp();
-    const [activeView, setActiveView] = useState<"requests" | "batches">("requests");
+    const [activeView, setActiveView] = useState<"requests" | "batches" | "orders">("requests");
     const allocationType = Form.useWatch("allocationType", form);
     const [allocations, setAllocations] = useState<Allocation[]>([]);
     const [programs, setPrograms] = useState<SocialAssistanceProgram[]>([]);
@@ -165,13 +166,14 @@ export default function AllocationManagementPage() {
         ) : null}>
             <Tabs
                 activeKey={activeView}
-                onChange={(key) => setActiveView(key as "requests" | "batches")}
+                onChange={(key) => setActiveView(key as "requests" | "batches" | "orders")}
                 items={[
                     { key: "requests", label: "Theo hồ sơ" },
-                    { key: "batches", label: "Theo công văn" }
+                    { key: "batches", label: "Theo đợt công văn" },
+                    { key: "orders", label: "Công văn đa thành phần" }
                 ]}
             />
-            {activeView === "batches" ? <DistributionBatchManagementPage /> : (
+            {activeView === "batches" ? <DistributionBatchManagementPage /> : activeView === "orders" ? <DistributionOrderManagementPage /> : (
                 <>
                     {error ? <Alert type="error" showIcon message={error} /> : null}
                     {priorSupportCount != null && priorSupportCount > 0 ? (

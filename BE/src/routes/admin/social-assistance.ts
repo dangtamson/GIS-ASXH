@@ -23,6 +23,16 @@ import {
     publishDistributionBatchAdmin,
     updateDraftDistributionBatchAdmin
 } from "@/handlers/social-assistance/distribution-batches.handlers.ts";
+import {
+    createDistributionBeneficiaryAdmin,
+    createDistributionOrderAdmin,
+    listDistributionBeneficiariesAdmin,
+    listDistributionOrdersAdmin,
+    getDistributionOrderAdmin,
+    updateDraftDistributionOrderAdmin,
+    publishDistributionOrderAdmin,
+    closeDistributionOrderAdmin
+} from "@/handlers/social-assistance/distribution-orders.handlers.ts";
 import { getSocialAssistanceDashboardAdmin } from "@/handlers/social-assistance/dashboard.handlers.ts";
 import {
     approveSocialAssistancePublicationAdmin,
@@ -59,6 +69,14 @@ export const registerSocialAssistanceAdminRoutes = (
     app.patch(API_ROUTES.socialAssistanceDistributionBatchById, ...guards, updateDraftDistributionBatchAdmin);
     app.post(API_ROUTES.socialAssistanceDistributionBatchPublish, ...guards, publishDistributionBatchAdmin);
     app.post(API_ROUTES.socialAssistanceDistributionBatchClose, ...guards, closeDistributionBatchAdmin);
+    app.get(API_ROUTES.socialAssistanceDistributionOrders, ...guards, listDistributionOrdersAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionOrders, ...guards, createDistributionOrderAdmin);
+    app.get(API_ROUTES.socialAssistanceDistributionOrderById, ...guards, getDistributionOrderAdmin);
+    app.patch(API_ROUTES.socialAssistanceDistributionOrderById, ...guards, updateDraftDistributionOrderAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionOrderPublish, ...guards, publishDistributionOrderAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionOrderClose, ...guards, closeDistributionOrderAdmin);
+    app.get(API_ROUTES.socialAssistanceDistributionBeneficiaries, ...guards, listDistributionBeneficiariesAdmin);
+    app.post(API_ROUTES.socialAssistanceDistributionBeneficiaries, ...guards, createDistributionBeneficiaryAdmin);
     app.get(API_ROUTES.socialAssistanceDashboard, ...guards, getSocialAssistanceDashboardAdmin);
     app.get(API_ROUTES.socialAssistancePublicationOptions, ...guards, getSocialAssistancePublicationOptionsAdmin);
     app.post(API_ROUTES.socialAssistancePublicationPreview, ...guards, previewSocialAssistancePublicationAdmin);

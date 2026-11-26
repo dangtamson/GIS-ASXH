@@ -213,6 +213,11 @@ export const AUDIT_ACTIONS = {
   SOCIAL_ASSISTANCE_DISTRIBUTION_BATCH_UPDATED: "social_assistance_distribution_batch_updated",
   SOCIAL_ASSISTANCE_DISTRIBUTION_BATCH_PUBLISHED: "social_assistance_distribution_batch_published",
   SOCIAL_ASSISTANCE_DISTRIBUTION_BATCH_CLOSED: "social_assistance_distribution_batch_closed",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_ORDER_CREATED: "social_assistance_distribution_order_created",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_ORDER_UPDATED: "social_assistance_distribution_order_updated",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_ORDER_PUBLISHED: "social_assistance_distribution_order_published",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_ORDER_CLOSED: "social_assistance_distribution_order_closed",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_BENEFICIARY_CREATED: "social_assistance_distribution_beneficiary_created",
   SOCIAL_ASSISTANCE_PORTAL_UPDATED: "social_assistance_portal_updated"
 } as const;
 
@@ -260,6 +265,8 @@ export const ENTITY_TYPES = {
   SOCIAL_ASSISTANCE_ALLOCATION: "social_assistance_allocation",
   SOCIAL_ASSISTANCE_PUBLICATION: "social_assistance_publication",
   SOCIAL_ASSISTANCE_DISTRIBUTION_BATCH: "social_assistance_distribution_batch",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_ORDER: "social_assistance_distribution_order",
+  SOCIAL_ASSISTANCE_DISTRIBUTION_BENEFICIARY: "social_assistance_distribution_beneficiary",
   SOCIAL_ASSISTANCE_PORTAL: "social_assistance_portal"
 } as const;
 

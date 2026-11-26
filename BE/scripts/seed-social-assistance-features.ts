@@ -95,6 +95,8 @@ const SOCIAL_ASSISTANCE_PERMISSIONS = [
     ["social_assistance.distribution_batch.view", "View locality allocation batches"],
     ["social_assistance.distribution_batch.manage", "Manage locality allocation batches"],
     ["social_assistance.distribution_batch.publish", "Publish locality allocation batches"],
+    ["social_assistance.beneficiary.view", "View private social assistance beneficiaries"],
+    ["social_assistance.beneficiary.manage", "Manage private social assistance beneficiaries"],
     ["social_assistance.report.read", "View social assistance reports"],
     ["social_assistance.publication.manage", "Manage public social assistance results"],
     ["social_assistance.portal.manage", "Manage social assistance public portal"]

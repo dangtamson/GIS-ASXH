@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PERMISSION_CODES } from "./permissions.ts";
+import { API_ROUTES, PERMISSION_CODES, permissions } from "./permissions.ts";
 
 describe("social-assistance permission codes", () => {
     it("defines a dedicated permission for each new workflow", () => {
@@ -15,5 +15,20 @@ describe("social-assistance permission codes", () => {
         expect(PERMISSION_CODES.SocialAssistanceReportView).toBe("social_assistance.report.read");
         expect(PERMISSION_CODES.SocialAssistancePublicationManage).toBe("social_assistance.publication.manage");
         expect(PERMISSION_CODES.SocialAssistancePortalManage).toBe("social_assistance.portal.manage");
+    });
+
+    it("requires dedicated beneficiary permissions and leaves public aggregate orders anonymous", () => {
+        expect(permissions.get(API_ROUTES.socialAssistanceDistributionBeneficiaries)).toMatchObject({
+            authenticated: true,
+            workspaceScoped: true,
+            permissions: {
+                GET: "social_assistance.beneficiary.view",
+                POST: "social_assistance.beneficiary.manage"
+            }
+        });
+        expect(permissions.get(API_ROUTES.publicSocialAssistanceDistributionOrders)).toMatchObject({
+            authenticated: false,
+            permissions: {}
+        });
     });
 });

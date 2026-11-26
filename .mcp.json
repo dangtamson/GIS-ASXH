@@ -1,0 +1,18 @@
+{
+    "mcpServers": {
+        "postgresAppWrite": {
+            "type": "stdio",
+            "command": "node",
+            "cwd": "/Users/sondt/Dev/Git/GIS ASXH",
+            "args": [
+                "--env-file=BE/.env",
+                "-e",
+                "const { spawn } = require('node:child_process'); const required = ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB']; const missing = required.filter((name) => !process.env[name]); if (missing.length) { console.error('Missing PostgreSQL environment variables: ' + missing.join(', ')); process.exit(1); } const env = { PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER, LANG: process.env.LANG, DB_TYPE: 'postgres', DB_HOST: process.env.POSTGRES_HOST, DB_PORT: process.env.POSTGRES_PORT, DB_USER: process.env.POSTGRES_USER, DB_PASSWORD: process.env.POSTGRES_PASSWORD, DB_NAME: process.env.POSTGRES_DB }; const child = spawn('npx', ['--yes', '@bytebase/dbhub@2.1.0', '--transport', 'stdio'], { env, stdio: 'inherit' }); child.on('error', (error) => { console.error('Unable to start DBHub: ' + error.message); process.exitCode = 1; }); child.on('exit', (code, signal) => { process.exitCode = code ?? (signal ? 1 : 0); }); for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));"
+            ],
+            "tools": [
+                "execute_sql",
+                "search_objects"
+            ]
+        }
+    }
+}

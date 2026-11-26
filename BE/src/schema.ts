@@ -7,6 +7,7 @@ import {
   check,
   date,
   doublePrecision,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -211,7 +212,7 @@ export const profiles = pgTable(
   })
 );
 
-export const organizations = pgTable(
+export const organizations = applicationSchema.table(
   "organizations",
   {
     uuid: uuid("uuid").defaultRandom().primaryKey(),
@@ -235,6 +236,7 @@ export const organizations = pgTable(
     is_root: boolean()
   },
   (table) => ({
+    uniqueOrgWorkspace: unique("sa_organizations_id_workspace_key").on(table.uuid, table.workspaceId),
     idxOrgWorkspace: index("idx_org_workspace").on(table.workspaceId),
     idxOrgProvinceCode: index("idx_org_province_code").on(table.provinceCode),
     idxOrgWardCode: index("idx_org_ward_code").on(table.wardCode),
@@ -455,6 +457,7 @@ export const socialAssistancePrograms = applicationSchema.table(
     updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
   },
   (table) => ({
+    uniqueProgramIdWorkspace: unique("sa_programs_id_workspace_key").on(table.id, table.workspaceId),
     idxSocialAssistanceProgramsWorkspaceStatus: index("idx_social_assistance_programs_workspace_status").on(
       table.workspaceId,
       table.status
@@ -586,6 +589,7 @@ export const socialAssistanceDistributionBatches = applicationSchema.table(
     updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
   },
   (table) => ({
+    uniqueBatchIdWorkspace: unique("sa_batches_id_workspace_key").on(table.id, table.workspaceId),
     uniqueWorkspaceDocumentNumber: unique("social_assistance_distribution_batches_workspace_document_key").on(
       table.workspaceId,
       table.documentNumber
@@ -646,6 +650,128 @@ export const socialAssistanceDistributionLines = applicationSchema.table(
       "social_assistance_distribution_lines_quantity_check",
       sql`${table.allocatedQuantity} > 0`
     )
+  })
+);
+
+export const socialAssistanceDistributionOrders = applicationSchema.table(
+  "social_assistance_distribution_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.uuid, { onDelete: "cascade" }),
+    legacyBatchId: uuid("legacy_batch_id"),
+    programId: uuid("program_id"),
+    supersedesOrderId: uuid("supersedes_order_id"),
+    documentNumber: varchar("document_number", { length: 100 }).notNull(),
+    documentDate: date("document_date").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    fundingSourceText: text("funding_source_text").notNull(),
+    submissionDeadline: date("submission_deadline"),
+    submissionDeadlineExclusive: boolean("submission_deadline_exclusive").notNull().default(false),
+    completionDeadline: date("completion_deadline"),
+    completionDeadlineExclusive: boolean("completion_deadline_exclusive").notNull().default(false),
+    status: varchar("status", { length: 16 }).notNull().default("DRAFT"),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    publishedBy: uuid("published_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    publishedAt: timestamp("published_at", { precision: 6, withTimezone: true }),
+    closedBy: uuid("closed_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    closedAt: timestamp("closed_at", { precision: 6, withTimezone: true }),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueWorkspaceDocument: unique("sa_orders_workspace_document_key").on(table.workspaceId, table.documentNumber),
+    uniqueIdWorkspace: unique("sa_orders_id_workspace_key").on(table.id, table.workspaceId),
+    uniqueLegacyBatch: unique("sa_orders_legacy_batch_key").on(table.legacyBatchId),
+    legacyBatchForeignKey: foreignKey({ name: "sa_orders_legacy_batch_workspace_fk", columns: [table.legacyBatchId, table.workspaceId], foreignColumns: [socialAssistanceDistributionBatches.id, socialAssistanceDistributionBatches.workspaceId] }).onDelete("restrict"),
+    programForeignKey: foreignKey({ name: "sa_orders_program_workspace_fk", columns: [table.programId, table.workspaceId], foreignColumns: [socialAssistancePrograms.id, socialAssistancePrograms.workspaceId] }).onDelete("restrict"),
+    supersedesForeignKey: foreignKey({ name: "sa_orders_supersedes_workspace_fk", columns: [table.supersedesOrderId, table.workspaceId], foreignColumns: [table.id, table.workspaceId] }).onDelete("restrict"),
+    workspaceStatusIndex: index("sa_orders_workspace_status_idx").on(table.workspaceId, table.status),
+    statusCheck: check("sa_orders_status_check", sql`${table.status} IN ('DRAFT', 'PUBLISHED', 'CLOSED')`),
+    deadlinesCheck: check("sa_orders_deadlines_check", sql`(${table.submissionDeadlineExclusive} = false OR ${table.submissionDeadline} IS NOT NULL) AND (${table.completionDeadlineExclusive} = false OR ${table.completionDeadline} IS NOT NULL) AND (${table.submissionDeadline} IS NULL OR ${table.completionDeadline} IS NULL OR ${table.completionDeadline} >= ${table.submissionDeadline})`)
+  })
+);
+
+export const socialAssistanceDistributionComponents = applicationSchema.table(
+  "social_assistance_distribution_components",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.uuid, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    unitLabel: varchar("unit_label", { length: 40 }).notNull(),
+    unitAmount: numeric("unit_amount", { precision: 14, scale: 2, mode: "number" }).notNull(),
+    period: varchar("period", { length: 16 }).notNull(),
+    periodCount: integer("period_count").notNull(),
+    periodStart: date("period_start"),
+    periodEnd: date("period_end"),
+    declaredTotalQuantity: integer("declared_total_quantity").notNull(),
+    declaredTotalAmount: numeric("declared_total_amount", { precision: 14, scale: 2, mode: "number" }),
+    eligibilitySummary: text("eligibility_summary").notNull(),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueIdOrderWorkspace: unique("sa_components_id_order_workspace_key").on(table.id, table.orderId, table.workspaceId),
+    orderForeignKey: foreignKey({ name: "sa_components_order_workspace_fk", columns: [table.orderId, table.workspaceId], foreignColumns: [socialAssistanceDistributionOrders.id, socialAssistanceDistributionOrders.workspaceId] }).onDelete("restrict"),
+    orderIndex: index("sa_components_order_idx").on(table.orderId, table.workspaceId),
+    amountsCheck: check("sa_components_amounts_check", sql`${table.unitAmount} > 0 AND ${table.declaredTotalQuantity} > 0 AND (${table.declaredTotalAmount} IS NULL OR ${table.declaredTotalAmount} > 0)`),
+    periodCheck: check("sa_components_period_check", sql`(${table.period} = 'ONCE' AND ${table.periodCount} = 1) OR (${table.period} = 'MONTHLY' AND ${table.periodCount} BETWEEN 1 AND 120)`),
+    periodDatesCheck: check("sa_components_dates_check", sql`${table.periodStart} IS NULL OR ${table.periodEnd} IS NULL OR ${table.periodEnd} >= ${table.periodStart}`)
+  })
+);
+
+export const socialAssistanceDistributionTargets = applicationSchema.table(
+  "social_assistance_distribution_targets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.uuid, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull(),
+    componentId: uuid("component_id").notNull(),
+    type: varchar("type", { length: 16 }).notNull(),
+    provinceCode: varchar("province_code", { length: 20 }),
+    wardCode: varchar("ward_code", { length: 20 }),
+    organizationId: uuid("organization_id"),
+    allocatedQuantity: integer("allocated_quantity").notNull(),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    uniqueIdComponentOrderWorkspace: unique("sa_targets_id_component_order_workspace_key").on(table.id, table.componentId, table.orderId, table.workspaceId),
+    componentForeignKey: foreignKey({ name: "sa_targets_component_order_workspace_fk", columns: [table.componentId, table.orderId, table.workspaceId], foreignColumns: [socialAssistanceDistributionComponents.id, socialAssistanceDistributionComponents.orderId, socialAssistanceDistributionComponents.workspaceId] }).onDelete("restrict"),
+    organizationForeignKey: foreignKey({ name: "sa_targets_organization_workspace_fk", columns: [table.organizationId, table.workspaceId], foreignColumns: [organizations.uuid, organizations.workspaceId] }).onDelete("restrict"),
+    uniqueLocality: unique("sa_targets_component_location_key").on(table.componentId, table.provinceCode, table.wardCode),
+    uniqueOrganization: unique("sa_targets_component_organization_key").on(table.componentId, table.organizationId),
+    targetCheck: check("sa_targets_type_check", sql`(${table.type} = 'LOCALITY' AND ${table.provinceCode} IS NOT NULL AND ${table.wardCode} IS NOT NULL AND ${table.organizationId} IS NULL) OR (${table.type} = 'ORGANIZATION' AND ${table.organizationId} IS NOT NULL AND ${table.provinceCode} IS NULL AND ${table.wardCode} IS NULL)`),
+    quantityCheck: check("sa_targets_quantity_check", sql`${table.allocatedQuantity} > 0`)
+  })
+);
+
+export const socialAssistanceDistributionBeneficiaries = applicationSchema.table(
+  "social_assistance_distribution_beneficiaries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").notNull().references(() => workspaces.uuid, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull(),
+    componentId: uuid("component_id").notNull(),
+    targetId: uuid("target_id").notNull(),
+    householdId: uuid("household_id").references(() => poorHouseholds.id, { onDelete: "restrict" }),
+    fullName: varchar("full_name", { length: 255 }).notNull(),
+    birthYear: integer("birth_year"),
+    localityDetails: text("locality_details"),
+    eligibilityDetails: text("eligibility_details"),
+    notes: text("notes"),
+    status: varchar("status", { length: 16 }).notNull().default("PROPOSED"),
+    createdBy: uuid("created_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => accounts.uuid, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { precision: 6, withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true }).defaultNow()
+  },
+  (table) => ({
+    targetForeignKey: foreignKey({ name: "sa_beneficiaries_target_component_order_workspace_fk", columns: [table.targetId, table.componentId, table.orderId, table.workspaceId], foreignColumns: [socialAssistanceDistributionTargets.id, socialAssistanceDistributionTargets.componentId, socialAssistanceDistributionTargets.orderId, socialAssistanceDistributionTargets.workspaceId] }).onDelete("restrict"),
+    targetIndex: index("sa_beneficiaries_target_idx").on(table.workspaceId, table.targetId),
+    statusCheck: check("sa_beneficiaries_status_check", sql`${table.status} IN ('PROPOSED', 'APPROVED', 'REJECTED')`),
+    birthYearCheck: check("sa_beneficiaries_birth_year_check", sql`${table.birthYear} IS NULL OR ${table.birthYear} BETWEEN 1900 AND 2200`)
   })
 );
 

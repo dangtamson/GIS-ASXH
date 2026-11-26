@@ -132,6 +132,100 @@ export type PublicSocialAssistanceDistributionBatch = Omit<DistributionBatchCrea
     lines: Array<DistributionBatchLineInput & { provinceName?: string | null; wardName?: string | null }>;
 };
 
+export type DistributionOrderStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
+export type DistributionOrderPeriod = "ONCE" | "MONTHLY";
+export type DistributionOrderTargetInput =
+    | { type: "LOCALITY"; provinceCode: string; wardCode: string; allocatedQuantity: number }
+    | { type: "ORGANIZATION"; organizationId: string; allocatedQuantity: number };
+export type DistributionOrderComponentInput = {
+    name: string;
+    unitLabel: string;
+    unitAmount: number;
+    period: DistributionOrderPeriod;
+    periodCount: number;
+    periodStart?: string | null;
+    periodEnd?: string | null;
+    declaredTotalQuantity: number;
+    declaredTotalAmount?: number | null;
+    eligibilitySummary: string;
+    allocations: DistributionOrderTargetInput[];
+};
+export type DistributionOrderCreateInput = {
+    programId?: string | null;
+    legacyBatchId?: string | null;
+    supersedesOrderId?: string | null;
+    documentNumber: string;
+    documentDate: string;
+    title: string;
+    fundingSourceText: string;
+    submissionDeadline?: string | null;
+    submissionDeadlineExclusive?: boolean;
+    completionDeadline?: string | null;
+    completionDeadlineExclusive?: boolean;
+    components: DistributionOrderComponentInput[];
+};
+export type DistributionOrderTarget = DistributionOrderTargetInput & {
+    id: string;
+    workspaceId: string;
+    orderId: string;
+    componentId: string;
+};
+export type DistributionOrderComponent = Omit<DistributionOrderComponentInput, "allocations"> & {
+    id: string;
+    workspaceId: string;
+    orderId: string;
+    targets: DistributionOrderTarget[];
+};
+export type DistributionOrder = Omit<DistributionOrderCreateInput, "components"> & {
+    id: string;
+    workspaceId: string;
+    status: DistributionOrderStatus;
+    publishedBy: string | null;
+    publishedAt: string | null;
+    closedBy: string | null;
+    closedAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+    components: DistributionOrderComponent[];
+};
+export type DistributionBeneficiaryStatus = "PROPOSED" | "APPROVED" | "REJECTED";
+export type DistributionBeneficiaryCreateInput = {
+    componentId: string;
+    targetId: string;
+    fullName: string;
+    birthYear?: number;
+    householdId?: string;
+    localityDetails?: string;
+    eligibilityDetails?: string;
+    notes?: string;
+    status?: DistributionBeneficiaryStatus;
+};
+export type DistributionBeneficiary = DistributionBeneficiaryCreateInput & {
+    id: string;
+    workspaceId: string;
+    orderId: string;
+    status: DistributionBeneficiaryStatus;
+    createdAt: string | null;
+    updatedAt: string | null;
+};
+export type PublicDistributionOrder = Omit<DistributionOrderCreateInput, "programId" | "legacyBatchId" | "supersedesOrderId" | "components"> & {
+    programTitle: string | null;
+    status: Exclude<DistributionOrderStatus, "DRAFT">;
+    publishedAt: string;
+    components: Array<Omit<DistributionOrderComponentInput, "allocations"> & {
+        projectedTotalAmount: number;
+        targets: Array<{
+            type: "LOCALITY" | "ORGANIZATION";
+            provinceCode: string | null;
+            wardCode: string | null;
+            provinceName: string | null;
+            wardName: string | null;
+            organizationName: string | null;
+            allocatedQuantity: number;
+        }>;
+    }>;
+};
+
 export type SocialAssistanceProgramStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
 export type SocialAssistanceProgram = {

@@ -102,11 +102,12 @@ export const isAuthorized = async (req: Request, res: Response, next: NextFuncti
     const routeKey = (req.baseUrl + req.route.path) as Route;
 
     logger.debug(`Authorizing for workspace id: ${workspaceId}`);
-    logger.debug(req, "isAuthorized: req");
-
     const resourcePermissions = permissions.permissions.get(routeKey);
     const requiredPermissionCode = resourcePermissions?.permissions[routeMethod];
     const requiresAuth = (resourcePermissions && resourcePermissions.authenticated) || false;
+    if (!resourcePermissions?.requireExplicitPermission) {
+      logger.debug(req, "isAuthorized: req");
+    }
 
     logger.debug({ cookies: req.cookies }, "isAuthorized: cookies");
 
@@ -145,7 +146,7 @@ export const isAuthorized = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Super admins have unrestricted access to all authenticated routes
-    if (currentAccount?.isSuperAdmin && requiresAuth) {
+    if (currentAccount?.isSuperAdmin && requiresAuth && !resourcePermissions?.requireExplicitPermission) {
       logger.debug({ routeKey, accountId }, "isAuthorized: Super admin granted access to all authenticated routes");
       return next();
     }
@@ -189,7 +190,7 @@ export const isAuthorized = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Super admins can access workspace-scoped and regular routes if their global admin role includes the permission.
-    if (currentAccount?.isSuperAdmin && requiredPermissionCode) {
+    if (currentAccount?.isSuperAdmin && requiredPermissionCode && !resourcePermissions?.requireExplicitPermission) {
       const hasGlobalPermission = await hasGlobalAdminPermission(requiredPermissionCode);
       if (hasGlobalPermission) {
         logger.debug(
@@ -227,7 +228,7 @@ export const isAuthorized = async (req: Request, res: Response, next: NextFuncti
       req.workspaceId = effectiveWorkspaceId;
     }
 
-    if(resourcePermissions?.admin && accountId && req.workspaceId) {
+    if (resourcePermissions?.admin && accountId && req.workspaceId) {
 
       const [memberShip] = await db
         .select()
@@ -240,8 +241,8 @@ export const isAuthorized = async (req: Request, res: Response, next: NextFuncti
           )
         )
         .limit(1);
-      
-      if(!memberShip) {
+
+      if (!memberShip) {
         throw new Error(`Forbidden: account id: ${accountId} is not a admin`);
       }
     }
@@ -274,7 +275,7 @@ export const isAuthorized = async (req: Request, res: Response, next: NextFuncti
 
     // Ensure the user is a member of the workspace and has the required permission code via role_permissions.
     if (workspaceId && accountId) {
-      if (currentAccount?.isSuperAdmin) {
+      if (currentAccount?.isSuperAdmin && !resourcePermissions?.requireExplicitPermission) {
         logger.debug(
           { routeKey, accountId, workspaceId, requiredPermissionCode },
           "isAuthorized: super admin bypasses workspace membership check"

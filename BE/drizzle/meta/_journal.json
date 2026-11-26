@@ -92,6 +92,13 @@
       "when": 1794957700000,
       "tag": "0025_application_schema_menu_foreign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795657000000,
+      "tag": "0026_social_assistance_diverse_orders",
+      "breakpoints": true
     }
   ]
 }

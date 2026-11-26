@@ -127,6 +127,12 @@ export const endpoints = {
         distributionBatch: (id: string) => `/social-assistance/distribution-batches/${encodeURIComponent(id)}`,
         distributionBatchPublish: (id: string) => `/social-assistance/distribution-batches/${encodeURIComponent(id)}/publish`,
         distributionBatchClose: (id: string) => `/social-assistance/distribution-batches/${encodeURIComponent(id)}/close`,
+        distributionOrders: "/social-assistance/distribution-orders",
+        distributionOrder: (id: string) => `/social-assistance/distribution-orders/${encodeURIComponent(id)}`,
+        distributionOrderPublish: (id: string) => `/social-assistance/distribution-orders/${encodeURIComponent(id)}/publish`,
+        distributionOrderClose: (id: string) => `/social-assistance/distribution-orders/${encodeURIComponent(id)}/close`,
+        distributionBeneficiaries: (targetId: string) => `/social-assistance/distribution-targets/${encodeURIComponent(targetId)}/beneficiaries`,
+        publicDistributionOrders: (slug: string) => `/public/social-assistance/${encodeURIComponent(slug)}/distribution-orders`,
         publicAllocations: (slug: string, filters?: { provinceCode?: string; wardCode?: string }) => {
             const query = new URLSearchParams();
             if (filters?.provinceCode) query.set("provinceCode", filters.provinceCode);
