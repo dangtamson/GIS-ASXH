@@ -9,7 +9,7 @@ export async function GET(
     const layer = searchParams.get("lyrs") ?? "m";
     const safeLayer = allowedLayers.has(layer) ? layer : "m";
 
-    const tileUrl = `https://mt1.google.com/vt/lyrs=${safeLayer}&x=${encodeURIComponent(x)}&y=${encodeURIComponent(y)}&z=${encodeURIComponent(z)}`;
+    const tileUrl = `https://mt1.google.com/vt/lyrs=${safeLayer}&hl=vi&x=${encodeURIComponent(x)}&y=${encodeURIComponent(y)}&z=${encodeURIComponent(z)}`;
     const response = await fetch(tileUrl, {
         headers: {
             "User-Agent": "Mozilla/5.0",

@@ -2,7 +2,7 @@
 
 import { App, Breadcrumb, ConfigProvider } from "antd";
 import viVN from "antd/locale/vi_VN";
-import { ArrowDownToLine, ArrowLeft, HandHeart, MapPinned, ShieldCheck, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, ExternalLink, HandHeart, Lock, MapPinned, ShieldCheck, SlidersHorizontal, Sparkles, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -45,7 +45,47 @@ export function SocialAssistanceToolbar({ children, title = "Bộ lọc", layout
     );
 }
 
-export function PublicAssistanceLayout({ slug, title, children }: { slug: string; title: string; children: ReactNode }) {
+export function PublicAssistanceToolbar({ children, title = "Bộ lọc", subtitle, layout = "wrap" }: {
+    children: ReactNode;
+    title?: string;
+    subtitle?: string;
+    layout?: "wrap" | "grid";
+}) {
+    return (
+        <section aria-label={title} className="min-w-0 rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm shadow-slate-200/50 backdrop-blur-sm sm:p-5">
+            <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#11409a] ring-1 ring-blue-100">
+                        <SlidersHorizontal size={15} />
+                    </span>
+                    <div>
+                        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+                        {subtitle ? <p className="text-xs text-slate-500">{subtitle}</p> : null}
+                    </div>
+                </div>
+            </div>
+            <div className={`min-w-0 items-end gap-3 ${layout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap" : "flex flex-wrap"} [&>.ant-select]:!w-full [&>.ant-select]:min-w-0 lg:[&>.ant-select]:!w-56 [&>.ant-input-affix-wrapper]:!w-full lg:[&>.ant-input-affix-wrapper]:!w-72`}>
+                {children}
+            </div>
+        </section>
+    );
+}
+
+export function PublicAssistanceLayout({
+    slug,
+    title,
+    subtitle,
+    badge,
+    hidePageHeader = false,
+    children
+}: {
+    slug: string;
+    title: string;
+    subtitle?: string;
+    badge?: string;
+    hidePageHeader?: boolean;
+    children: ReactNode;
+}) {
     const pathname = usePathname();
     const basePath = `/an-sinh/${encodeURIComponent(slug)}`;
     const links = [
@@ -58,51 +98,195 @@ export function PublicAssistanceLayout({ slug, title, children }: { slug: string
     return (
         <ConfigProvider locale={viVN} theme={{
             token: {
-                colorPrimary: "#00288e",
-                colorLink: "#00288e",
-                colorBgBase: "#faf8ff",
-                colorTextBase: "#131b2e",
-                borderRadius: 4,
-                controlHeight: 44,
+                colorPrimary: "#11409a",
+                colorLink: "#11409a",
+                colorLinkHover: "#0b2c6f",
+                colorBgBase: "#ffffff",
+                colorTextBase: "#0f172a",
+                colorBorder: "#cbd5e1",
+                borderRadius: 10,
+                controlHeight: 42,
                 fontFamily: "var(--font-plus-jakarta), sans-serif"
             },
-            components: { Form: { itemMarginBottom: 20 } }
+            components: {
+                Form: { itemMarginBottom: 20 },
+                Table: {
+                    headerBg: "#f8fafc",
+                    headerColor: "#334155",
+                    borderColor: "#e2e8f0",
+                    rowHoverBg: "#f8fafc"
+                },
+                Segmented: {
+                    trackBg: "#f1f5f9",
+                    itemSelectedBg: "#ffffff",
+                    itemSelectedColor: "#11409a"
+                },
+                Button: {
+                    borderRadius: 10,
+                    fontWeight: 600
+                }
+            }
         }}>
             <App>
-                <div className="min-h-screen bg-[#faf8ff] font-sans text-[#131b2e] [letter-spacing:0] [&_.ant-input]:!text-base sm:[&_.ant-input]:!text-sm" style={{ fontFamily: "var(--font-plus-jakarta), sans-serif" }}>
-                    <header className="border-b border-[#dae2fd] bg-white shadow-sm">
-                        <div className="mx-auto flex max-w-[1920px] flex-wrap items-center justify-between gap-x-5 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
-                            <Link href={basePath} className="flex min-w-0 items-center gap-3">
-                                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#00288e] text-white"><MapPinned size={23} /></span>
-                                <span className="min-w-0"><strong className="block text-sm font-bold uppercase text-[#131b2e] sm:text-base">Bản đồ an sinh số <span className="ml-1 rounded bg-[#dae2fd] px-1.5 py-0.5 font-mono text-[10px] text-[#00288e]">GIS 4.0</span></strong><span className="block text-xs text-[#444653]">Mặt trận Tổ quốc Việt Nam</span></span>
+                <div
+                    className="relative flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 antialiased [letter-spacing:0] [&_.ant-input]:!text-base sm:[&_.ant-input]:!text-sm"
+                    style={{
+                        fontFamily: "var(--font-plus-jakarta), sans-serif",
+                        backgroundImage: "radial-gradient(circle at 12% 0%, rgba(17, 64, 154, 0.06), transparent 36%), radial-gradient(circle at 88% 0%, rgba(5, 150, 105, 0.06), transparent 32%)"
+                    }}
+                >
+                    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 shadow-xs shadow-slate-200/40 backdrop-blur-xl">
+                        <div className="h-1 w-full bg-gradient-to-r from-[#0b2f7a] via-[#0284c7] to-[#059669]" aria-hidden="true" />
+                        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-5 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
+                            <Link href={basePath} className="group flex min-w-0 items-center gap-3">
+                                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#0b2f7a] via-[#1346a8] to-[#0e7490] text-white shadow-md shadow-blue-900/20 transition-transform duration-200 group-hover:scale-[1.03]">
+                                    <MapPinned size={22} />
+                                </span>
+                                <span className="min-w-0">
+                                    <strong className="flex flex-wrap items-center gap-1.5 text-sm font-bold tracking-tight text-slate-900 sm:text-base">
+                                        <span className="uppercase">Bản đồ an sinh số</span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#11409a] ring-1 ring-blue-200/80">
+                                            GIS 4.0
+                                        </span>
+                                    </strong>
+                                    <span className="block text-xs font-medium text-slate-500">Mặt trận Tổ quốc Việt Nam</span>
+                                </span>
                             </Link>
-                            <nav aria-label="Điều hướng an sinh" className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto sm:flex-wrap">
+
+                            <nav aria-label="Điều hướng an sinh" className="grid w-full grid-cols-2 gap-1 rounded-xl bg-slate-100/80 p-1 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
                                 {links.map(({ href, label }) => {
                                     const isActive = href === basePath
                                         ? pathname === basePath
                                         : pathname === href || pathname.startsWith(`${href}/`);
-                                    return <Link key={href} href={href} aria-current={isActive ? "page" : undefined} className={`inline-flex min-h-10 items-center justify-center rounded px-2 py-2 text-center text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${isActive ? "bg-[#e2e7ff] text-[#00288e]" : "text-[#444653] hover:bg-[#f2f3ff] hover:text-[#00288e]"}`}>{label}</Link>;
+                                    return (
+                                        <Link
+                                            key={href}
+                                            href={href}
+                                            aria-current={isActive ? "page" : undefined}
+                                            className={`inline-flex min-h-9 items-center justify-center rounded-lg px-2.5 py-1.5 text-center text-xs font-semibold transition-all duration-150 sm:px-3.5 sm:text-sm ${
+                                                isActive
+                                                    ? "bg-white text-[#11409a] shadow-xs ring-1 ring-slate-200/80"
+                                                    : "text-slate-600 hover:bg-white/60 hover:text-[#11409a]"
+                                            }`}
+                                        >
+                                            {label}
+                                        </Link>
+                                    );
                                 })}
                             </nav>
-                            <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
-                                <Link href={`${basePath}/dang-ky?source=WEBSITE`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-[#e11d48] px-3 text-center text-xs font-semibold text-white transition-colors hover:bg-[#be123c] sm:px-4 sm:text-sm"><ArrowDownToLine size={16} />Gửi yêu cầu hỗ trợ</Link>
-                                <Link href={`${basePath}/chuong-trinh#pledge`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-[#006c4a] bg-white px-3 text-center text-xs font-semibold text-[#006c4a] transition-colors hover:bg-[#f0fdf4] sm:px-4 sm:text-sm"><HandHeart size={16} />Ủng hộ quỹ</Link>
+
+                            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
+                                <Link
+                                    href={`${basePath}/dang-ky?source=WEBSITE`}
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-3.5 text-center text-xs font-semibold text-white shadow-sm shadow-rose-600/25 transition-all duration-150 hover:from-rose-700 hover:to-red-700 hover:shadow-md hover:shadow-rose-600/30 sm:px-4 sm:text-sm"
+                                >
+                                    <ArrowDownToLine size={15} />
+                                    <span>Gửi yêu cầu hỗ trợ</span>
+                                </Link>
+                                <Link
+                                    href={`${basePath}/chuong-trinh#pledge`}
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 text-center text-xs font-semibold text-emerald-800 transition-all duration-150 hover:border-emerald-300 hover:bg-emerald-100/80 sm:px-4 sm:text-sm"
+                                >
+                                    <HandHeart size={15} />
+                                    <span>Ủng hộ quỹ</span>
+                                </Link>
                             </div>
                         </div>
                     </header>
-                    <main className="mx-auto min-w-0 max-w-[1920px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-                        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-[#dae2fd] pb-5">
-                            <div className="flex min-w-0 items-center gap-3"><h1 className="min-w-0 text-xl font-bold leading-tight text-[#131b2e] sm:text-2xl">{title}</h1>{pathname === basePath ? <ShieldCheck size={18} className="shrink-0 text-[#006c4a]" aria-label="Dữ liệu tổng hợp công khai" /> : null}</div>
-                            {pathname !== basePath ? <Link href={basePath} className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#00288e] hover:underline"><ArrowLeft size={16} />Bản đồ địa lý</Link> : null}
-                        </div>
+
+                    <main className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                        {!hidePageHeader ? (
+                            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-4 shadow-xs backdrop-blur-sm sm:px-6">
+                                <div className="min-w-0 space-y-1">
+                                    {badge ? (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#11409a] ring-1 ring-blue-100">
+                                            <Sparkles size={12} />
+                                            {badge}
+                                        </span>
+                                    ) : null}
+                                    <div className="flex min-w-0 items-center gap-2.5">
+                                        <h1 className="min-w-0 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{title}</h1>
+                                        {pathname === basePath ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200/80">
+                                                <ShieldCheck size={14} aria-label="Dữ liệu tổng hợp công khai" />
+                                                <span className="hidden sm:inline">Đã kiểm duyệt</span>
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    {subtitle ? <p className="text-sm text-slate-500">{subtitle}</p> : null}
+                                </div>
+                                {pathname !== basePath ? (
+                                    <Link
+                                        href={basePath}
+                                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-[#11409a]"
+                                    >
+                                        <ArrowLeft size={16} />
+                                        <span>Bản đồ địa lý</span>
+                                    </Link>
+                                ) : null}
+                            </div>
+                        ) : null}
                         {children}
                     </main>
-                    <footer className="border-t border-[#dae2fd] bg-[#f2f3ff]">
-                        <div className="mx-auto grid max-w-[1920px] gap-6 px-4 py-8 text-sm text-[#444653] sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
-                            <section><h2 className="font-bold text-[#131b2e]">Hệ thống GIS an sinh xã hội</h2><p className="mt-2 leading-6">Nền tảng số hóa quản lý không gian an sinh cộng đồng thuộc Mặt trận Tổ quốc Việt Nam.</p></section>
-                            <section><h2 className="font-bold text-[#131b2e]">Tiêu chuẩn dữ liệu</h2><p className="mt-2 leading-6">Dữ liệu tổng hợp được công khai sau khi duyệt; vị trí và thông tin cá nhân không hiển thị trên bản đồ.</p></section>
-                            <section><h2 className="font-bold text-[#131b2e]">Kênh tương tác</h2><Link href={`${basePath}/dang-ky?source=WEBSITE`} className="mt-2 inline-flex min-h-9 items-center text-[#00288e] hover:underline">Gửi nhu cầu hỗ trợ</Link><Link href={`${basePath}/phan-bo`} className="mt-1 inline-flex min-h-9 items-center text-[#00288e] hover:underline">Chỉ tiêu phân bổ</Link></section>
-                            <section id="privacy"><h2 className="font-bold text-[#131b2e]">Cam kết dữ liệu</h2><p className="mt-2 leading-6">Thông tin cá nhân được bảo mật và chỉ dùng để xem xét, phối hợp hỗ trợ theo quy định.</p></section>
+
+                    <footer className="mt-10 border-t border-slate-800 bg-slate-950 text-slate-300">
+                        <div className="h-1 w-full bg-gradient-to-r from-[#0b2f7a] via-[#0284c7] to-[#059669]" aria-hidden="true" />
+                        <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-10 text-sm sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2.5">
+                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-600 text-white">
+                                        <MapPinned size={18} />
+                                    </span>
+                                    <h2 className="font-bold text-white">Hệ thống GIS an sinh xã hội</h2>
+                                </div>
+                                <p className="leading-6 text-slate-400">
+                                    Nền tảng số hóa quản lý không gian an sinh cộng đồng thuộc Mặt trận Tổ quốc Việt Nam.
+                                </p>
+                            </section>
+
+                            <section className="space-y-2.5">
+                                <h2 className="flex items-center gap-2 font-bold text-white">
+                                    <ShieldCheck size={16} className="text-emerald-400" />
+                                    Tiêu chuẩn dữ liệu
+                                </h2>
+                                <p className="leading-6 text-slate-400">
+                                    Dữ liệu tổng hợp được công khai sau khi duyệt; vị trí và thông tin cá nhân không hiển thị trên bản đồ.
+                                </p>
+                            </section>
+
+                            <section className="space-y-2">
+                                <h2 className="font-bold text-white">Kênh tương tác</h2>
+                                <div className="flex flex-col gap-1.5 pt-1">
+                                    <Link href={`${basePath}/dang-ky?source=WEBSITE`} className="inline-flex min-h-8 items-center gap-1.5 text-sky-400 transition-colors hover:text-sky-300">
+                                        <span>Gửi nhu cầu hỗ trợ</span>
+                                        <ExternalLink size={13} />
+                                    </Link>
+                                    <Link href={`${basePath}/chuong-trinh#pledge`} className="inline-flex min-h-8 items-center gap-1.5 text-emerald-400 transition-colors hover:text-emerald-300">
+                                        <span>Đăng ký cam kết ủng hộ</span>
+                                        <ExternalLink size={13} />
+                                    </Link>
+                                    <Link href={`${basePath}/phan-bo`} className="inline-flex min-h-8 items-center gap-1.5 text-sky-400 transition-colors hover:text-sky-300">
+                                        <span>Chỉ tiêu phân bổ</span>
+                                        <ExternalLink size={13} />
+                                    </Link>
+                                </div>
+                            </section>
+
+                            <section id="privacy" className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                                <h2 className="flex items-center gap-2 font-bold text-white">
+                                    <Lock size={15} className="text-emerald-400" />
+                                    Cam kết dữ liệu
+                                </h2>
+                                <p className="mt-2 leading-6 text-slate-400">
+                                    Thông tin cá nhân được bảo mật và chỉ dùng để xem xét, phối hợp hỗ trợ theo quy định.
+                                </p>
+                            </section>
+                        </div>
+                        <div className="border-t border-slate-800/80">
+                            <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:px-6 lg:px-8">
+                                <span>© Cổng công khai An sinh xã hội · GIS 4.0</span>
+                                <span>Minh bạch · Kịp thời · Bảo mật thông tin công dân</span>
+                            </div>
                         </div>
                     </footer>
                 </div>

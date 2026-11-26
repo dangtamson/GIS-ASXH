@@ -9,11 +9,9 @@ import { hydrateSessionFromProfile, resolveOrganizationIdFromAuthPayload, resolv
 import type { Account } from "@/lib/auth";
 import { endpoints } from "@/lib/endpoints";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
+import { ArrowRight, HandHeart, Lock, ShieldCheck, User } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { FormEvent, useEffect, useState } from "react";
-import {
-  GIS_SIGNIN_EYEBROW,
-} from "./signin-showcase";
 
 type AuthResponse = {
   token?: string;
@@ -178,123 +176,160 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="relative flex w-full flex-1 items-stretch lg:w-[46%] xl:w-[42%]">
-      <div className="pointer-events-none absolute inset-0 lg:hidden">
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/45 via-white/15 to-transparent" />
-        <div className="absolute left-[-2rem] top-[8%] h-24 w-24 rounded-full border border-white/30 opacity-65" />
-        <div className="absolute left-[8%] top-[13%] h-16 w-16 rounded-full border border-orange-200/30 opacity-80" />
-        <div className="absolute right-[7%] top-[11%] h-20 w-20 rounded-full border border-white/24 opacity-70" />
-        <div className="absolute left-[16%] top-[26%] h-px w-28 rotate-[13deg] bg-gradient-to-r from-transparent via-orange-300/55 to-transparent" />
-      </div>
-      <div className="relative flex w-full flex-1 items-center justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12 xl:px-16">
-        <div className="w-full max-w-md">
+    <div className="relative flex w-full flex-1 items-stretch lg:w-[48%] xl:w-[44%]">
+      <div className="relative flex w-full flex-1 items-center justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-10 xl:px-14">
+        <div className="w-full max-w-[460px] space-y-5">
+          <div className="flex items-center gap-3 px-1">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#0b2f7a] via-[#1346a8] to-[#0e7490] text-white shadow-md shadow-blue-900/20">
+              <HandHeart size={22} />
+            </span>
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold uppercase tracking-tight text-slate-900 sm:text-base dark:text-white">
+                <span>An sinh cộng đồng</span>
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#11409a] ring-1 ring-blue-200/80 dark:bg-blue-500/15 dark:text-sky-300 dark:ring-blue-400/25">
+                  GIS 4.0
+                </span>
+              </p>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Mặt trận Tổ quốc Việt Nam
+              </p>
+            </div>
+          </div>
 
           <div
-            className="relative overflow-hidden w-full rounded-[30px] border border-white/40 bg-[linear-gradient(145deg,rgba(255,255,255,0.48)_0%,rgba(255,255,255,0.18)_100%)] p-6 shadow-[0_32px_80px_-32px_rgba(16,24,40,0.46)] backdrop-blur-2xl xl:p-8 dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)]"
-            style={{ animation: "authCardLiftIn 480ms ease-out" }}
+            className="relative w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-xl shadow-blue-950/8 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90"
+            style={{ animation: "authCardLiftIn 420ms ease-out" }}
           >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
-            <div className="absolute right-[-2.5rem] top-[-2.5rem] h-28 w-28 rounded-full bg-white/22 blur-2xl dark:bg-white/8" />
-            <div className="absolute bottom-[-2rem] left-[-1rem] h-24 w-24 rounded-full bg-orange-100/28 blur-2xl dark:bg-orange-200/6" />
-            <div className="mb-6 sm:mb-8">
-              <p className="mb-3 inline-flex rounded-full border border-white/50 bg-white/38 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-800 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:text-brand-100">
-                {GIS_SIGNIN_EYEBROW}
-              </p>
-              <h1 className="text-[1.75rem] font-semibold text-gray-900 sm:text-[2rem] dark:text-white/92">
-                Đăng nhập vào hệ thống
-              </h1>
-            </div>
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#0b2f7a] via-[#0284c7] to-[#059669]" aria-hidden="true" />
 
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-6">
-                <div>
-                  <Label>
-                    Tài khoản hoặc email <span className="text-error-500">*</span>{" "}
-                  </Label>
-                  <Input
-                    placeholder="Nhập tài khoản hoặc email của bạn"
-                    type="text"
-                    value={email}
-                    error={Boolean(emailError)}
-                    className="!rounded-2xl !border-white/40 !bg-white/30 backdrop-blur-xl dark:!border-white/10 dark:!bg-white/[0.04]"
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (emailError) {
-                        setEmailError(null);
-                      }
-                    }}
-                  />
-                  {emailError && <p className="mt-1 text-xs text-error-600">{emailError}</p>}
-                </div>
-
-                <div>
-                  <Label>
-                    Mật khẩu <span className="text-error-500">*</span>{" "}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Nhập mật khẩu của bạn"
-                      value={password}
-                      error={Boolean(passwordError)}
-                      className="!rounded-2xl !border-white/40 !bg-white/30 pr-12 backdrop-blur-xl dark:!border-white/10 dark:!bg-white/[0.04]"
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (passwordError) {
-                          setPasswordError(null);
-                        }
-                      }}
-                    />
-                    <span
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 z-30 -translate-y-1/2 cursor-pointer"
-                    >
-                      {showPassword ? (
-                        <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
-                      ) : (
-                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
-                      )}
-                    </span>
-                  </div>
-                  {passwordError && <p className="mt-1 text-xs text-error-600">{passwordError}</p>}
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl border border-white/35 bg-white/24 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.03]">
-                  <div className="flex items-center gap-3">
-                    <Checkbox checked={isChecked} onChange={setIsChecked} />
-                    <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                      Ghi nhớ đăng nhập
-                    </span>
-                  </div>
-                </div>
-
-                {error ? (
-                  <div className="rounded-2xl border border-error-200/80 bg-white/30 px-4 py-3 text-sm text-error-700 backdrop-blur-xl dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-200">
-                    {error}
-                  </div>
-                ) : null}
-
-                <div>
-                  <Button className="h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#e43d2f_0%,#fd853a_100%)] text-white shadow-[0_16px_36px_-18px_rgba(228,61,47,0.8)]" size="sm" disabled={loading}>
-                    {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-                  </Button>
-                </div>
-
-                {ssoEnabled ? (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={handleSsoSignIn}
-                      disabled={loading || ssoLoading}
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/35 bg-white/22 text-sm font-medium text-gray-700 backdrop-blur-xl transition hover:border-white/55 hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.06]"
-                    >
-                      {ssoLoading ? "Đang chuyển hướng SSO..." : "Đăng nhập SSO"}
-                    </button>
-                  </div>
-                ) : null}
+            <div className="p-6 sm:p-8">
+              <div className="mb-6 space-y-2 sm:mb-7">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200/80 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20">
+                  <ShieldCheck size={13} />
+                  Cổng điều hành an sinh số
+                </span>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem] dark:text-white">
+                  Đăng nhập hệ thống
+                </h1>
+                <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  Truy cập không gian quản lý chương trình, tiếp nhận nhu cầu và điều phối hỗ trợ cộng đồng.
+                </p>
               </div>
-            </form>
+
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-5">
+                  <div>
+                    <Label className="!mb-1.5 !text-sm !font-semibold !text-slate-700 dark:!text-slate-200">
+                      Tài khoản hoặc email <span className="text-rose-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400">
+                        <User size={17} />
+                      </span>
+                      <Input
+                        placeholder="Nhập tài khoản hoặc email của bạn"
+                        type="text"
+                        value={email}
+                        error={Boolean(emailError)}
+                        className="!h-12 !rounded-xl !border-slate-200 !bg-slate-50/70 !pl-10 text-slate-900 transition focus:!border-[#11409a] focus:!bg-white dark:!border-slate-700 dark:!bg-slate-800/70 dark:text-white"
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (emailError) {
+                            setEmailError(null);
+                          }
+                        }}
+                      />
+                    </div>
+                    {emailError && <p className="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{emailError}</p>}
+                  </div>
+
+                  <div>
+                    <Label className="!mb-1.5 !text-sm !font-semibold !text-slate-700 dark:!text-slate-200">
+                      Mật khẩu <span className="text-rose-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400">
+                        <Lock size={17} />
+                      </span>
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Nhập mật khẩu của bạn"
+                        value={password}
+                        error={Boolean(passwordError)}
+                        className="!h-12 !rounded-xl !border-slate-200 !bg-slate-50/70 !pl-10 !pr-11 text-slate-900 transition focus:!border-[#11409a] focus:!bg-white dark:!border-slate-700 dark:!bg-slate-800/70 dark:text-white"
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (passwordError) {
+                            setPasswordError(null);
+                          }
+                        }}
+                      />
+                      <span
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 z-30 -translate-y-1/2 cursor-pointer rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+                      >
+                        {showPassword ? (
+                          <EyeIcon className="fill-slate-500 dark:fill-slate-400" />
+                        ) : (
+                          <EyeCloseIcon className="fill-slate-500 dark:fill-slate-400" />
+                        )}
+                      </span>
+                    </div>
+                    {passwordError && <p className="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">{passwordError}</p>}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2.5">
+                      <Checkbox checked={isChecked} onChange={setIsChecked} />
+                      <span className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Ghi nhớ đăng nhập
+                      </span>
+                    </div>
+                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      Kết nối an toàn
+                    </span>
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <div className="pt-1">
+                    <Button
+                      className="h-12 w-full !rounded-xl bg-gradient-to-r from-[#0b2f7a] via-[#11409a] to-[#0e7490] text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition-all hover:from-[#08245e] hover:via-[#0d3480] hover:to-[#0b5e75] hover:shadow-blue-900/30"
+                      size="sm"
+                      disabled={loading}
+                    >
+                      <span className="inline-flex items-center justify-center gap-2">
+                        <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
+                        {!loading ? <ArrowRight size={16} /> : null}
+                      </span>
+                    </Button>
+                  </div>
+
+                  {ssoEnabled ? (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleSsoSignIn}
+                        disabled={loading || ssoLoading}
+                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-xs transition hover:border-blue-200 hover:bg-blue-50/60 hover:text-[#11409a] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-blue-400/30 dark:hover:bg-slate-800"
+                      >
+                        <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />
+                        <span>{ssoLoading ? "Đang chuyển hướng SSO..." : "Đăng nhập SSO"}</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </form>
+            </div>
           </div>
+
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+            Hệ thống An sinh cộng đồng · Bảo mật thông tin &amp; điều phối minh bạch
+          </p>
         </div>
       </div>
     </div>

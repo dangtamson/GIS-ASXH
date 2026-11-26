@@ -10,7 +10,7 @@ import { endpoints } from "@/lib/endpoints";
 import { publicApiGet, publicApiPost } from "@/lib/public-api";
 import type { PublicLocationOption, PublicSocialAssistanceRequestInput, SocialAssistanceNeedCategory, SocialAssistanceRequestSource } from "@/types/social-assistance";
 import { Alert, App, Button, Checkbox, Form, Input, Result, Select, Steps, Typography } from "antd";
-import { ArrowLeft, ArrowRight, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Send, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const NEED_OPTIONS: Array<{ value: SocialAssistanceNeedCategory; label: string }> = [
@@ -110,13 +110,18 @@ export default function PublicRequestForm({ slug, source }: Props) {
 
     if (receiptCode) {
         return (
-            <PublicAssistanceLayout slug={slug} title="Yêu cầu hỗ trợ">
-                <section className="mx-auto max-w-2xl py-8">
+            <PublicAssistanceLayout slug={slug} title="Yêu cầu hỗ trợ" badge="Tiếp nhận thành công">
+                <section className="mx-auto max-w-2xl rounded-2xl border border-emerald-200/80 bg-white p-6 shadow-sm sm:p-10">
                     <Result
                         status="success"
                         title="Đã tiếp nhận yêu cầu"
-                        subTitle="Mã xác nhận hồ sơ của bạn"
-                        extra={<Typography.Text copyable className="rounded-md bg-emerald-50 px-4 py-2 font-mono font-semibold text-emerald-800">{receiptCode}</Typography.Text>}
+                        subTitle="Mã xác nhận hồ sơ của bạn đã được ghi nhận và chuyển tới cán bộ phụ trách."
+                        extra={
+                            <div className="inline-flex flex-col items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50/70 px-6 py-3.5">
+                                <span className="text-xs font-medium text-emerald-700">Mã xác nhận hồ sơ</span>
+                                <Typography.Text copyable className="font-mono text-lg font-bold text-emerald-900">{receiptCode}</Typography.Text>
+                            </div>
+                        }
                     />
                 </section>
             </PublicAssistanceLayout>
@@ -124,19 +129,34 @@ export default function PublicRequestForm({ slug, source }: Props) {
     }
 
     return (
-        <PublicAssistanceLayout slug={slug} title="Đăng ký hồ sơ nhận hỗ trợ an sinh xã hội">
-            <div className="mx-auto max-w-3xl">
-                <Alert className="mb-5" type="info" showIcon message="Thông tin hồ sơ được bảo mật" description="Thông tin được chuyển đến cán bộ phụ trách để rà soát, không hiển thị công khai." />
-                <section className="overflow-hidden rounded-lg border border-[#dae2fd] bg-white shadow-sm">
-                    <div className="border-b border-[#e2e7ff] bg-[#f2f3ff] px-4 py-5 sm:px-7">
+        <PublicAssistanceLayout
+            slug={slug}
+            title="Đăng ký hồ sơ nhận hỗ trợ an sinh xã hội"
+            badge="Tiếp nhận nhu cầu cộng đồng"
+            subtitle="Điền đầy đủ thông tin liên hệ và hoàn cảnh để cán bộ phụ trách rà soát, phối hợp hỗ trợ kịp thời."
+        >
+            <div className="mx-auto max-w-3xl space-y-5">
+                <div className="flex items-start gap-3.5 rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50/90 via-white to-emerald-50/60 p-4 shadow-xs sm:px-5">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#11409a] text-white shadow-sm shadow-blue-900/20">
+                        <ShieldCheck size={20} />
+                    </span>
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900">Thông tin hồ sơ được bảo mật tuyệt đối</p>
+                        <p className="mt-0.5 text-xs leading-5 text-slate-600 sm:text-sm">Thông tin chỉ được chuyển đến cán bộ phụ trách để rà soát và phối hợp hỗ trợ, không hiển thị công khai trên bản đồ.</p>
+                    </div>
+                </div>
+
+                <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/50">
+                    <div className="h-1.5 w-full bg-gradient-to-r from-rose-500 via-[#11409a] to-emerald-500" aria-hidden="true" />
+                    <div className="border-b border-slate-200/80 bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 px-5 py-5 sm:px-8">
                         <Steps current={step} responsive size="small" items={[{ title: "Thông tin và nhu cầu" }, { title: "Địa chỉ liên hệ" }]} />
                     </div>
-                    <div className="p-4 sm:p-7">
-                        {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
+                    <div className="p-5 sm:p-8">
+                        {error ? <Alert className="mb-5 !rounded-xl" type="error" showIcon message={error} /> : null}
                         <Form<FormValues> form={form} layout="vertical" preserve initialValues={{ source }} onValuesChange={handleValuesChange}>
                             <Form.Item name="source" hidden><Input /></Form.Item>
                             {step === 0 ? (
-                                <div className="grid gap-x-4 md:grid-cols-2">
+                                <div className="grid gap-x-5 md:grid-cols-2">
                                     <Form.Item label="Họ và tên" name="contactName" rules={[{ required: true, whitespace: true, message: "Vui lòng nhập họ và tên." }]}>
                                         <Input autoComplete="name" maxLength={255} placeholder="Họ và tên người liên hệ" />
                                     </Form.Item>
@@ -151,16 +171,18 @@ export default function PublicRequestForm({ slug, source }: Props) {
                                         <Select options={NEED_OPTIONS} placeholder="Chọn nhu cầu" />
                                     </Form.Item>
                                     <Form.Item className="md:col-span-2" label="Mô tả hoàn cảnh và nhu cầu" name="needDescription" rules={[{ required: true, whitespace: true, message: "Vui lòng mô tả nhu cầu." }]}>
-                                        <Input.TextArea autoSize={{ minRows: 3, maxRows: 7 }} maxLength={4000} showCount />
+                                        <Input.TextArea autoSize={{ minRows: 3, maxRows: 7 }} maxLength={4000} showCount placeholder="Mô tả cụ thể hoàn cảnh gia đình và nội dung cần hỗ trợ..." />
                                     </Form.Item>
-                                    <Form.Item className="md:col-span-2" name="consent" valuePropName="checked" rules={[{
-                                        validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error("Bạn cần đồng ý để gửi thông tin."))
-                                    }]}>
-                                        <Checkbox>Tôi đồng ý để Mặt trận Tổ quốc tiếp nhận và sử dụng thông tin này nhằm xem xét, phối hợp hỗ trợ.</Checkbox>
-                                    </Form.Item>
+                                    <div className="md:col-span-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 pt-3.5 pb-1">
+                                        <Form.Item className="!mb-2" name="consent" valuePropName="checked" rules={[{
+                                            validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error("Bạn cần đồng ý để gửi thông tin."))
+                                        }]}>
+                                            <Checkbox>Tôi đồng ý để Mặt trận Tổ quốc tiếp nhận và sử dụng thông tin này nhằm xem xét, phối hợp hỗ trợ.</Checkbox>
+                                        </Form.Item>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="grid gap-x-4 md:grid-cols-2">
+                                <div className="grid gap-x-5 md:grid-cols-2">
                                     <Form.Item label="Tỉnh/thành phố" name="provinceCode" rules={[{ required: true, message: "Vui lòng chọn tỉnh/thành phố." }]}>
                                         <Select loading={loadingProvinces} options={provinces.map((item) => ({ value: item.code, label: item.fullName || item.name }))} placeholder="Chọn tỉnh/thành phố" showSearch optionFilterProp="label" />
                                     </Form.Item>
@@ -172,8 +194,11 @@ export default function PublicRequestForm({ slug, source }: Props) {
                                     </Form.Item>
                                     <Form.Item name="latitude" hidden><Input /></Form.Item>
                                     <Form.Item name="longitude" hidden><Input /></Form.Item>
-                                    <div className="md:col-span-2">
-                                        <p className="mb-2 text-sm font-medium text-slate-700">Vị trí trên bản đồ (không bắt buộc)</p>
+                                    <div className="md:col-span-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                                        <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                            <MapPin size={16} className="text-[#11409a]" />
+                                            Vị trí trên bản đồ (không bắt buộc)
+                                        </p>
                                         <PovertyCoordinatePicker
                                             latitude={latitude}
                                             longitude={longitude}
@@ -182,12 +207,12 @@ export default function PublicRequestForm({ slug, source }: Props) {
                                     </div>
                                 </div>
                             )}
-                            <div className="sticky bottom-0 z-10 mt-5 flex flex-wrap justify-between gap-2 border-t border-[#dae2fd] bg-white py-4 [&_.ant-btn]:min-h-11">
-                                {step === 1 ? <Button icon={<ArrowLeft size={15} />} onClick={() => setStep(0)}>Quay lại</Button> : <span />}
+                            <div className="sticky bottom-0 z-10 mt-6 flex flex-wrap justify-between gap-3 border-t border-slate-200/80 bg-white/95 py-4 backdrop-blur-sm [&_.ant-btn]:min-h-11">
+                                {step === 1 ? <Button size="large" icon={<ArrowLeft size={15} />} onClick={() => setStep(0)}>Quay lại</Button> : <span />}
                                 {step === 0 ? (
-                                    <Button type="primary" className="!bg-[#e11d48] hover:!bg-[#be123c]" icon={<ArrowRight size={15} />} onClick={() => void continueToLocation()}>Tiếp tục</Button>
+                                    <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-rose-600 !to-red-600 hover:!from-rose-700 hover:!to-red-700 !shadow-sm" icon={<ArrowRight size={15} />} onClick={() => void continueToLocation()}>Tiếp tục</Button>
                                 ) : (
-                                    <Button type="primary" className="!bg-[#e11d48] hover:!bg-[#be123c]" icon={<Send size={15} />} loading={submitting} onClick={() => void submitRequest()}>Xác nhận & gửi yêu cầu</Button>
+                                    <Button type="primary" size="large" className="!border-0 !bg-gradient-to-r !from-rose-600 !to-red-600 hover:!from-rose-700 hover:!to-red-700 !shadow-sm" icon={<Send size={15} />} loading={submitting} onClick={() => void submitRequest()}>Xác nhận & gửi yêu cầu</Button>
                                 )}
                             </div>
                         </Form>
