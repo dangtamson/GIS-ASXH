@@ -143,11 +143,8 @@ export function PublicAssistanceLayout({
                                     <MapPinned size={22} />
                                 </span>
                                 <span className="min-w-0">
-                                    <strong className="flex flex-wrap items-center gap-1.5 text-sm font-bold tracking-tight text-slate-900 sm:text-base">
-                                        <span className="uppercase">An sinh cộng đồng</span>
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#11409a] ring-1 ring-blue-200/80">
-                                            GIS 4.0
-                                        </span>
+                                    <strong className="block text-sm font-bold uppercase tracking-tight text-slate-900 sm:text-base">
+                                        An sinh cộng đồng
                                     </strong>
                                     <span className="block text-xs font-medium text-slate-500">Mặt trận Tổ quốc Việt Nam</span>
                                 </span>
@@ -237,7 +234,7 @@ export function PublicAssistanceLayout({
                                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#1346a8] to-[#0d9488] text-white">
                                         <MapPinned size={18} />
                                     </span>
-                                    <h2 className="font-bold text-white">An sinh cộng đồng · GIS 4.0</h2>
+                                    <h2 className="font-bold text-white">An sinh cộng đồng</h2>
                                 </div>
                                 <p className="leading-6 text-slate-400">
                                     Nền tảng số hóa quản lý không gian an sinh cộng đồng thuộc Mặt trận Tổ quốc Việt Nam.
@@ -284,7 +281,7 @@ export function PublicAssistanceLayout({
                         </div>
                         <div className="border-t border-slate-800/80">
                             <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:px-6 lg:px-8">
-                                <span>© Cổng công khai An sinh cộng đồng · GIS 4.0</span>
+                                <span>© Cổng công khai An sinh cộng đồng</span>
                                 <span>Minh bạch · Kịp thời · Bảo mật thông tin công dân</span>
                             </div>
                         </div>

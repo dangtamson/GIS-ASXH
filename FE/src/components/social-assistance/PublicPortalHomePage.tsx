@@ -128,7 +128,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-100 ring-1 ring-white/20 backdrop-blur-md">
                                         <Sparkles size={13} />
-                                        Hệ thống thông tin địa lý · GIS 4.0
+                                        Hệ thống thông tin địa lý
                                     </span>
                                     <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-400/20 px-3 py-1 text-xs font-semibold text-teal-100 ring-1 ring-teal-300/30 backdrop-blur-md">
                                         <ShieldCheck size={14} aria-label="Dữ liệu tổng hợp công khai" />

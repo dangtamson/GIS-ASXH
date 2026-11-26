@@ -6,7 +6,7 @@ import React from "react";
 const COMMUNITY_PILLARS = [
   {
     icon: MapPinned,
-    title: "Bản đồ GIS 4.0",
+    title: "Bản đồ địa lý số",
     description: "Theo dõi không gian hỗ trợ trực quan theo từng địa bàn xã/phường.",
     accent: "from-sky-400/25 to-blue-500/25 text-sky-200",
   },
@@ -92,7 +92,7 @@ export default function AuthLayout({
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-sky-100 ring-1 ring-white/20 backdrop-blur-md">
                   <Sparkles size={13} className="text-emerald-300" />
-                  Hệ thống thông tin địa lý · GIS 4.0
+                  Hệ thống thông tin địa lý
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30 backdrop-blur-md">
                   <span className="h-2 w-2 rounded-full bg-emerald-300" />
@@ -130,7 +130,7 @@ export default function AuthLayout({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/12 pt-5 text-xs text-sky-100/70">
-                <span>An sinh cộng đồng · Nền tảng GIS 4.0</span>
+                <span>An sinh cộng đồng · Nền tảng số</span>
                 <span>Minh bạch · Kịp thời · Vì cộng đồng</span>
               </div>
             </div>

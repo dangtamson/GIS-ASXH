@@ -184,11 +184,8 @@ export default function SignInForm() {
               <HandHeart size={22} />
             </span>
             <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold uppercase tracking-tight text-slate-900 sm:text-base dark:text-white">
-                <span>An sinh cộng đồng</span>
-                <span className="rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#11409a] ring-1 ring-blue-200/80 dark:bg-blue-500/15 dark:text-sky-300 dark:ring-blue-400/25">
-                  GIS 4.0
-                </span>
+              <p className="text-sm font-bold uppercase tracking-tight text-slate-900 sm:text-base dark:text-white">
+                An sinh cộng đồng
               </p>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 Mặt trận Tổ quốc Việt Nam
