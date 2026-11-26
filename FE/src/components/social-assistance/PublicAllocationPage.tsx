@@ -7,10 +7,10 @@ import {
     summarizePublicDistributionBatches
 } from "@/lib/social-assistance-utils";
 import type { PublicDistributionOrder, PublicSocialAssistanceDistributionBatch } from "@/types/social-assistance";
-import { Alert, Descriptions, Drawer, Empty, Input, Select, Spin, Table, Tag, Typography } from "antd";
+import { Alert, Empty, Input, Modal, Select, Spin, Table, Tag, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import dayjs from "dayjs";
-import { Banknote, FileCheck2, FileText, History, Layers, Search, ShieldCheck } from "lucide-react";
+import { Banknote, Calendar, FileCheck2, FileText, History, Layers, MapPin, Search, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { PublicAssistanceLayout, PublicAssistanceToolbar } from "./SocialAssistanceLayout";
@@ -242,33 +242,116 @@ export default function PublicAllocationPage({ slug }: { slug: string }) {
                     </>
                 ) : null}
 
-                <Drawer title={selected?.documentNumber ?? "Chi tiết công văn"} open={Boolean(selected)} onClose={() => setSelected(null)} width="min(720px, calc(100vw - 24px))">
-                    {selected ? <div className="space-y-5">
-                        <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }} items={[
-                            { key: "title", label: "Đợt phân bổ", children: selected.title },
-                            { key: "date", label: "Ngày ban hành", children: dateLabel(selected.documentDate) },
-                            { key: "source", label: "Nguồn kinh phí", children: selected.fundingSourceText },
-                            { key: "program", label: "Chương trình", children: selected.programTitle || "Không liên kết" },
-                            { key: "item", label: "Hình thức hỗ trợ", children: `${selected.supportItemName} · ${currency(selected.unitAmount)}/${selected.unitLabel}` },
-                            { key: "quantity", label: "Tổng chỉ tiêu", children: `${selected.declaredTotalQuantity.toLocaleString("vi-VN")} ${selected.unitLabel}` },
-                            { key: "amount", label: "Tổng kinh phí", children: currency(selected.declaredTotalAmount) },
-                            { key: "submission", label: "Hạn nộp hồ sơ", children: dateLabel(selected.submissionDeadline) },
-                            { key: "completion", label: "Hạn hoàn thành", children: dateLabel(selected.completionDeadline) },
-                            { key: "eligibilityYear", label: "Năm phê duyệt danh sách", children: selected.eligibilityApprovalYear ?? "—" },
-                            { key: "status", label: "Trạng thái", children: selected.status === "PUBLISHED" ? <Tag color="green">Đang thực hiện</Tag> : <Tag>Đợt lịch sử</Tag> }
-                        ]} />
-                        <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200/70"><Typography.Title level={5} className="!mb-2 !text-sm">Điều kiện hưởng</Typography.Title><p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">{selected.eligibilitySummary}</p></div>
-                        <div><Typography.Title level={5} className="!mb-3 !text-sm">Chỉ tiêu theo địa bàn</Typography.Title><div className="overflow-hidden rounded-xl border border-slate-200"><Table rowKey={(line) => `${line.provinceCode}:${line.wardCode}`} size="small" pagination={{ pageSize: 10, hideOnSinglePage: true }} scroll={{ x: 450 }} dataSource={selected.lines} columns={[
-                            { title: "Tỉnh/thành phố", dataIndex: "provinceName", key: "provinceName", render: (value: string | null, line: PublicLine) => value || line.provinceCode },
-                            { title: "Xã/phường", dataIndex: "wardName", key: "wardName", render: (value: string | null, line: PublicLine) => value || line.wardCode },
-                            { title: "Số lượng", dataIndex: "allocatedQuantity", key: "allocatedQuantity", align: "right" },
-                            { title: "Giá trị", key: "amount", align: "right", render: (_, line) => currency(line.allocatedQuantity * selected.unitAmount) }
-                        ]} /></div></div>
-                        <Alert type="info" showIcon icon={<FileText size={16} />} message="Theo dõi theo công văn" description="Mỗi địa bàn được hiển thị riêng trong từng công văn để đối chiếu các đợt phân bổ." className="!rounded-xl" />
-                    </div> : null}
-                </Drawer>
+                <Modal
+                    open={Boolean(selected)}
+                    onCancel={() => setSelected(null)}
+                    footer={null}
+                    centered
+                    destroyOnHidden
+                    width="min(1040px, calc(100vw - 32px))"
+                    styles={{ body: { maxHeight: "80vh", overflowY: "auto", paddingTop: 8 } }}
+                    title={selected ? (
+                        <div className="flex flex-wrap items-center gap-2.5 pr-8">
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#11409a] ring-1 ring-blue-100">
+                                <FileText size={18} />
+                            </span>
+                            <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-base font-bold text-slate-900 sm:text-lg">{selected.documentNumber}</span>
+                                    {selected.status === "PUBLISHED"
+                                        ? <Tag className="!m-0 !rounded-full !border-0 !bg-teal-50 !px-2.5 !py-0.5 !font-semibold !text-teal-700">Đang thực hiện</Tag>
+                                        : <Tag className="!m-0 !rounded-full !border-0 !bg-slate-100 !px-2.5 !py-0.5 !font-medium !text-slate-600">Đợt lịch sử</Tag>}
+                                </div>
+                                <p className="mt-0.5 text-xs font-normal text-slate-500 sm:text-sm">{selected.title}</p>
+                            </div>
+                        </div>
+                    ) : "Chi tiết công văn"}
+                >
+                    {selected ? (
+                        <div className="space-y-6 pt-3">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                                    <p className="text-xs font-semibold text-slate-500">Tổng chỉ tiêu phân bổ</p>
+                                    <p className="mt-1.5 text-xl font-bold tabular-nums text-[#11409a]">
+                                        {selected.declaredTotalQuantity.toLocaleString("vi-VN")} {selected.unitLabel}
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">{selected.supportItemName} · {currency(selected.unitAmount)}/{selected.unitLabel}</p>
+                                </div>
+                                <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4">
+                                    <p className="text-xs font-semibold text-slate-500">Tổng kinh phí</p>
+                                    <p className="mt-1.5 text-xl font-bold tabular-nums text-teal-700">
+                                        {currency(selected.declaredTotalAmount)}
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">Theo công văn phê duyệt</p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
+                                    <p className="text-xs font-semibold text-slate-500">Địa bàn tiếp nhận</p>
+                                    <p className="mt-1.5 flex items-center gap-1.5 text-xl font-bold tabular-nums text-slate-900">
+                                        <MapPin size={18} className="text-[#11409a]" />
+                                        <span>{selected.lines.length} xã/phường</span>
+                                    </p>
+                                    <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                                        <Calendar size={12} />
+                                        <span>Ban hành ngày {dateLabel(selected.documentDate)}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5">
+                                <h3 className="mb-3.5 text-sm font-bold uppercase tracking-wide text-slate-700">Thông tin công văn</h3>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    <DetailItem label="Ngày ban hành" value={dateLabel(selected.documentDate)} />
+                                    <DetailItem label="Chương trình liên kết" value={selected.programTitle || "Không liên kết"} />
+                                    <DetailItem label="Năm phê duyệt danh sách" value={selected.eligibilityApprovalYear ? String(selected.eligibilityApprovalYear) : "—"} />
+                                    <DetailItem label="Hạn nộp hồ sơ" value={dateLabel(selected.submissionDeadline)} />
+                                    <DetailItem label="Hạn hoàn thành" value={dateLabel(selected.completionDeadline)} />
+                                    <DetailItem label="Hình thức hỗ trợ" value={`${selected.supportItemName} (${currency(selected.unitAmount)}/${selected.unitLabel})`} />
+                                    <DetailItem className="sm:col-span-2 lg:col-span-3" label="Nguồn kinh phí" value={selected.fundingSourceText} />
+                                </div>
+                            </section>
+
+                            <section className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:p-5">
+                                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-700">Điều kiện hưởng</h3>
+                                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{selected.eligibilitySummary}</p>
+                            </section>
+
+                            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-slate-50/70 px-4 py-3.5 sm:px-5">
+                                    <h3 className="text-sm font-bold text-slate-900">Chỉ tiêu phân bổ theo địa bàn</h3>
+                                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[#11409a] ring-1 ring-blue-100">
+                                        {selected.lines.length} địa bàn
+                                    </span>
+                                </div>
+                                <Table
+                                    rowKey={(line) => `${line.provinceCode}:${line.wardCode}`}
+                                    size="middle"
+                                    pagination={{ pageSize: 10, hideOnSinglePage: true }}
+                                    scroll={{ x: 560 }}
+                                    dataSource={selected.lines}
+                                    columns={[
+                                        { title: "Tỉnh/thành phố", dataIndex: "provinceName", key: "provinceName", render: (value: string | null, line: PublicLine) => <span className="text-slate-600">{value || line.provinceCode}</span> },
+                                        { title: "Xã/phường", dataIndex: "wardName", key: "wardName", render: (value: string | null, line: PublicLine) => <span className="font-semibold text-slate-900">{value || line.wardCode}</span> },
+                                        { title: "Số lượng", dataIndex: "allocatedQuantity", key: "allocatedQuantity", align: "right", width: 150, render: (value: number) => <span className="font-semibold tabular-nums text-slate-900">{value.toLocaleString("vi-VN")} {selected.unitLabel}</span> },
+                                        { title: "Giá trị", key: "amount", align: "right", width: 180, render: (_, line) => <span className="font-semibold tabular-nums text-teal-700">{currency(line.allocatedQuantity * selected.unitAmount)}</span> }
+                                    ]}
+                                />
+                            </section>
+
+                            <Alert type="info" showIcon icon={<FileText size={16} />} message="Theo dõi theo công văn" description="Mỗi địa bàn được hiển thị riêng trong từng công văn để đối chiếu các đợt phân bổ." className="!rounded-xl" />
+                        </div>
+                    ) : null}
+                </Modal>
             </div>
         </PublicAssistanceLayout>
+    );
+}
+
+function DetailItem({ label, value, className }: { label: string; value: string; className?: string }) {
+    return (
+        <div className={`min-w-0 rounded-xl bg-slate-50/80 px-3.5 py-2.5 ring-1 ring-slate-200/60 ${className ?? ""}`}>
+            <p className="text-xs font-medium text-slate-500">{label}</p>
+            <p className="mt-1 break-words text-sm font-semibold text-slate-900">{value}</p>
+        </div>
     );
 }
 

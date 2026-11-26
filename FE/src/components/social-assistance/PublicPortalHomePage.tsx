@@ -149,7 +149,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 {intakeEnabled ? (
                                     <Link
                                         href={`${basePath}/dang-ky?source=WEBSITE`}
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold !text-[#0b2f7a] shadow-lg shadow-blue-950/20 transition-all hover:bg-blue-50"
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl !bg-white px-4 text-sm font-bold !text-[#0b2f7a] shadow-lg shadow-blue-950/20 transition-all hover:!bg-blue-50"
                                     >
                                         <span>Đăng ký nhận hỗ trợ</span>
                                         <ArrowRight size={16} />
@@ -158,7 +158,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                 {resultsEnabled ? (
                                     <Link
                                         href={`${basePath}/ban-do`}
-                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-semibold !text-white ring-1 ring-white/30 backdrop-blur-md transition-all hover:bg-white/25"
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl !bg-white/15 px-4 text-sm font-semibold !text-white ring-1 ring-white/30 backdrop-blur-md transition-all hover:!bg-white/25"
                                     >
                                         <Layers size={16} />
                                         <span>Toàn cảnh GIS</span>
@@ -227,7 +227,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                             </div>
                         </div>
                         {resultsEnabled ? (
-                            <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 text-sm font-semibold !text-[#11409a] ring-1 ring-blue-100 transition-colors hover:bg-blue-100" href={`${basePath}/ban-do`}>
+                            <Link className="inline-flex min-h-9 items-center gap-1.5 rounded-xl !bg-blue-50 px-3.5 text-sm font-semibold !text-[#11409a] ring-1 ring-blue-100 transition-colors hover:!bg-blue-100" href={`${basePath}/ban-do`}>
                                 <span>Mở toàn cảnh GIS</span>
                                 <ArrowRight size={15} />
                             </Link>
@@ -350,7 +350,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                             <h2 className="mt-0.5 text-xl font-bold text-slate-900">Chương trình đang mở</h2>
                         </div>
                         {programsEnabled ? (
-                            <Link href={`${basePath}/chuong-trinh`} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold !text-[#11409a] shadow-xs transition-colors hover:border-blue-200 hover:bg-blue-50">
+                            <Link href={`${basePath}/chuong-trinh`} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 !bg-white px-4 text-sm font-semibold !text-[#11409a] shadow-xs transition-colors hover:border-blue-200 hover:!bg-blue-50">
                                 <span>Tất cả chương trình</span>
                                 <ArrowRight size={15} />
                             </Link>
@@ -379,7 +379,7 @@ export default function PublicPortalHomePage({ slug }: { slug: string }) {
                                             <span className="font-semibold text-slate-800">Đối tượng: </span>
                                             {program.eligibilitySummary}
                                         </div>
-                                        <Link className="mt-auto inline-flex min-h-10 items-center justify-between rounded-xl bg-slate-50 px-3.5 text-sm font-semibold !text-[#11409a] transition-colors group-hover:bg-blue-50" href={`${basePath}/chuong-trinh`}>
+                                        <Link className="mt-auto inline-flex min-h-10 items-center justify-between rounded-xl !bg-slate-50 px-3.5 text-sm font-semibold !text-[#11409a] transition-colors group-hover:!bg-blue-50" href={`${basePath}/chuong-trinh`}>
                                             <span>Xem chương trình</span>
                                             <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                                         </Link>

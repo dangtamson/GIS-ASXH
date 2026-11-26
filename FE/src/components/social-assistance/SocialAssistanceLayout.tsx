@@ -165,8 +165,8 @@ export function PublicAssistanceLayout({
                                             aria-current={isActive ? "page" : undefined}
                                             className={`inline-flex min-h-9 items-center justify-center rounded-lg px-2.5 py-1.5 text-center text-xs font-semibold transition-all duration-150 sm:px-3.5 sm:text-sm ${
                                                 isActive
-                                                    ? "bg-white !text-[#11409a] shadow-xs ring-1 ring-slate-200/80"
-                                                    : "!text-slate-600 hover:bg-white/70 hover:!text-[#11409a]"
+                                                    ? "!bg-white !text-[#11409a] shadow-xs ring-1 ring-slate-200/80"
+                                                    : "!text-slate-600 hover:!bg-white/70 hover:!text-[#11409a]"
                                             }`}
                                         >
                                             {label}
@@ -178,14 +178,14 @@ export function PublicAssistanceLayout({
                             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                                 <Link
                                     href={`${basePath}/dang-ky?source=WEBSITE`}
-                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b2f7a] to-[#1346a8] px-3.5 text-center text-xs font-semibold !text-white shadow-sm shadow-blue-900/20 transition-all duration-150 hover:from-[#08245e] hover:to-[#0f3a8a] hover:shadow-md sm:px-4 sm:text-sm"
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl !bg-gradient-to-r !from-[#0b2f7a] !to-[#1346a8] px-3.5 text-center text-xs font-semibold !text-white shadow-sm shadow-blue-900/20 transition-all duration-150 hover:!from-[#08245e] hover:!to-[#0f3a8a] hover:shadow-md sm:px-4 sm:text-sm"
                                 >
                                     <ArrowDownToLine size={15} />
                                     <span>Gửi yêu cầu hỗ trợ</span>
                                 </Link>
                                 <Link
                                     href={`${basePath}/chuong-trinh#pledge`}
-                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50/90 px-3.5 text-center text-xs font-semibold !text-teal-800 transition-all duration-150 hover:border-teal-300 hover:bg-teal-100/90 sm:px-4 sm:text-sm"
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-teal-200 !bg-teal-50/90 px-3.5 text-center text-xs font-semibold !text-teal-800 transition-all duration-150 hover:border-teal-300 hover:!bg-teal-100/90 sm:px-4 sm:text-sm"
                                 >
                                     <HandHeart size={15} />
                                     <span>Ủng hộ quỹ</span>
@@ -218,7 +218,7 @@ export function PublicAssistanceLayout({
                                 {pathname !== basePath ? (
                                     <Link
                                         href={basePath}
-                                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold !text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:!text-[#11409a]"
+                                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 !bg-slate-50 px-3.5 text-sm font-semibold !text-slate-700 transition-colors hover:border-blue-200 hover:!bg-blue-50 hover:!text-[#11409a]"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>Bản đồ địa lý</span>
